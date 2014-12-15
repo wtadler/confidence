@@ -206,7 +206,6 @@ elseif isfield(p, 'lambda') % models with lapse
 end
 
 
-save tgtest.mat
 if ~model.choice_only
     
     %raw.g   (lapse_trials)         = 1;%randsample(1:conf_levels, n_lapse_trials, 'true'); % lapse confidence, if confidence exists

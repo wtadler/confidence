@@ -132,7 +132,7 @@ end
 
 Test.n.blocks = 3;% WTA from 3
 Test.n.sections = 2; % WTA from 3
-Test.n.trials = 18*numel(Test.sigma.int); % 9*numel(Test.sigma.int)*2 = 108
+Test.n.trials = 18*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
 
 Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % WTA: 2
