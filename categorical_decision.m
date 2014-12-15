@@ -26,9 +26,9 @@ cd(dir)
 
 initial = input('Please enter your initials.\n> ', 's'); % 's' returns entered text as a string
 
-new = input('\nAre you new to this experiment? Please enter y or n.\n> ', 's');
-while ~strcmp(new,'y') && ~strcmp(new,'n')
-    new = input('You must enter y or n.\nAre you new to this experiment? Please enter y or n.\n> ', 's');
+new_subject_flag = input('\nAre you new to this experiment? Please enter y or n.\n> ', 's');
+while ~strcmp(new_subject_flag,'y') && ~strcmp(new_subject_flag,'n')
+    new_subject_flag = input('You must enter y or n.\nAre you new to this experiment? Please enter y or n.\n> ', 's');
 end
 
 room_letter = input('\nPlease enter the room name [mbp] or [home] or [1139].\n> ', 's');
@@ -71,8 +71,8 @@ if strcmp(room_letter,'home') || strcmp(room_letter,'mbp')
         scr.key7, scr.key8, scr.key9, scr.key10] ...
         = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
     scr.keyinsert=76;%this is actually delete
-    scr.keyenter=88;
-    %scr.keyx=27; %x
+    scr.keyenter=88;8
+        %scr.keyx=27; %x
     %scr.keyz=29; %z
 end
 
@@ -83,9 +83,9 @@ demo_type='new'; % 'old' or 'new' ("movie")
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
-category_type = 'diff_mean_same_std'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
-attention_manipulation = false;
-    cue_validity = .7;
+category_type = 'sym_uniform'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
+attention_manipulation = true;
+cue_validity = .7;
 % colors in 0:1 space
 % color.bg = [0.4902    0.5647    0.5137];
 % color.wt = [1 1 1];
@@ -102,30 +102,37 @@ color.grn = [0 100 0];
 
 countdown = 30; % countdown between blocks
 
-Test.sigma.one = 3;
-Test.sigma.two = 12;
-if strcmp(category_type, 'diff_mean_same_std')
-    Test.sigma.one = 5;
-    Test.sigma.mu1 = -2.5;
-    Test.sigma.mu2 = 2.5;
+if strcmp(category_type, 'same_mean_diff_std')
+    Test.category_params.sigma_1 = 3;
+    Test.category_params.sigma_2 = 12;
+elseif strcmp(category_type, 'diff_mean_same_std')
+    Test.category_params.sigma_s = 5; % these params give a level of performance that is about on par withthe original task (above)
+    Test.category_params.mu_1 = -4;
+    Test.category_params.mu_2 = 4;
+elseif strcmp(category_type, 'sym_uniform')
+    Test.category_params.uniform_range = 15;
+    Test.category_params.overlap = 0;
+elseif strcmp(category_type, 'half_gaussian')
+    Test.category_params.sigma_s = 5;
 end
 
+
 if strcmp(P.stim_type, 'ellipse')
-    Test.sigma.int = .4:.1:.9; % are these reasonable eccentricities?
+    Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
 else
-    Test.sigma.int = exp(-4:.5:-1.5); %4 of these 6 are in qamar 2013. WTA. to test final two:exp(-2:.5:-1.5)
+    Test.category_params.test_sigmas= exp(-4:.5:-1.5); %4 of these 6 are in qamar 2013. WTA. to test final two:exp(-2:.5:-1.5)
 end
 
-Training.sigma = Test.sigma;
+Training.category_params = Test.category_params;
 if strcmp(P.stim_type, 'ellipse')
-    Training.sigma.int = .95;
+    Training.category_params.test_sigmas = .95;
 else
-    Training.sigma.int = 1;
+    Training.category_params.test_sigmas = 1;
 end
 
 Test.n.blocks = 3;% WTA from 3
 Test.n.sections = 2; % WTA from 3
-Test.n.trials = 9*numel(Test.sigma.int)*2; % 9*numel(Test.sigma.int)*2 = 108
+Test.n.trials = 18*numel(Test.sigma.int); % 9*numel(Test.sigma.int)*2 = 108
 
 Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % WTA: 2
@@ -137,7 +144,11 @@ Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 1; %changed from '2' on 10/14
 Training.n.trials = 48; % WTA: 48
 
-Test.t.pres = 50;           %50. needs to be longer for attention experiment?
+Demo.t.pres = 250;
+Demo.t.betwtrials = 200;
+
+
+Test.t.pres = 500;           %50. needs to be longer for attention experiment?
 Test.t.pause = 200;         %200 isn't used
 Test.t.feedback = 1200;     %1200 isn't used
 Test.t.betwtrials = 1000;   %1000
@@ -150,7 +161,7 @@ Training.t.betwtrials = 1000; %1000
 Training.t.attention_cue = 1000;
 
 
-%%
+%%8
 if strfind(initial,'fast') > 0 % if 'fast' is in the initials, the exp will be super fast (for debugging)
     [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,Training.t.feedback,Training.t.betwtrials,countdown]...
         = deal(1);
@@ -158,7 +169,7 @@ end
 
 if strfind(initial,'short') > 0 % if 'short' is in the initials, the exp will be short (for debugging)
     [Test.n.trials,Training.initial.n.trials,Training.confidence.n.trials,Training.n.trials]...
-        = deal(numel(Test.sigma.int)*2, 4, 4, 4);
+        = deal(numel(Test.category_params.test_sigmas)*2, 4, 4, 4);
     nDemoTrials = 5;
 end
 
@@ -298,7 +309,7 @@ try
     % determine size
     %P.maxPeriod = max(P.textureSize) - max(P.diskSize);
     %P.alphaMaskSize = ceil(max(P.diskSize) / 2 + P.maxPeriod) + 5;
-    alphaMaskSize = 5; %degrees
+    alphaMaskSize = 5; %degrees % CHANGE ME?????
     %EFFECTIVE RADIUS OF ALPHA MASK
     %for 97% filtered: 2.25 degrees (diam 4.5)
     %for 97.5% filtered: 2.30 degrees (diam(4.6)
@@ -316,7 +327,7 @@ try
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
 %save cdtest.mat    
     if strcmp(P.stim_type, 'grate')
-        %% make the alpha map
+        % make the alpha map
         x = -P.alphaMaskSize:P.alphaMaskSize-1;
         [X,Y] = meshgrid(x,x);
         alphaLum = repmat(permute(P.bgColor,[2 3 1]),2*P.alphaMaskSize,2*P.alphaMaskSize); % 204x204x3 matrix. 204px square, with equal RGB values (gray) at each pixel
@@ -335,10 +346,10 @@ try
     %%%Setup routine. this is some complicated stuff to deal with the
     %%%two-part training thing
     
-    InitialTrainingpreR = setup_exp_order(Training.initial.n, Training.sigma, category_type);
+    InitialTrainingpreR = setup_exp_order(Training.initial.n, Training.category_params, category_type);
     
     Training.n.blocks = Training.n.blocks - 1;
-    TrainingpreR = setup_exp_order(Training.n, Training.sigma, category_type);
+    TrainingpreR = setup_exp_order(Training.n, Training.category_params, category_type);
     
     Training.n.blocks = Training.n.blocks + 1; % undo previous line
     
@@ -353,31 +364,30 @@ try
         Training.R.phase{spec} = TrainingpreR.phase{spec-1};
     end
     
-    Test.R = setup_exp_order(Test.n, Test.sigma, category_type);
+    Test.R = setup_exp_order(Test.n, Test.category_params, category_type);
     
     if attention_manipulation
-        Test.R2 = setup_exp_order(Test.n, Test.sigma, category_type, 1, cue_validity); % second set of stimuli. This also contains the probe/cue info.
+        Test.R2 = setup_exp_order(Test.n, Test.category_params, category_type, 1, cue_validity); % second set of stimuli. This also contains the probe/cue info.
     end
     
-    Training.confidence.R = setup_exp_order(Training.confidence.n, Test.sigma, category_type);
+    Training.confidence.R = setup_exp_order(Training.confidence.n, Test.category_params, category_type);
     
 
     %% DEMO for new subjects
-    if strcmp(new,'y')
+    if strcmp(new_subject_flag,'y')
         [nx,ny]=DrawFormattedText(scr.win, 'Example Stimulus\n\n', 'center', scr.cy-60, color.wt);
         
+        stim.ort = 0;
+        stim.cur_sigma = Training.category_params.test_sigmas;
+
         if strcmp(P.stim_type, 'grate')
             example_w = 6*P.gabor_wavelength;
-            stim.ort = 0;
-            stim.cur_sigma = 1;
             %r_gabor(P,0,scr,1,[],[scr.cx-example_w/2 ny scr.cx+example_w/2 ny+example_w])
             r_gabor(P,scr,[],stim,[scr.cx-example_w/2 ny scr.cx+example_w/2 ny+example_w])
         elseif strcmp(P.stim_type, 'ellipse')
             im = drawEllipse(P.ellipseAreaPx, .95, 0, P.ellipseColor, mean(P.bgColor));
             max_ellipse_d = size(im,1); % in this case, this is the height of the longest (tallest) ellipse
             %ellipse(P, 0, scr, .95, 0)%, [scr.cx-size(im,2)/2 ny scr.cx+size(im,2)/2 ny+size(im,1)])
-            stim.ort = 0;
-            stim.cur_sigma = .95;
             ellipse(P, scr, [], stim)
         end
         Screen('Flip', scr.win)%,[],1);
@@ -386,117 +396,100 @@ try
         KbWait;
         
         if strcmp(demo_type, 'old')
-            nExamples = 6;
-            
-            if strcmp(category_type, 'same_mean_diff_std')
-                %class_1_orts = Test.sigma.one*randn(examples,1) + 90; % generate
-                %orientations. runs risk of getting nonrepresentative sample.
-                class_1_orts = [83.6018   90.6598   92.8989   91.0500   92.7054 88.3012]-90; % might be best to do arbitrarily.
-                %class_2_orts = Test.sigma.two*randn(examples,1) + 90; % generate
-                class_2_orts = [115.4543  104.9830   76.5218   80.0390   88.5387 109.2334]-90; % arbitrary
-            elseif strcmp(category_type, 'sym_uniform')
-                class_1_orts = -15 * rand(1,6);
-                class_2_orts = 15 * rand(1,6);
-            end
-            
-            upper_left_corner = [scr.cx*.05 scr.cy*.4]; %[scr.cx*.35 scr.cy*.4]
-            
-            x_int = scr.cx*.05; % space between each example
-            y_int = scr.cy*.6;%go back to:  scr.cy*.8;
-
-            
-            for l=1:2;
-                
-                
-                Screen('DrawText', scr.win, 'Examples of Category 1 stimuli:', upper_left_corner(1)-20, upper_left_corner(2)-60);
-                if l==2;
-                    Screen('DrawText', scr.win, 'Examples of Category 2 stimuli:', upper_left_corner(1)-20, upper_left_corner(2)-60+y_int);
-                end
-                
-                if strcmp(P.stim_type, 'grate')
-                    
-                    dest_one = [upper_left_corner   upper_left_corner+example_w]; % coordinates spanned by leftmost class 1 gabor
-                    dest_two = dest_one +  y_int*[0 1 0 1]; % coordinates spanned by leftmost class 2 gabor
-                    
-                    %demo_contrasts = rand(examples,2)/2; % random and relatively high contrast
-                    %demo_contrasts = [datasample(Test.sigma.int,examples); %datasample(Test.sigma.int,5)]' % real, from experiment. not true for training
-                    demo_contrasts = ones(nExamples,2); % 100% contrast. best for training
-                    
-                    for n = 1:nExamples
-                        % DEPRECATED r_gabor
-                        r_gabor(P, class_1_orts(n), scr, demo_contrasts(n,1), [], dest_one); % draw gabor on screen
-                        dest_one([1 3]) = dest_one([1 3]) + x_int + example_w; % next gabor's location
-                        if l==2;
-                            r_gabor(P, class_2_orts(n), scr, demo_contrasts(n,2), [], dest_two);
-                            dest_two([1 3]) = dest_two([1 3]) + x_int + example_w;
-                        end
-                    end
-                    
-                elseif strcmp(P.stim_type, 'ellipse')
-                    demo_contrasts = .95*ones(nExamples, 2);
-                    for n = 1:nExamples
-                        if l==1
-                            im = drawEllipse(P.ellipseAreaPx, demo_contrasts(n,1), class_1_orts(n), P.ellipseColor, mean(P.bgColor));
-                            ew = size(im,2);
-                            eh = size(im,1);
-                            dest_one = [upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d-ew)/2, upper_left_corner(2)+(max_ellipse_d-eh)/2, upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d+ew)/2, upper_left_corner(2)+(max_ellipse_d+eh)/2];
-                            ellipse(P, class_1_orts(n), scr, demo_contrasts(n,1), [], dest_one);
-                        elseif l==2
-                            im = drawEllipse(P.ellipseAreaPx, demo_contrasts(n,1), class_2_orts(n), P.ellipseColor, mean(P.bgColor));
-                            ew = size(im,2);
-                            eh = size(im,1);
-                            dest_one = [upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d-ew)/2, upper_left_corner(2)+(max_ellipse_d-eh)/2, upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d+ew)/2, upper_left_corner(2)+(max_ellipse_d+eh)/2];
-                            dest_one = dest_one + y_int*[0 1 0 1];
-                            ellipse(P, class_2_orts(n), scr, demo_contrasts(n,2), [], dest_one);
-                            
-                        end
-                    end
-                end
-                
-                
-                Screen('Flip', scr.win,[],1);
-                WaitSecs(1);
-                %Screen('Flip', scr.win,[],1);
-                KbWait;
-            end
-            Screen('Flip', scr.win);
-            
+%             nExamples = 6;
+%             
+%             if strcmp(category_type, 'same_mean_diff_std')
+%                 %class_1_orts = Test.category_params.sigma_1*randn(examples,1) + 90; % generate
+%                 %orientations. runs risk of getting nonrepresentative sample.
+%                 class_1_orts = [83.6018   90.6598   92.8989   91.0500   92.7054 88.3012]-90; % might be best to do arbitrarily.
+%                 %class_2_orts = Test.category_params.sigma_2*randn(examples,1) + 90; % generate
+%                 class_2_orts = [115.4543  104.9830   76.5218   80.0390   88.5387 109.2334]-90; % arbitrary
+%             elseif strcmp(category_type, 'sym_uniform')
+%                 class_1_orts = -15 * rand(1,6);
+%                 class_2_orts = 15 * rand(1,6);
+%             end
+%             
+%             upper_left_corner = [scr.cx*.05 scr.cy*.4]; %[scr.cx*.35 scr.cy*.4]
+%             
+%             x_int = scr.cx*.05; % space between each example
+%             y_int = scr.cy*.6;%go back to:  scr.cy*.8;
+% 
+%             
+%             for category=1:2;
+%                 Screen('DrawText', scr.win, 'Examples of Category 1 stimuli:', upper_left_corner(1)-20, upper_left_corner(2)-60);
+%                 if category==2;
+%                     Screen('DrawText', scr.win, 'Examples of Category 2 stimuli:', upper_left_corner(1)-20, upper_left_corner(2)-60+y_int);
+%                 end
+%                 
+%                 if strcmp(P.stim_type, 'grate')
+%                     
+%                     dest_one = [upper_left_corner   upper_left_corner+example_w]; % coordinates spanned by leftmost class 1 gabor
+%                     dest_two = dest_one +  y_int*[0 1 0 1]; % coordinates spanned by leftmost class 2 gabor
+%                     
+%                     %demo_contrasts = rand(examples,2)/2; % random and relatively high contrast
+%                     %demo_contrasts = [datasample(Test.category_params.test_sigmas,examples); %datasample(Test.category_params.test_sigmas,5)]' % real, from experiment. not true for training
+%                     demo_contrasts = ones(nExamples,2); % 100% contrast. best for training
+%                     
+%                     for n = 1:nExamples
+%                         % DEPRECATED r_gabor
+%                         r_gabor(P, class_1_orts(n), scr, demo_contrasts(n,1), [], dest_one); % draw gabor on screen
+%                         dest_one([1 3]) = dest_one([1 3]) + x_int + example_w; % next gabor's location
+%                         if category==2;
+%                             r_gabor(P, class_2_orts(n), scr, demo_contrasts(n,2), [], dest_two);
+%                             dest_two([1 3]) = dest_two([1 3]) + x_int + example_w;
+%                         end
+%                     end
+%                     
+%                 elseif strcmp(P.stim_type, 'ellipse')
+%                     demo_contrasts = .95*ones(nExamples, 2);
+%                     for n = 1:nExamples
+%                         if category==1
+%                             im = drawEllipse(P.ellipseAreaPx, demo_contrasts(n,1), class_1_orts(n), P.ellipseColor, mean(P.bgColor));
+%                             ew = size(im,2);
+%                             eh = size(im,1);
+%                             dest_one = [upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d-ew)/2, upper_left_corner(2)+(max_ellipse_d-eh)/2, upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d+ew)/2, upper_left_corner(2)+(max_ellipse_d+eh)/2];
+%                             ellipse(P, class_1_orts(n), scr, demo_contrasts(n,1), [], dest_one);
+%                         elseif category==2
+%                             im = drawEllipse(P.ellipseAreaPx, demo_contrasts(n,1), class_2_orts(n), P.ellipseColor, mean(P.bgColor));
+%                             ew = size(im,2);
+%                             eh = size(im,1);
+%                             dest_one = [upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d-ew)/2, upper_left_corner(2)+(max_ellipse_d-eh)/2, upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d+ew)/2, upper_left_corner(2)+(max_ellipse_d+eh)/2];
+%                             dest_one = dest_one + y_int*[0 1 0 1];
+%                             ellipse(P, class_2_orts(n), scr, demo_contrasts(n,2), [], dest_one);
+%                             
+%                         end
+%                     end
+%                 end
+%                 
+%                 
+%                 Screen('Flip', scr.win,[],1);
+%                 WaitSecs(1);
+%                 %Screen('Flip', scr.win,[],1);
+%                 KbWait;
+%             end
+%             Screen('Flip', scr.win);
+%             
         elseif strcmp(demo_type,'new')
-            
-            for l = 1 : 2
-                if l==1
-                    DrawFormattedText(scr.win, 'Examples of Category 1 stimuli:', 'center', scr.cy-60, color.wt);
-                elseif l==2;
-                    DrawFormattedText(scr.win, 'Examples of Category 2 stimuli:', 'center', scr.cy-60, color.wt);
-                end
+            for category = 1 : 2
+                DrawFormattedText(scr.win, sprintf('Examples of Category %i stimuli:', category), 'center', scr.cy-60, color.wt);
                 Screen('Flip', scr.win);
                 WaitSecs(1);
                 KbWait;
-                
-                Demo.t.pres = 250;
-                Demo.t.betwtrials = 200;
-                
+                                
                 for i = 1:nDemoTrials
                 
                     Screen('DrawTexture', scr.win, scr.cross);
                     Screen('Flip', scr.win);
                     WaitSecs(Demo.t.betwtrials/1000);
                     
-                    % this won't generalize to other categories. fix.
-                    stim.ort = Test.sigma.one*randn;
-                    if l==2;
-                        stim.ort = Test.sigma.two*randn;
-                    end
-                    
+                    stim.ort = stimulus_orientations(Test.category_params, category_type, category, 1, 1);
+
                     if strcmp(P.stim_type, 'gabor')
-                        stim.cur_sigma = 1;
                         r_gabor(P, scr, Demo.t, stim); % haven't yet added phase info to this function
                     elseif strcmp(P.stim_type, 'grate')
                         stim.phase = 360*rand;
-                        stim.cur_sigma = 1;
                         grate(P, scr, Demo.t, stim);
                     elseif strcmp(P.stim_type, 'ellipse')
-                        stim.cur_sigma = .95;
                         ellipse(P, scr, Demo.t, stim);
                     end            
                 end
@@ -522,23 +515,23 @@ try
             numbers = Training.n;
         end
         
-        [Training.responses{k}, flag] = run_exp(numbers, Training.R, Training.t, scr, color, P, 'Training',k, new);
+        [Training.responses{k}, flag] = run_exp(numbers, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag);
         if flag ==1,  break;  end
         
-        if k == 1 && strcmp(new,'y') % if we are on block 1, and subject is new
+        if k == 1 && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
             [~,ny]=DrawFormattedText(scr.win,['Let''s get some quick practice with confidence ratings.\n\n'...
                 'Coming up: Confidence Training'],'center',ny,color.wt);
             flip_pak_flip(scr,ny,color,'begin')
             
-            [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new);
+            [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag);
             if flag==1,break;end
             
         end
         
         if attention_manipulation
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new, Test.R2);
+            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, Test.R2);
         else
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new);
+            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag);
         end
         if flag ==1,  break;  end
         

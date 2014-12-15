@@ -1,10 +1,8 @@
-function R = setup_exp_order(n, sigma, category_type, varargin)
+function R = setup_exp_order(n, category_params, category_type, varargin)
 %%%Set up order of class, sigma, and orientation for entire scheme%%%
 
 R = [];
-sigma.uniform_range = 15; % for sym_uniform
-sigma.overlap = 0; % for sym_uniform
-sigma.s = 5; % for half_gaussian
+
 if length(varargin)==0
     attention_manipulation = 0;
 elseif length(varargin)==1
@@ -26,34 +24,15 @@ for k = 1:n.blocks
     
 
     R.trial_order{k} = reshape(randsample(2,n.trials*n.sections,true),n.sections,n.trials);
-    R.sigma{k} = reshape(randsample(sigma.int,n.trials*n.sections,true),n.sections,n.trials);
+    R.sigma{k} = reshape(randsample(category_params.test_sigmas, n.trials*n.sections,true),n.sections,n.trials);
     
     %get random orientation draws from normal distributions (~sigmal or ~sigma2)
     %CORRESPONDING TO order of classes.
     classtwos = (R.trial_order{k} == 2); % index of class 2 trials
     R.phase{k} = 360*rand(n.sections,n.trials); % random phase draws
     
-    R.draws{k}= stimulus_orientations(sigma, category_type, n.sections, n.trials);
-    R.draws{k}(classtwos) = stimulus_orientations(sigma, category_type, nnz(classtwos), 1);
-    
-    function s = stimulus_orientations(sigma, category_type
-    switch category_type
-        case 'same_mean_diff_std'
-            R.draws{k} = sigma.one*randn(n.sections,n.trials); % get all draws from sigma.one
-            R.draws{k}(classtwos) = sigma.two*randn(nnz(classtwos),1); % replace the class 2 draws with draws from sigma.two
-    
-        case 'diff_mean_same_std'
-            R.draws{k} = sigma.mu1 + sigma.one*randn(n.sections, n.trials);
-            R.draws{k}(classtwos) = sigma.mu2 + sigma.one*randn(nnz(classtwos),1);
-
-        case 'sym_uniform'
-            R.draws{k} = - uniform_range * rand(n.sections, n.trials) + overlap;
-            R.draws{k}(classtwos) = uniform_range * rand(nnz(classtwos),1) - overlap;
-    
-        case 'half_gaussian'
-            R.draws{k} = - abs(sig_s * randn(n.sections, n.trials));
-            R.draws{k}(classtwos) = -R.draws{k}(classtwos);
-    end
+    R.draws{k}= stimulus_orientations(category_params, category_type, 1, n.sections, n.trials);
+    R.draws{k}(classtwos) = stimulus_orientations(category_params, category_type, 2, nnz(classtwos), 1);
     
     if attention_manipulation
         R.probe{k} = reshape(randsample(2,n.trials*n.sections,true), n.sections, n.trials);

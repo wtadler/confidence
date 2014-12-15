@@ -126,8 +126,11 @@ if strcmp(model.family,'opt') % for all opt family models
 %             end
 %         end
 %     end
+elseif strcmp(model.family, 'map')
+    prior=(1/(2*sqrt(2*pi)))*((1/sig1)*exp((-x.^2)/(2*sig1^2)) + (1/sig2)*exp((-x.^2)/(2*sig2^2))); % re-normalized sum of the two gaussians
     
-else % all non-optimal models
+    
+else % all measurement models
 %     if any(regexp(model, '^lin(?!2)')) % lin but not lin2
 %         k_multiplier = 1+raw.sig/p.sigma_p;
 %         
