@@ -14,37 +14,37 @@ opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
 opt_models(1).choice_only = 0;
 
-opt_models(2).family = 'lin'; % good param recovery
+opt_models(2).family = 'lin';
 opt_models(2).multi_lapse = 1;
 opt_models(2).partial_lapse = 0;
 opt_models(2).repeat_lapse = 0;
 opt_models(2).choice_only = 0;
 
-opt_models(3).family = 'quad'; % good param recovery
+opt_models(3).family = 'quad';
 opt_models(3).multi_lapse = 1;
 opt_models(3).partial_lapse = 0;
 opt_models(3).repeat_lapse = 1;
 opt_models(3).choice_only = 0;
 
-opt_models(4).family = 'opt'; % good without d noise
-opt_models(4).symmetric = 1;
-opt_models(4).d_noise = 1;
-opt_models(4).multi_lapse = 1;
+opt_models(4).family = 'MAP';
+opt_models(4).symmetric = 0;
+opt_models(4).d_noise = 0;
+opt_models(4).multi_lapse = 0;
 opt_models(4).partial_lapse = 0;
 opt_models(4).repeat_lapse = 0;
 opt_models(4).choice_only = 0;
-opt_models(4).non_overlap = 1;
+opt_models(4).non_overlap = 0;
 
-opt_models(5).family = 'opt'; % need to test this with d nosie
-opt_models(5).symmetric = 1;
-opt_models(5).d_noise = 1;
-opt_models(5).multi_lapse = 1;
+opt_models(5).family = 'opt';
+opt_models(5).symmetric = 0;
+opt_models(5).d_noise = 0;
+opt_models(5).multi_lapse = 0;
 opt_models(5).partial_lapse = 0;
 opt_models(5).repeat_lapse = 0;
 opt_models(5).choice_only = 0;
 opt_models(5).non_overlap = 1;
 
-opt_models(6).family = 'opt'; % good param recovery
+opt_models(6).family = 'opt';
 opt_models(6).symmetric = 1;
 opt_models(6).d_noise = 1;
 opt_models(6).multi_lapse = 1;
@@ -52,7 +52,7 @@ opt_models(6).partial_lapse = 0;
 opt_models(6).repeat_lapse = 0;
 opt_models(6).choice_only = 0;
 
-opt_models(7).family = 'opt'; % good param recovery
+opt_models(7).family = 'opt';
 opt_models(7).symmetric = 0;
 opt_models(7).d_noise = 1;
 opt_models(7).multi_lapse = 1;
@@ -60,11 +60,11 @@ opt_models(7).partial_lapse = 1;
 opt_models(7).repeat_lapse = 1;
 opt_models(7).choice_only = 0;
 
-opt_models(8).family = 'quad'; % bad bound recovery?
+opt_models(8).family = 'quad';
 opt_models(8).repeat_lapse = 1;
 opt_models(8).choice_only = 1;
 
-opt_models(9).family = 'opt'; % something is wrong with the standard full lapse...but i don't know what.
+opt_models(9).family = 'opt';
 opt_models(9).symmetric = 0;
 opt_models(9).d_noise = 1;
 opt_models(9).repeat_lapse = 1;

@@ -12,7 +12,7 @@ end
 if model.choice_only
     if strcmp(model.family, 'opt')
         p.b_i = [-Inf -Inf -Inf -Inf p.b_0_d Inf Inf Inf Inf];
-    elseif strcmp(model.family, 'fixed')
+    elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'MAP')
         p.b_i = [0 0 0 0 p.b_0_x Inf Inf Inf Inf];
     elseif strcmp(model.family, 'lin') || strcmp(model.family, 'quad')
         p.b_i = [0 0 0 0 p.b_0_x Inf Inf Inf Inf];
@@ -27,7 +27,7 @@ else
         elseif ~model.symmetric
             p.b_i = [-Inf p.b_n3_d p.b_n2_d p.b_n1_d p.b_0_d p.b_1_d p.b_2_d p.b_3_d Inf];
         end
-    elseif strcmp(model.family, 'fixed')
+    elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'MAP')
         p.b_i = [0 p.b_n3_x p.b_n2_x p.b_n1_x p.b_0_x p.b_1_x p.b_2_x p.b_3_x Inf];
     elseif strcmp(model.family, 'lin') || strcmp(model.family, 'quad')
         p.b_i = [0 p.b_n3_x p.b_n2_x p.b_n1_x p.b_0_x p.b_1_x p.b_2_x p.b_3_x Inf];

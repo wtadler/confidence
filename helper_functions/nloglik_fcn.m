@@ -1,5 +1,4 @@
 function nloglik = nloglik_fcn(p_in, raw, model, varargin)
-
 if model.d_noise
     if length(varargin) == 1
         nDNoiseSets = varargin{1};
@@ -33,6 +32,8 @@ global p conf_levels d_bounds
 p = parameter_variable_namer(p_in, model.parameter_names, model);
 contrasts = exp(-4:.5:-1.5);
 nContrasts = length(contrasts);
+nTrials = length(raw.s);
+
 if model.d_noise
     nSTDs = 5;
     weights = normpdf(linspace(-nSTDs, nSTDs, nDNoiseSets), 0, 1);
@@ -40,7 +41,6 @@ if model.d_noise
     
     d_noise_draws = linspace(-p.sigma_d*nSTDs, p.sigma_d*nSTDs, nDNoiseSets);
     
-    nTrials = length(raw.s);
     d_noise = repmat(d_noise_draws',1,nContrasts);
     d_noise_big = repmat(d_noise_draws',1,nTrials);% this is for confidence. too hard to figure out the indexing. going to be too many computations, because there's redundancy in the a,b,k vectors. but the bulk of computation has to be on an individual trial basis anyway.
 else
@@ -65,7 +65,6 @@ end
 sig = fliplr(sqrt(max(0,p.sigma_0^2 + p.alpha .* contrasts .^ -p.beta))); % low to high sigma. should line up with contrast id
 % now k will only be 6 cols, rather than 3240.
 
-
 optflag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -80,7 +79,7 @@ if strcmp(model.family, 'opt')% for normal bayesian family of models
         k1 = .5 * log( (sig.^2 + sig2^2) ./ (sig.^2 + sig1^2));% + p.b_i(5); %log(prior / (1 - prior));
         k2 = (sig2^2 - sig1^2) ./ (2 .* (sig.^2 + sig1^2) .* (sig.^2 + sig2^2));
         k   = (sqrt(repmat(k1, nDNoiseSets, 1) + d_noise)) ./ repmat(sqrt(k2), nDNoiseSets, 1);
-    
+        
     elseif model.non_overlap
         x_bounds = find_intersect_truncated_cats(p, sig1, sig2, contrasts, d_noise_big, raw);
         
@@ -92,13 +91,46 @@ if strcmp(model.family, 'opt')% for normal bayesian family of models
             k = permute(x_bounds(3,:,:),[3 2 1]);
         end
     end
-
+    
 elseif strcmp(model.family, 'lin')
     k = max(bf(0) + mf(0) * sig, 0);
 elseif strcmp(model.family, 'quad')
     k = max(bf(0) + mf(0) * sig.^2, 0);
 elseif strcmp(model.family, 'fixed')
     k = bf(0)*ones(1,nContrasts);
+elseif strcmp(model.family, 'MAP')
+    dx=.5;
+    x = (-150:dx:150)'; % need to do some kind of nice zoomy grid thing here.
+    xSteps = length(x);
+    shat_lookup_table = zeros(nContrasts,xSteps);
+    %cat_idx = cell(nContrasts,2);
+    k = zeros(1,nContrasts);
+    for c = 1:nContrasts
+        cur_sig = sig(c);
+        k1 = sqrt(1/(cur_sig^-2 + sig1^-2));
+        mu1 = x*cur_sig^-2 * k1^2;
+        k2 = sqrt(1/(cur_sig^-2 + sig2^-2));
+        mu2 = x*cur_sig^-2 * k2^2;
+        
+        shat_lookup_table(c,:) = gmm1max_n2_fast([normpdf(x,0,sqrt(sig1^2 + cur_sig^2)) normpdf(x,0,sqrt(sig2^2 + cur_sig^2))],...
+            [mu1 mu2], repmat([k1 k2],xSteps,1));
+        
+        k(c) = interp1(shat_lookup_table(c,:), x, p.b_i(5));
+        %idx{c,1} = find(abs(shat_lookup_table(c,:))<p.b_i(5));
+        %idx{c,2} = find(abs(shat_lookup_table(c,:))>=p.b_i(5));
+    end
+    
+    
+    % use interp1 to find x value where shat is equal to p.b_i
+    
+%     for t = 1:nTrials
+%         cur_sig_id = raw.contrast_id(t);
+%         trial_idx = idx{cur_sig_id, 0.5*raw.Chat(t) + 1.5};
+%         noise = normpdf(x(trial_idx)',raw.s(t),raw.sig(t));
+%         xxx=noise.*shat_lookup_table(cur_sig_id,trial_idx); 
+%         %p_shat_given_s = ??
+%     %%
+
     
 end
 
@@ -115,7 +147,6 @@ if model.d_noise
 else
     p_choice = -raw.Chat .* f(k,raw.s,sig,optflag) + 0.5*raw.Chat + 0.5;
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CONFIDENCE PROBABILITY %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -157,6 +188,16 @@ if ~model.choice_only
         a = raw.Chat .* bf(raw.Chat .* (raw.g)    );
         b = raw.Chat .* bf(raw.Chat .* (raw.g - 1));
         
+    elseif strcmp(model.family, 'MAP')
+        x_bounds = zeros(nContrasts, conf_levels*2-1);
+        for c = 1:nContrasts
+            for r = 1:conf_levels*2-1
+                x_bounds(c,r) = interp1(shat_lookup_table(c,:), x, p.b_i(1+r));
+            end
+        end
+        x_bounds = [zeros(6,1) flipud(x_bounds) inf(6,1)];
+        a = raw.Chat .* max(x_bounds((4 + raw.Chat .* raw.g) * nContrasts + (nContrasts + 1 - raw.contrast_id)),0);
+        b = raw.Chat .* max(x_bounds((4 + raw.Chat .* (raw.g - 1)) * nContrasts + (nContrasts + 1 - raw.contrast_id)),0);
     end
     
     if model.d_noise
@@ -168,7 +209,8 @@ if ~model.choice_only
     else
         p_conf_choice = f(a,raw.s,sig,optflag) - f(b,raw.s,sig,optflag);
         if sum(p_conf_choice<0)~=0
-            fprintf('%g trials where f(b)>f(a)\n',sum(p_conf_choice<0))
+            fprintf('%g trials where f(b)>f(a)\n',sum(p_conf_choice<0)) % why so many here for MAP model?
+            save nltest.mat
         end
         p_conf_choice = max(0,p_conf_choice); % this max is a hack. it covers for non overlap x_bounds being weird.
     end
@@ -277,3 +319,4 @@ global conf_levels d_bounds
 d_boundstmp = [Inf d_bounds 0];
 d_boundsval = d_boundstmp(name + conf_levels + 1);
 end
+

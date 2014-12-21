@@ -104,7 +104,7 @@ for m_id = 1 : nModels
         b = find(~cellfun(@isempty,regexp(c.parameter_names, 'b_')));
         m = find(~cellfun(@isempty,regexp(c.parameter_names, 'm_')));
         c.monotonic_params = {b,m};
-    elseif strcmp(c.family, 'fixed')
+    elseif strcmp(c.family, 'fixed') || strcmp(c.family, 'MAP')
         b = find(~cellfun(@isempty,regexp(c.parameter_names, 'b_')));
         c.monotonic_params = {b};
     elseif strcmp(c.family, 'opt')
@@ -146,7 +146,7 @@ slopebounds=find(~cellfun(@isempty, regexp(c.parameter_names, '^m_')));
 if strcmp(c.family, 'quad') || strcmp(c.family, 'lin')
     %c.monotonic_params = [c.monotonic_params xbounds slopebounds];
     otherbounds = optbounds;
-elseif strcmp(c.family, 'fixed')
+elseif strcmp(c.family, 'fixed') || strcmp(c.family, 'MAP')
     %c.monotonic_params = [c.monotonic_params xbounds];
     otherbounds = union(optbounds, slopebounds);
 elseif strcmp(c.family, 'opt')
