@@ -29,9 +29,9 @@ opt_models(3).choice_only = 0;
 opt_models(4).family = 'MAP';
 opt_models(4).symmetric = 0;
 opt_models(4).d_noise = 0;
-opt_models(4).multi_lapse = 0;
-opt_models(4).partial_lapse = 0;
-opt_models(4).repeat_lapse = 0;
+opt_models(4).multi_lapse = 1;
+opt_models(4).partial_lapse = 1;
+opt_models(4).repeat_lapse = 1;
 opt_models(4).choice_only = 0;
 opt_models(4).non_overlap = 0;
 
@@ -361,7 +361,7 @@ for gen_model_id = active_gen_models
                         ex_ncall=nan(1,nOptimizations);
                         ex_ncloc=nan(1,nOptimizations);
                         
-                        for optimization = 1 : nOptimizations;
+                        parfor optimization = 1 : nOptimizations;
                             if rand < 1 / progress_report_interval % every so often, print est. time remaining.
                                 fprintf('Dataset: %.0f\nElapsed: %.1f mins\n\n', dataset, toc(start_t)/60);
                             end

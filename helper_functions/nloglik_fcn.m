@@ -100,7 +100,7 @@ elseif strcmp(model.family, 'fixed')
     k = bf(0)*ones(1,nContrasts);
 elseif strcmp(model.family, 'MAP')
     dx=.5;
-    x = (-150:dx:150)'; % need to do some kind of nice zoomy grid thing here.
+    x = (-100:dx:100)'; % need to do some kind of nice zoomy grid thing here.
     xSteps = length(x);
     shat_lookup_table = zeros(nContrasts,xSteps);
     %cat_idx = cell(nContrasts,2);
@@ -208,10 +208,10 @@ if ~model.choice_only
         p_conf_choice = normalized_weights*p_conf_choice;
     else
         p_conf_choice = f(a,raw.s,sig,optflag) - f(b,raw.s,sig,optflag);
-        if sum(p_conf_choice<0)~=0
-            fprintf('%g trials where f(b)>f(a)\n',sum(p_conf_choice<0)) % why so many here for MAP model?
-            save nltest.mat
-        end
+%         if sum(p_conf_choice<0)~=0
+%             fprintf('%g trials where f(b)>f(a)\n',sum(p_conf_choice<0)) % why so many here for MAP model?
+%             save nltest.mat
+%         end
         p_conf_choice = max(0,p_conf_choice); % this max is a hack. it covers for non overlap x_bounds being weird.
     end
 end
