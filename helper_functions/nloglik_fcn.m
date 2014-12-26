@@ -61,10 +61,8 @@ else
     sig1 = 3; % defaults for qamar distributions
     sig2 = 12;
 end
-
-sig = fliplr(sqrt(max(0,p.sigma_0^2 + p.alpha .* contrasts .^ -p.beta))); % low to high sigma. should line up with contrast id
+sigs = fliplr(sqrt(max(0,p.sigma_0^2 + p.alpha .* contrasts .^ -p.beta))); % low to high sigma. should line up with contrast id
 % now k will only be 6 cols, rather than 3240.
-
 optflag = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,8 +74,8 @@ if strcmp(model.family, 'opt')% for normal bayesian family of models
     
     if ~model.non_overlap
         optflag = 1; % this is because f gets passed a square root that can be negative. causes it to ignore the negatives
-        k1 = .5 * log( (sig.^2 + sig2^2) ./ (sig.^2 + sig1^2));% + p.b_i(5); %log(prior / (1 - prior));
-        k2 = (sig2^2 - sig1^2) ./ (2 .* (sig.^2 + sig1^2) .* (sig.^2 + sig2^2));
+        k1 = .5 * log( (sigs.^2 + sig2^2) ./ (sigs.^2 + sig1^2));% + p.b_i(5); %log(prior / (1 - prior));
+        k2 = (sig2^2 - sig1^2) ./ (2 .* (sigs.^2 + sig1^2) .* (sigs.^2 + sig2^2));
         k   = (sqrt(repmat(k1, nDNoiseSets, 1) + d_noise)) ./ repmat(sqrt(k2), nDNoiseSets, 1);
         
     elseif model.non_overlap
@@ -93,48 +91,47 @@ if strcmp(model.family, 'opt')% for normal bayesian family of models
     end
     
 elseif strcmp(model.family, 'lin')
-    k = max(bf(0) + mf(0) * sig, 0);
+    k = max(bf(0) + mf(0) * sigs, 0);
 elseif strcmp(model.family, 'quad')
-    k = max(bf(0) + mf(0) * sig.^2, 0);
+    k = max(bf(0) + mf(0) * sigs.^2, 0);
 elseif strcmp(model.family, 'fixed')
     k = bf(0)*ones(1,nContrasts);
 elseif strcmp(model.family, 'MAP')
     dx=.5;
-    x = (-100:dx:100)'; % need to do some kind of nice zoomy grid thing here.
-    xSteps = length(x);
-    shat_lookup_table = zeros(nContrasts,xSteps);
-    %cat_idx = cell(nContrasts,2);
-    k = zeros(1,nContrasts);
-    for c = 1:nContrasts
-        cur_sig = sig(c);
-        k1 = sqrt(1/(cur_sig^-2 + sig1^-2));
-        mu1 = x*cur_sig^-2 * k1^2;
-        k2 = sqrt(1/(cur_sig^-2 + sig2^-2));
-        mu2 = x*cur_sig^-2 * k2^2;
-        
-        shat_lookup_table(c,:) = gmm1max_n2_fast([normpdf(x,0,sqrt(sig1^2 + cur_sig^2)) normpdf(x,0,sqrt(sig2^2 + cur_sig^2))],...
-            [mu1 mu2], repmat([k1 k2],xSteps,1));
-        
-        k(c) = interp1(shat_lookup_table(c,:), x, p.b_i(5));
-        %idx{c,1} = find(abs(shat_lookup_table(c,:))<p.b_i(5));
-        %idx{c,2} = find(abs(shat_lookup_table(c,:))>=p.b_i(5));
+    zoomgrid = 0;
+    if zoomgrid
+        dx_fine = .1;
+        fine_length = 2*dx / dx_fine + 1;
     end
     
+    x = (0:dx:180)';
+    xSteps = length(x);
+    shat_lookup_table = zeros(nContrasts,xSteps);
+    k = zeros(1,nContrasts);
+    ksq1 = sqrt(1./(sigs.^-2 + sig1^-2));
+    ksq2 = sqrt(1./(sigs.^-2 + sig2^-2));
     
-    % use interp1 to find x value where shat is equal to p.b_i
-    
-%     for t = 1:nTrials
-%         cur_sig_id = raw.contrast_id(t);
-%         trial_idx = idx{cur_sig_id, 0.5*raw.Chat(t) + 1.5};
-%         noise = normpdf(x(trial_idx)',raw.s(t),raw.sig(t));
-%         xxx=noise.*shat_lookup_table(cur_sig_id,trial_idx); 
-%         %p_shat_given_s = ??
-%     %%
-
-    
+    for c = 1:nContrasts
+        cur_sig = sigs(c);
+        mu1 = x*cur_sig^-2 * ksq1(c)^2;
+        mu2 = x*cur_sig^-2 * ksq2(c)^2;
+        
+        shat_lookup_table(c,:) = gmm1max_n2_fast([normpdf(x,0,sqrt(sig1^2 + cur_sig^2)) normpdf(x,0,sqrt(sig2^2 + cur_sig^2))],...
+            [mu1 mu2], repmat([ksq1(c) ksq2(c)],xSteps,1));
+        
+        k(c) = lininterp1(shat_lookup_table(c,:), x, p.b_i(5));
+        if zoomgrid
+            x_fine = (k(c)-dx : dx_fine : k(c)+dx)';
+            mu1 = x_fine*cur_sig^-2 * ksq1(c)^2;
+            mu2 = x_fine*cur_sig^-2 * ksq2(c)^2;
+            fine_lookup_table = gmm1max_n2_fast([normpdf(x_fine,0,sqrt(sig1^2 + cur_sig^2)) normpdf(x_fine,0,sqrt(sig2^2 + cur_sig^2))],...
+                [mu1 mu2], repmat([ksq1(c) ksq2(c)],fine_length,1));
+            
+            k(c) = lininterp1(fine_lookup_table, x_fine, p.b_i(5));
+        end
+    end
 end
-
-sig = sig(raw.contrast_id);
+sig = sigs(raw.contrast_id);
 
 if ~(model.non_overlap && model.d_noise)
     % do this for all models except nonoverlap+d noise, where k is already in this form.
@@ -191,10 +188,20 @@ if ~model.choice_only
     elseif strcmp(model.family, 'MAP')
         x_bounds = zeros(nContrasts, conf_levels*2-1);
         for c = 1:nContrasts
+            cur_sig = sigs(c);
             for r = 1:conf_levels*2-1
-                x_bounds(c,r) = interp1(shat_lookup_table(c,:), x, p.b_i(1+r));
+                x_bounds(c,r) = lininterp1(shat_lookup_table(c,:), x, p.b_i(1+r));
+                if zoomgrid
+                    x_fine = (x_bounds(c,r)-dx : dx_fine : x_bounds(c,r)+dx)';
+                    mu1 = x_fine*cur_sig^-2 * ksq1(c)^2;
+                    mu2 = x_fine*cur_sig^-2 * ksq2(c)^2;
+                    fine_lookup_table = gmm1max_n2_fast([normpdf(x_fine,0,sqrt(sig1^2 + cur_sig^2)) normpdf(x_fine,0,sqrt(sig2^2 + cur_sig^2))],...
+                        [mu1 mu2], repmat([ksq1(c) ksq2(c)],fine_length,1));
+                    x_bounds(c,r) = lininterp1(fine_lookup_table, x_fine, p.b_i(1+r));
+                end
             end
         end
+        save nltest
         x_bounds = [zeros(6,1) flipud(x_bounds) inf(6,1)];
         a = raw.Chat .* max(x_bounds((4 + raw.Chat .* raw.g) * nContrasts + (nContrasts + 1 - raw.contrast_id)),0);
         b = raw.Chat .* max(x_bounds((4 + raw.Chat .* (raw.g - 1)) * nContrasts + (nContrasts + 1 - raw.contrast_id)),0);
@@ -208,10 +215,10 @@ if ~model.choice_only
         p_conf_choice = normalized_weights*p_conf_choice;
     else
         p_conf_choice = f(a,raw.s,sig,optflag) - f(b,raw.s,sig,optflag);
-%         if sum(p_conf_choice<0)~=0
-%             fprintf('%g trials where f(b)>f(a)\n',sum(p_conf_choice<0)) % why so many here for MAP model?
-%             save nltest.mat
-%         end
+         %if sum(p_conf_choice<0)~=0
+             %fprintf('%g trials where f(b)>f(a)\n',sum(p_conf_choice<0))
+             %save nltest.mat
+         %end
         p_conf_choice = max(0,p_conf_choice); % this max is a hack. it covers for non overlap x_bounds being weird.
     end
 end
@@ -268,20 +275,19 @@ end
 % Shouldn't happen with lapse rate
 loglik_vec(loglik_vec < -1e5) = -1e5;
 nloglik = - sum(loglik_vec);
-%save nltest.mat
+
 if ~isreal(nloglik)
     % this is a big problem for truncated cats.
-    fprintf('imaginary nloglik\n')
-    nloglik
-    save nl_unreal.mat
+    %fprintf('imaginary nloglik\n')
+    %nloglik
+    %save nl_unreal.mat
     nloglik = real(nloglik) + 1e3; % is this an okay way to avoid "undefined at initial point" errors? it's a hack.
 end
 if nloglik == Inf % is this ever happening?
-    fprintf('infinite nloglik\n')
+    %fprintf('infinite nloglik\n')
     %save nl_inf.mat
     %nloglik = 1e10;
 end
-%save nltest.mat
 end
 
 function retval = f(y,s,sigma,optflag)
@@ -294,7 +300,6 @@ if optflag
 else
     idx = find(s);
 end
-
 retval(idx)   = .5 * (erf((s+y)./(sigma*sqrt(2))) - erf((s-y)./(sigma*sqrt(2)))); % erf is faster than normcdf.
 end
 

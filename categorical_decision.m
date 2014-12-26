@@ -83,7 +83,7 @@ demo_type='new'; % 'old' or 'new' ("movie")
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
-category_type = 'sym_uniform'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
+category_type = 'sym_uniform'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian'. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
 attention_manipulation = true;
 cue_validity = .7;
 % colors in 0:1 space

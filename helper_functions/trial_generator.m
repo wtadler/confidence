@@ -2,9 +2,12 @@ function raw = trial_generator(p_in, model, varargin)
 
 % define defaults
 n_samples = 3240;
-dist_type = 'qamar'; % or 'kepecs' (half-gaussian) or 'sym_uniform'
-sig_s = 1; % sig_s is the width of the half-gaussian.
+dist_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
+sig_s = 1; % for 'diff_mean_same_std' and 'half_gaussian'
 a = 0; % overlap for sym_uniform
+mu_1 = -5; % mean for 'diff_mean_same_std'
+mu_2 = 5;
+uniform_range = 1;
 contrasts  = exp(-4:.5:-1.5);%[.125 .25 .5 1 2 4];
 model_fitting_data = [];
 conf_levels = 4;
@@ -21,6 +24,14 @@ else
     sig1 = 3; % defaults for qamar distributions
     sig2 = 12;
 end
+
+category_params.sigma_1 = sig1;
+category_params.sigma_2 = sig2;
+category_params.overlap = a;
+category_params.uniform_range = uniform_range;
+category_params.sigma_s = sig_s;
+category_params.mu_1 = mu_1;
+category_params.mu_2 = mu_2;
 
 [raw.C, raw.s, raw.sig, raw.Chat] = deal(zeros(1, n_samples));
 if ~model.choice_only
@@ -41,13 +52,15 @@ sigs = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast_values .^ - p.beta);
 raw.sig = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast .^ - p.beta);
 raw.sig = reshape(raw.sig,1,length(raw.sig)); % think this should be okay.
 
+if isempty(model_fitting_data)
+    raw.s(raw.C == -1) = stimulus_orientations(category_params, dist_type, 1, 1, sum(raw.C ==-1));
+    raw.s(raw.C ==  1) = stimulus_orientations(category_params, dist_type, 2, 1, sum(raw.C == 1));
+end
+
+raw.x = raw.s + randn(size(raw.sig)) .* raw.sig; % add noise to s. this line is the same in both tasks
+
 switch dist_type
-    case 'qamar'
-        if isempty(model_fitting_data)
-            raw.s(raw.C == -1) = randn(1,sum(raw.C ==-1))*sig1; % Generate s trials for Cat1 and Cat2
-            raw.s(raw.C ==  1) = randn(1,sum(raw.C == 1))*sig2;
-        end
-        raw.x = raw.s + randn(size(raw.sig)) .* raw.sig; % add noise to s. this line is the same in both tasks
+    case 'same_mean_diff_std'
         if strcmp(model.family,'opt')
             if model.non_overlap
                 raw.d = zeros(1, n_samples);
@@ -64,29 +77,17 @@ switch dist_type
             raw.posterior = 1 ./ (1 + exp(-raw.d));
         end
         
-    case 'kepecs'
-        if isempty(model_fitting_data)
-            raw.s(raw.C == -1)  = -abs(normrnd(0, sig_s, 1, sum(raw.C == -1)));
-            raw.s(raw.C == 1)   =  abs(normrnd(0, sig_s, 1, sum(raw.C ==  1)));
-        end
-        
-        raw.x               = raw.s + randn(size(raw.s)) .* raw.sig;
-        
+    case 'half_gaussian'        
         mu = (raw.x.* sig_s^2)./(raw.sig.^2 + sig_s^2);
         k = raw.sig .* sig_s ./ sqrt(raw.sig.^2 + sig_s^2);
         raw.d = log(normcdf(0,mu,k)./normcdf(0,-mu,k));
         
     case 'sym_uniform'
-        % symmetric with overlap a
-        if isempty(model_fitting_data)
-            raw.s(raw.C == -1)    = rand(1, sum(raw.C == -1)) - 1 + a; % Generate s trials from shifted uniforms
-            raw.s(raw.C ==  1)    = rand(1, sum(raw.C ==  1)) - a;
-        end
-        
-        raw.x                 = raw.s + randn(size(raw.s)) .* raw.sig;
-        
         denom = raw.sig * sqrt(2);
         raw.d = log( (erf((raw.x-a)./denom) - erf((raw.x+1-a)./denom)) ./ (erf((raw.x-1+a)./denom) - erf((raw.x+a)./denom)));
+        
+    case 'diff_mean_same_std'
+        % work out decision variable.
         
     otherwise
         error('DIST_TYPE is not valid.')
@@ -110,15 +111,7 @@ if strcmp(model.family,'opt') % for all opt family models
                  & raw.d    <= p.b_i(g+1)) = confidences(g);
         end
         
-elseif strcmp(model.family, 'MAP')
-    k1 = sqrt(1./(raw.sig.^-2 + sig1^-2));
-    mu1 = raw.x.*raw.sig.^-2 .* k1.^2;
-    k2 = sqrt(1./(raw.sig.^-2 + sig2^-2));
-    mu2 = raw.x.*raw.sig.^-2 .* k2.^2;
-    
-    save tgtest.mat
-    tic
-    
+elseif strcmp(model.family, 'MAP')        
     raw.shat = zeros(1,3240);
     for i = 1:nContrasts
         sig = sigs(i);
@@ -132,7 +125,6 @@ elseif strcmp(model.family, 'MAP')
         raw.shat(idx) = gmm1max_n2_fast([normpdf(raw.x(idx),0,sqrt(sig1^2 + sig^2))' normpdf(raw.x(idx),0,sqrt(sig2^2 + sig^2))'],...
             [mu1 mu2], repmat([k1 k2],length(idx),1));
     end
-    toc
     
     b = p.b_i(5);
     raw.Chat(abs(raw.shat) <= b) = -1;
@@ -172,43 +164,51 @@ else % all measurement models
     end
 end
 
-if isfield(p,'lambda_i')
-    randvals = rand(1, n_samples);
-    cuml=[0 cumsum(p.lambda_i)];
-    Chat_lapse_trials = randvals < cuml(conf_levels + 1);
-    n_Chat_lapse_trials = sum(Chat_lapse_trials);
-    raw.Chat(Chat_lapse_trials) = randsample([-1 1], n_Chat_lapse_trials, 'true');
+
+% LAPSE TRIALS %%%%%%%%%%%%%%
+randvals = rand(1, n_samples);
+
+if model.multi_lapse
+    cuml=[0 cumsum(p.lambda_i)]; % cumulative confidence lapse rate
+    Chat_lapse_rate = cuml(end); 
+    
     for l = 1 : conf_levels
-        lapse_trials = randvals > cuml(l) & randvals < cuml(l+1);
+        lapse_trials = randvals > cuml(l)...
+                     & randvals < cuml(l+1);
         raw.g(lapse_trials) = l;
     end
-    if isfield(p,'lambda_g')
-        partial_lapse_trials = randvals > cuml(conf_levels+1) & randvals < cuml(conf_levels+1) + p.lambda_g;
-        n_partial_lapse_trials = sum(partial_lapse_trials);
-        raw.g(partial_lapse_trials) = randsample(4, n_partial_lapse_trials, 'true');
-        if isfield(p, 'lambda_r')
-            repeat_lapse_trials = find(randvals > cuml(conf_levels+1) + p.lambda_g & randvals < cuml(conf_levels+1) + p.lambda_g + p.lambda_r);
-            raw.g(repeat_lapse_trials) = raw.g(max(1,repeat_lapse_trials-1)); % max(1,etc) is to avoid issues when the first trial is chosen to be a repeat lapse (impossible)
-            raw.Chat(repeat_lapse_trials) = raw.Chat(max(1,repeat_lapse_trials-1));
-        end
-    end
-% scramble some Chat and g trials, according to lapse rates p.lambda and p.lambda_g.
-elseif isfield(p, 'lambda') % models with full lapse
-    randvals = rand(1, n_samples);
-    lapse_trials            = randvals < p.lambda;
-    n_lapse_trials = sum(lapse_trials);
-    raw.Chat(lapse_trials)         = randsample([-1 1], n_lapse_trials, 'true');
-    if ~model.choice_only
-        raw.g(lapse_trials) = randsample(1:conf_levels, n_lapse_trials, 'true');
-        if isfield(p, 'lambda_g')
-            partial_lapse_trials    = randvals > p.lambda & randvals < p.lambda + p.lambda_g;
-            n_partial_lapse_trials  = sum(partial_lapse_trials);
-            raw.g   (partial_lapse_trials) = randsample(1:conf_levels, n_partial_lapse_trials, 'true');
-        end
-    end
+    
+else % models with full lapse
+    Chat_lapse_rate = p.lambda;
 end
 
-% make this lapse stuff more elegant
+Chat_lapse_trials = randvals < Chat_lapse_rate; % lapse Chat at each conf level
+n_Chat_lapse_trials = sum(Chat_lapse_trials);
+raw.Chat(Chat_lapse_trials) = randsample([-1 1], n_Chat_lapse_trials, 'true');
+if ~model.choice_only && ~model.multi_lapse
+    raw.g(Chat_lapse_trials) = randsample(conf_levels, n_lapse_trials, 'true');
+end
+
+if model.partial_lapse
+    partial_lapse_rate = p.lambda_g;
+    partial_lapse_trials = randvals > Chat_lapse_rate...
+                         & randvals < Chat_lapse_rate + p.lambda_g;
+    n_partial_lapse_trials = sum(partial_lapse_trials);
+    raw.g(partial_lapse_trials) = randsample(conf_levels, n_partial_lapse_trials, 'true');
+else
+    partial_lapse_rate = 0;
+end
+
+if model.repeat_lapse
+    repeat_lapse_rate = p.lambda_r;
+    repeat_lapse_trials = find(randvals > Chat_lapse_rate + partial_lapse_rate...
+                             & randvals < Chat_lapse_rate + partial_lapse_rate + repeat_lapse_rate);
+    raw.g(repeat_lapse_trials) = raw.g(max(1,repeat_lapse_trials-1)); % max(1,etc) is to avoid issues when the first trial is chosen to be a repeat lapse (impossible)
+    raw.Chat(repeat_lapse_trials) = raw.Chat(max(1,repeat_lapse_trials-1));
+else
+    repeat_lapse_rate = 0; % this is in case we come up with another kind of lapsing.
+end
+
 
 if ~model.choice_only
     raw.resp  = raw.g + conf_levels + ... % combine conf and class to give resp on 8 point scale

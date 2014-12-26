@@ -3,7 +3,7 @@
 
 datadir='/Users/will/Google Drive/Ma lab/output';
 cd(datadir)
-jobid = 2311581;
+jobid = 2468755;
 
 % load all complete sessions
 files = what(datadir);
@@ -20,7 +20,7 @@ end
 load(subject_files{length(subject_files)}{1}) % load the first file for the last subject, to get the full structure shape
 model = gen.opt;
 
-fields = {'p','nll','exitflag','output','lambda','grad','hessian'};%, 'sum_test_nll'};%fieldnames(model(1).extracted);
+fields = {'p','nll'};%,'exitflag','output','lambda','grad','hessian'};%, 'sum_test_nll'};%fieldnames(model(1).extracted);
 nFields = length(fields);
 
 nModels = length(model);
@@ -62,7 +62,7 @@ end
 for dataset = 1 : nDatasets
     dataset
     for model_id = 1 : nModels
-            model_id
+            model_id;
             for fid = 1 : length(subject_files{dataset})
             %run through all the files, and keep tacking on fields.
             tmp = load(subject_files{dataset}{fid});
@@ -101,8 +101,8 @@ for dataset = 1 : nDatasets
             model(model_id).best_params(:, dataset) = model(model_id).extracted(dataset).best_params;
             model(model_id).extracted(dataset).n_good_params = sum(model(model_id).extracted(dataset).nll < model(model_id).extracted(dataset).min_nll + nll_tolerance & model(model_id).extracted(dataset).nll > 1000);
             [model(model_id).extracted(dataset).aic, model(model_id).extracted(dataset).bic, model(model_id).extracted(dataset).aicc] = aicbic(-model(model_id).extracted(dataset).min_nll, nParams, nSamples);
-            
-            model(model_id).extracted(dataset).best_hessian = model(model_id).extracted(dataset).hessian(:,:,model(model_id).extracted(dataset).min_idx);
+            % UNCOMMENT THE HESSIAN LINE
+            %model(model_id).extracted(dataset).best_hessian = model(model_id).extracted(dataset).hessian(:,:,model(model_id).extracted(dataset).min_idx);
             %c = parameter_constraints(model(model_id))
             param_prior = model(model_id).param_prior;
             h = model(model_id).extracted(dataset).best_hessian;

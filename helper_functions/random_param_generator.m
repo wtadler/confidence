@@ -4,7 +4,7 @@ function p = random_param_generator(sets, model, varargin);
 contrasts=exp(-4:.5:-1.5);
 sig_lim = [20 3 .2]; % [max for highest sigma, max for lowest sigma, minimum difference between the two]
 fixed_params = [];
-generating_flag = 0;
+generating_flag = false;
 assignopts(who,varargin);
 
 if generating_flag
@@ -40,7 +40,8 @@ lb = reshape(lb,nParams,1);
 ub = reshape(ub,nParams,1);
 %%
 p = zeros(nParams,sets);
-save rpgtest.mat
+
+
 % this can be parfor if necessary. shouldn't have to be though.
 for i = 1 : sets;
     maxsig = Inf;

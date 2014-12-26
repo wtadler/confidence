@@ -10,78 +10,45 @@ opt_models = struct;
 
 opt_models(1).family = 'fixed';
 opt_models(1).multi_lapse = 1;
-opt_models(1).partial_lapse = 0;
-opt_models(1).repeat_lapse = 0;
+opt_models(1).partial_lapse = 1;
+opt_models(1).repeat_lapse = 1;
 opt_models(1).choice_only = 0;
 
+opt_models(2) = opt_models(1);
 opt_models(2).family = 'lin';
-opt_models(2).multi_lapse = 1;
-opt_models(2).partial_lapse = 0;
-opt_models(2).repeat_lapse = 0;
-opt_models(2).choice_only = 0;
 
+opt_models(3) = opt_models(1);
 opt_models(3).family = 'quad';
-opt_models(3).multi_lapse = 1;
-opt_models(3).partial_lapse = 0;
-opt_models(3).repeat_lapse = 1;
-opt_models(3).choice_only = 0;
 
-opt_models(4).family = 'MAP';
+opt_models(4) = opt_models(1);
+opt_models(4).family = 'opt';
+opt_models(4).d_noise = 1;
 opt_models(4).symmetric = 0;
-opt_models(4).d_noise = 0;
-opt_models(4).multi_lapse = 1;
-opt_models(4).partial_lapse = 1;
-opt_models(4).repeat_lapse = 1;
-opt_models(4).choice_only = 0;
-opt_models(4).non_overlap = 0;
 
-opt_models(5).family = 'opt';
-opt_models(5).symmetric = 0;
-opt_models(5).d_noise = 0;
-opt_models(5).multi_lapse = 0;
-opt_models(5).partial_lapse = 0;
-opt_models(5).repeat_lapse = 0;
-opt_models(5).choice_only = 0;
-opt_models(5).non_overlap = 1;
+opt_models(5) = opt_models(4);
+opt_models(5).symmetric = 1;
 
-opt_models(6).family = 'opt';
-opt_models(6).symmetric = 1;
-opt_models(6).d_noise = 1;
-opt_models(6).multi_lapse = 1;
-opt_models(6).partial_lapse = 0;
-opt_models(6).repeat_lapse = 0;
-opt_models(6).choice_only = 0;
+opt_models(6) = opt_models(1);
+opt_models(6).family = 'MAP';
 
-opt_models(7).family = 'opt';
-opt_models(7).symmetric = 0;
-opt_models(7).d_noise = 1;
-opt_models(7).multi_lapse = 1;
-opt_models(7).partial_lapse = 1;
+opt_models(7).family = 'fixed';
+opt_models(7).multi_lapse = 0;
+opt_models(7).partial_lapse = 0;
 opt_models(7).repeat_lapse = 1;
-opt_models(7).choice_only = 0;
+opt_models(7).choice_only = 1;
 
-opt_models(8).family = 'quad';
-opt_models(8).repeat_lapse = 1;
-opt_models(8).choice_only = 1;
+opt_models(8) = opt_models(7);
+opt_models(8).family = 'lin';
 
-opt_models(9).family = 'opt';
-opt_models(9).symmetric = 0;
-opt_models(9).d_noise = 1;
-opt_models(9).repeat_lapse = 1;
-opt_models(9).choice_only = 1;
+opt_models(9) = opt_models(7);
+opt_models(9).family = 'quad';
 
+opt_models(10) = opt_models(7);
+opt_models(10).family = 'opt';
+opt_models(10).d_noise = 1;
 
-% opt_models(13).family = 'opt';
-% opt_models(13).symmetric = 0;
-% opt_models(13).d_noise = 1;
-% opt_models(13).multi_lapse = 1;
-% opt_models(13).partial_lapse = 0;
-% opt_models(13).repeat_lapse = 0;
-% opt_models(13).choice_only = 0;
-% opt_models(13).non_overlap = 1; % non overlap takes ~10x longer than normal
-% opt_models(13).free_cats = 0;
-
-% full lapse doesn't seem to work well. WHY? not too important.
+opt_models(11) = opt_models(7);
+opt_models(11).family = 'MAP';
 
 opt_models = parameter_constraints(opt_models);
 %%
@@ -97,6 +64,8 @@ nDNoiseSets = 100;
 
 progress_report_interval = 20;
 
+x0_reasonable = false; %limits starting points for optimization to those reasonable ranges defined in lb_gen and ub_gen
+
 optimization_method = 'fmincon'; % 'fmincon', 'lgo','npsol','mcs','snobfit','ga', 'patternsearch', 'gridsearch'
     nGrid = 50; % for gridsearch only
     maxtomlabsecs = 100; % for lgo,npsol only
@@ -110,6 +79,8 @@ data_type = 'real'; % 'real' or 'fake' or 'modelfit'
 
 %% fake or modelfit data generation parameters
 fake_data_params =  'random'; % 'extracted' or 'random'
+
+dist_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 
 gen_models = opt_models;
 
@@ -219,7 +190,7 @@ if strcmp(data_type, 'fake')
                 case 'fake'
                     % generate data from parameters
                     save before.mat
-                    gen(gen_model_id).data(dataset).raw = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'dist_type', 'qamar', 'contrasts', exp(-4:.5:-1.5));
+                    gen(gen_model_id).data(dataset).raw = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'dist_type', dist_type, 'contrasts', exp(-4:.5:-1.5));
                     gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), gen(gen_model_id).data(dataset).raw, g, nDNoiseSets);
                     save after.mat
                 case 'modelfit' % deprecated, might not work
@@ -242,6 +213,7 @@ start_t=tic;
 for gen_model_id = active_gen_models
    %gen_model=gen_models(gen_model_id);
     for opt_model_id = active_opt_models
+        model_start_t = tic;
         o = opt_models(opt_model_id);
         
         fprintf('\n\nFITTING MODEL ''%s''\n\n', o.name)
@@ -334,7 +306,7 @@ for gen_model_id = active_gen_models
                     for trainset = 1:k % this is just 1 if not cross-validating
                         %% OPTIMIZE PARAMETERS
                         % random starting points x0 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                        x0 = random_param_generator(nOptimizations, o);
+                        x0 = random_param_generator(nOptimizations, o, 'generating_flag', x0_reasonable); % try turning on generating_flag.
                         
                         %if ~isempty(fixed_params) % unnecessary, I think...
                         %    x0(fixed_params,:) = repmat(o.beq(fixed_params),1,nOptimizations);
@@ -361,7 +333,7 @@ for gen_model_id = active_gen_models
                         ex_ncall=nan(1,nOptimizations);
                         ex_ncloc=nan(1,nOptimizations);
                         
-                        parfor optimization = 1 : nOptimizations;
+                        for optimization = 1 : nOptimizations;
                             if rand < 1 / progress_report_interval % every so often, print est. time remaining.
                                 fprintf('Dataset: %.0f\nElapsed: %.1f mins\n\n', dataset, toc(start_t)/60);
                             end
@@ -478,8 +450,11 @@ for gen_model_id = active_gen_models
                     gen(gen_model_id).opt(opt_model_id).extracted(dataset).(fields{f}) = ex.(fields{f});
                 end
             end
+            clear ex;
             save([savedir '~'])
         end
+
+        fprintf('Total model %s time: %.1f mins\n\n', o.name, toc(model_start_t)/60);
 
     end
 end
