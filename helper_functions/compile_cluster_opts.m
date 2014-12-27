@@ -1,14 +1,23 @@
+function compile_cluster_opts(varargin)
 % compile optimizations from the cluster
 %clear all
 
 datadir='/Users/will/Google Drive/Ma lab/output';
-cd(datadir)
-jobid = 2468755;
+jobid = 'newest';
+assignopts(who,varargin)
+
+if strcmp(jobid,'newest')
+    D = dir([datadir '/*.mat']);
+    [~,idx]=sort([D.datenum]); % idx of mat files by date. last one is newest
+    jobid = str2num(D(idx(end)).name(1:7));
+end
+jobid
 
 % load all complete sessions
+cd(datadir)
 files = what(datadir);
 mat_files = files.mat;
-job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%i.*\\.mat', jobid))))
+job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%i.*\\.mat', jobid))));
 %job_files = mat_files;
 load(job_files{1}) % load first file to get nDatasets
 %nDatasets=7;
@@ -20,7 +29,7 @@ end
 load(subject_files{length(subject_files)}{1}) % load the first file for the last subject, to get the full structure shape
 model = gen.opt;
 
-fields = {'p','nll'};%,'exitflag','output','lambda','grad','hessian'};%, 'sum_test_nll'};%fieldnames(model(1).extracted);
+fields = {'p','nll','hessian'};%'exitflag','output','lambda','grad'};%, 'sum_test_nll'};
 nFields = length(fields);
 
 nModels = length(model);
@@ -60,6 +69,7 @@ end
 % return
 
 for dataset = 1 : nDatasets
+    tic
     dataset
     for model_id = 1 : nModels
             model_id;
@@ -81,7 +91,6 @@ for dataset = 1 : nDatasets
                 tmp.model(model_id).extracted(dataset).mean_test_nll = mean([tmp.model(model_id).extracted(dataset).train.test_nll]);
             end
             for field = 1 : nFields
-                save cco.mat
                 dim = ndims(tmp.model(model_id).extracted(dataset).(fields{field}));
                 model(model_id).extracted(dataset).(fields{field}) = cat(dim, model(model_id).extracted(dataset).(fields{field}), tmp.model(model_id).extracted(dataset).(fields{field}));
             end
@@ -101,8 +110,9 @@ for dataset = 1 : nDatasets
             model(model_id).best_params(:, dataset) = model(model_id).extracted(dataset).best_params;
             model(model_id).extracted(dataset).n_good_params = sum(model(model_id).extracted(dataset).nll < model(model_id).extracted(dataset).min_nll + nll_tolerance & model(model_id).extracted(dataset).nll > 1000);
             [model(model_id).extracted(dataset).aic, model(model_id).extracted(dataset).bic, model(model_id).extracted(dataset).aicc] = aicbic(-model(model_id).extracted(dataset).min_nll, nParams, nSamples);
-            % UNCOMMENT THE HESSIAN LINE
-            %model(model_id).extracted(dataset).best_hessian = model(model_id).extracted(dataset).hessian(:,:,model(model_id).extracted(dataset).min_idx);
+
+            model(model_id).extracted(dataset).best_hessian = model(model_id).extracted(dataset).hessian(:,:,model(model_id).extracted(dataset).min_idx);
+            model(model_id).extracted(dataset).hessian=[]; % clear hessian matrix after finding the best one. too big.
             %c = parameter_constraints(model(model_id))
             param_prior = model(model_id).param_prior;
             h = model(model_id).extracted(dataset).best_hessian;
@@ -111,11 +121,12 @@ for dataset = 1 : nDatasets
             model(model_id).extracted(dataset).name = tmp.model(model_id).extracted(dataset).name; % otherwise you have a repeating name, eg 'wtawtawta'
         end
     end
+    toc
 end
 
 clear tmp
-cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations')
-%save('v2_huge.mat','-v7.3')
+%cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations')
+save(sprintf('COMBINED_%i.mat', jobid))%,'-v7.3')
 return
 
 %% miniaturize, and/or clean up
