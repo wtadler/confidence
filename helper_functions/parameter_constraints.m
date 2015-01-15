@@ -5,7 +5,7 @@ nModels = length(models);
 for m_id = 1 : nModels
     c = models(m_id);
     
-    options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only','symmetric','d_noise','free_cats','non_overlap'};
+    options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only','symmetric','d_noise','free_cats','non_overlap','ori_dep_noise','diff_mean_same_std'};
     for o = 1:length(options)
         if ~isfield(c,options{o}) || isempty(c.(options{o}))
             c.(options{o}) = 0;
@@ -71,13 +71,14 @@ for m_id = 1 : nModels
         'lambda_r'
         'sig1'
         'sig2'
+        'sig_amplitude'
         };
     
-    c.lb       = [  0   0   0   -60 -60 -60 -60 -60 -60 -60 0   0   0   0   0   0   0   -30 -30 -30 -30 -30 -30 -30 0   0   0   0   0   0   0   0];
-    c.lb_gen   = [  0   0   0   -2  -2  -2  -1  -1  -1  -1  0   0   0   0   0   0   0   -2  -2  -2  -.1 0   0   0   0   0   0   0   0   0   2   10];
-    c.ub       = [  50  8   30  60  60  60  60  60  60  60  90  90  90  90  90  90  90  30  30  30  30  30  30  30  20  .5  .25 .25 .5  .5  25  25];
-    c.ub_gen   = [  50  8   30  1.2 1.2 1.2 1.2 1.2 1.2 1.2 20  20  20  20  20  20  20  0   0   0   .1  3   3   3   3   .4  .1  .1  .2  .1  4   14];
-    c.beq      = [  1   1   1   -2  -1.5 -.5 0  .5  1.5 2   2   4   5   5.5 6   7   8   -2  -1  -.5 0   .5  1   2   0   0   0   0   0   0   3   12]';
+    c.lb       = [  0   0   0   -60 -60 -60 -60 -60 -60 -60 0   0   0   0   0   0   0   -30 -30 -30 -30 -30 -30 -30 0   0   0   0   0   0   0   0   0];
+    c.lb_gen   = [  0   0   0   -2  -2  -2  -1  -1  -1  -1  0   0   0   0   0   0   0   -2  -2  -2  -.1 0   0   0   0   0   0   0   0   0   2   10  0];
+    c.ub       = [  50  8   30  60  60  60  60  60  60  60  90  90  90  90  90  90  90  30  30  30  30  30  30  30  20  .5  .25 .25 .5  .5  25  25  50];
+    c.ub_gen   = [  50  8   30  1.2 1.2 1.2 1.2 1.2 1.2 1.2 20  20  20  20  20  20  20  0   0   0   .1  3   3   3   3   .1  .1  .1  .2  .1  4   14  5];
+    c.beq      = [  1   1   1   -2  -1.5 -.5 0  .5  1.5 2   2   4   5   5.5 6   7   8   -2  -1  -.5 0   .5  1   2   0   0   0   0   0   0   3   12  0]';
     
     nParams = length(c.lb);
     %%
@@ -91,8 +92,9 @@ for m_id = 1 : nModels
         row = [zeros(l, low-1) unit zeros(l, nParams - high)];
         A = [A;row];
     end
+    save pctest.mat
     c.A = [A;
-        zeros(1, 25) 1 2 2 1 1 0 0];
+        zeros(1, 25) 1 2 2 1 1 0 0 0]; % need to add a zero here when you add a new param
     c.b = [zeros(size(A,1),1); 1];
     
     c.monotonic_params = {};
@@ -119,6 +121,7 @@ for m_id = 1 : nModels
     c = multi_lapseizer(c);
     c = repeat_lapseizer(c);
     c = free_catsizer(c);
+    c = sig_ampizer(c);
 
     
     % calculate uniform param prior
@@ -152,6 +155,19 @@ elseif strcmp(c.family, 'fixed') || strcmp(c.family, 'MAP')
 elseif strcmp(c.family, 'opt')
     %c.monotonic_params = [c.monotonic_params optbounds];
     otherbounds = union(xbounds, slopebounds);
+end
+
+% for symmetric task, need to shift the range of the x bound to allow it to be zero.
+if c.diff_mean_same_std && (strcmp(c.family, 'quad') || strcmp(c.family, 'lin') || strcmp(c.family, 'fixed'))
+    gen_range = c.ub_gen(xbounds(1)) - c.lb_gen(xbounds(1));
+    range = c.ub(xbounds(1)) - c.lb(xbounds(1));
+    gen_fields = {'lb_gen','ub_gen'};
+    fields = {'lb','ub'};
+    
+    for f = 1:2
+        c.(gen_fields{f})(xbounds) = c.(gen_fields{f})(xbounds)-gen_range/2;
+        c.(fields{f})(xbounds) = c.(fields{f})(xbounds)-range/2;
+    end
 end
 
 c = p_stripper(c,otherbounds);
@@ -230,6 +246,15 @@ else
 end
 
 end
+
+function c = sig_ampizer(c)
+% if not doing ori dep noise, strip out sig_amplitude
+if ~c.ori_dep_noise
+    sig_ampP = find(~cellfun(@isempty, regexp(c.parameter_names, 'sig_amplitude')));
+    c = p_stripper(c, sig_ampP);
+end
+end
+
 
 
 function c = p_stripper(c, p_to_remove)

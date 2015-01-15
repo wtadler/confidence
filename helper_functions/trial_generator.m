@@ -3,14 +3,18 @@ function raw = trial_generator(p_in, model, varargin)
 % define defaults
 n_samples = 3240;
 dist_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
-sig_s = 1; % for 'diff_mean_same_std' and 'half_gaussian'
-a = 0; % overlap for sym_uniform
-mu_1 = -5; % mean for 'diff_mean_same_std'
-mu_2 = 5;
-uniform_range = 1;
 contrasts  = exp(-4:.5:-1.5);%[.125 .25 .5 1 2 4];
 model_fitting_data = [];
 conf_levels = 4;
+
+category_params.sigma_1 = 3;
+category_params.sigma_2 = 12;
+category_params.sigma_s = 1; % for 'diff_mean_same_std' and 'half_gaussian'
+category_params.a = 0; % overlap for sym_uniform
+category_params.mu_1 = 5; % mean for 'diff_mean_same_std'
+category_params.mu_2 = -5;
+category_params.uniform_range = 1;
+
 assignopts(who,varargin);
 
 nContrasts = length(contrasts);
@@ -18,20 +22,20 @@ nContrasts = length(contrasts);
 p = parameter_variable_namer(p_in, model.parameter_names, model);
 
 if model.free_cats
-    sig1 = p.sig1;
-    sig2 = p.sig2;
-else
-    sig1 = 3; % defaults for qamar distributions
-    sig2 = 12;
+    category_params.sigma_1 = p.category_params.sigma_1;
+    category_params.sigma_2 = p.category_params.sigma_2;
+%else
+%    category_params.sigma_1 = 3; % defaults for qamar distributions
+%    category_params.sigma_2 = 12;
 end
 
-category_params.sigma_1 = sig1;
-category_params.sigma_2 = sig2;
-category_params.overlap = a;
-category_params.uniform_range = uniform_range;
-category_params.sigma_s = sig_s;
-category_params.mu_1 = mu_1;
-category_params.mu_2 = mu_2;
+% category_params.sigma_1 = category_params.sigma_1;
+% category_params.sigma_2 = category_params.sigma_2;
+% category_params.overlap = a;
+% category_params.uniform_range = uniform_range;
+% category_params.sigma_s = sigma_s;
+% category_params.mu_1 = mu_1;
+% category_params.mu_2 = mu_2;
 
 [raw.C, raw.s, raw.sig, raw.Chat] = deal(zeros(1, n_samples));
 if ~model.choice_only
@@ -41,8 +45,11 @@ end
 if isempty(model_fitting_data)
     raw.C         = randsample([-1 1], n_samples, 'true');
     raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
+    raw.s(raw.C == -1) = stimulus_orientations(category_params, dist_type, 1, 1, sum(raw.C ==-1));
+    raw.s(raw.C ==  1) = stimulus_orientations(category_params, dist_type, 2, 1, sum(raw.C == 1));
+
 else % take real data
-    raw.C           = model_fitting_data.C; % 2C-3 converts [1,2] to [-1,1]
+    raw.C           = model_fitting_data.C;
     raw.contrast    = model_fitting_data.contrast;
     raw.s           = model_fitting_data.s;
 end
@@ -50,11 +57,11 @@ end
 [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
 sigs = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast_values .^ - p.beta);
 raw.sig = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast .^ - p.beta);
-raw.sig = reshape(raw.sig,1,length(raw.sig)); % think this should be okay.
+raw.sig = reshape(raw.sig,1,length(raw.sig));
 
-if isempty(model_fitting_data)
-    raw.s(raw.C == -1) = stimulus_orientations(category_params, dist_type, 1, 1, sum(raw.C ==-1));
-    raw.s(raw.C ==  1) = stimulus_orientations(category_params, dist_type, 2, 1, sum(raw.C == 1));
+if model.ori_dep_noise
+    pre_sig = raw.sig;
+    raw.sig = pre_sig + abs(sin(raw.s*pi/90))*p.sig_amplitude;
 end
 
 raw.x = raw.s + randn(size(raw.sig)) .* raw.sig; % add noise to s. this line is the same in both tasks
@@ -66,20 +73,30 @@ switch dist_type
                 raw.d = zeros(1, n_samples);
                 for c = 1 : nContrasts; % for each sigma level, generate d from the separate function
                     cursig = sqrt(p.sigma_0^2 + p.alpha .* contrasts(c) .^ - p.beta);
-                    s=trun_sigstruct(cursig,sig1,sig2);
+                    s=trun_sigstruct(cursig,category_params.sigma_1,category_params.sigma_2);
                     raw.d(raw.sig==cursig) = trun_da(raw.x(raw.sig==cursig), s);
                 end
+            elseif model.ori_dep_noise
+                ds = 1;
+                sVec = -90:ds:90;
+                s_mat = repmat(sVec',1,length(raw.x));
+                x_mat = repmat(raw.x,length(sVec),1);
+                sig_mat=repmat(pre_sig, length(sVec), 1);
+                raw.d = log((1/category_params.sigma_1 * sum((1./(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude)).*exp(-((x_mat-s_mat).^2)./(2*(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude).^2) - s_mat.^2 ./ (2*category_params.sigma_1^2)))) ./ ...
+                            (1/category_params.sigma_2 * sum((1./(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude)).*exp(-((x_mat-s_mat).^2)./(2*(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude).^2) - s_mat.^2 ./ (2*category_params.sigma_2^2)))));
+%                 raw.d = log((1/category_params.sigma_1 * sum((1./sig_mat).*exp(-((x_mat-s_mat).^2)./(2*sig_mat.^2) - s_mat.^2 ./ (2*category_params.sigma_1^2)))) ./ ...
+%                             (1/category_params.sigma_2 * sum((1./sig_mat).*exp(-((x_mat-s_mat).^2)./(2*sig_mat.^2) - s_mat.^2 ./ (2*category_params.sigma_2^2)))));
             else
-                raw.k1 = .5 * log( (raw.sig.^2 + sig2^2) ./ (raw.sig.^2 + sig1^2));% + p.b_i(5);
-                raw.k2 = (sig2^2 - sig1^2) ./ (2 .* (raw.sig.^2 + sig1^2) .* (raw.sig.^2 + sig2^2));
+                raw.k1 = .5 * log( (raw.sig.^2 + category_params.sigma_2^2) ./ (raw.sig.^2 + category_params.sigma_1^2));% + p.b_i(5);
+                raw.k2 = (category_params.sigma_2^2 - category_params.sigma_1^2) ./ (2 .* (raw.sig.^2 + category_params.sigma_1^2) .* (raw.sig.^2 + category_params.sigma_2^2));
                 raw.d = raw.k1 - raw.k2 .* raw.x.^2;
             end
-            raw.posterior = 1 ./ (1 + exp(-raw.d));
+            %raw.posterior = 1 ./ (1 + exp(-raw.d));
         end
         
     case 'half_gaussian'        
-        mu = (raw.x.* sig_s^2)./(raw.sig.^2 + sig_s^2);
-        k = raw.sig .* sig_s ./ sqrt(raw.sig.^2 + sig_s^2);
+        mu = (raw.x.* category_params.sigma_s^2)./(raw.sig.^2 + category_params.sigma_s^2);
+        k = raw.sig .* category_params.sigma_s ./ sqrt(raw.sig.^2 + category_params.sigma_s^2);
         raw.d = log(normcdf(0,mu,k)./normcdf(0,-mu,k));
         
     case 'sym_uniform'
@@ -87,12 +104,15 @@ switch dist_type
         raw.d = log( (erf((raw.x-a)./denom) - erf((raw.x+1-a)./denom)) ./ (erf((raw.x-1+a)./denom) - erf((raw.x+a)./denom)));
         
     case 'diff_mean_same_std'
-        % work out decision variable.
+        raw.d = (2*raw.x * (category_params.mu_1 - category_params.mu_2) - category_params.mu_1^2 + category_params.mu_2^2) ./ ...
+            (2*(raw.sig.^2 + category_params.sigma_s^2));
         
     otherwise
         error('DIST_TYPE is not valid.')
         
 end
+
+
 
 confidences = [linspace(conf_levels,1,conf_levels) linspace(1,conf_levels,conf_levels)];
 
@@ -111,18 +131,18 @@ if strcmp(model.family,'opt') % for all opt family models
                  & raw.d    <= p.b_i(g+1)) = confidences(g);
         end
         
-elseif strcmp(model.family, 'MAP')        
+elseif strcmp(model.family, 'MAP') && strcmp(dist_type, 'same_mean_diff_std')
     raw.shat = zeros(1,3240);
     for i = 1:nContrasts
         sig = sigs(i);
         idx = find(raw.contrast_id==i);
         
-        k1 = sqrt(1/(sig^-2 + sig1^-2));
+        k1 = sqrt(1/(sig^-2 + category_params.sigma_1^-2));
         mu1 = raw.x(idx)'*sig^-2 * k1^2;
-        k2 = sqrt(1/(sig^-2 + sig2^-2));
+        k2 = sqrt(1/(sig^-2 + category_params.sigma_2^-2));
         mu2 = raw.x(idx)'*sig^-2 * k2^2;
         
-        raw.shat(idx) = gmm1max_n2_fast([normpdf(raw.x(idx),0,sqrt(sig1^2 + sig^2))' normpdf(raw.x(idx),0,sqrt(sig2^2 + sig^2))'],...
+        raw.shat(idx) = gmm1max_n2_fast([normpdf(raw.x(idx),0,sqrt(category_params.sigma_1^2 + sig^2))' normpdf(raw.x(idx),0,sqrt(category_params.sigma_2^2 + sig^2))'],...
             [mu1 mu2], repmat([k1 k2],length(idx),1));
     end
     
@@ -137,7 +157,7 @@ elseif strcmp(model.family, 'MAP')
         end
     end
     
-else % all measurement models    
+else % all measurement models
     if strcmp(model.family, 'lin')
         b = p.b_i(5) + p.m_i(5) * raw.sig;
     elseif strcmp(model.family, 'quad')
@@ -145,20 +165,30 @@ else % all measurement models
     else
         b = p.b_i(5);
     end
-    raw.Chat(abs(raw.x) <= b)   = -1;
-    raw.Chat(abs(raw.x) >  b)   =  1;
+    
+    if strcmp(dist_type, 'same_mean_diff_std')
+        x_tmp=abs(raw.x);
+    elseif strcmp(dist_type, 'diff_mean_same_std')
+        x_tmp=raw.x;
+    end
+        
+    raw.Chat(x_tmp <= b)   = -1;
+    raw.Chat(x_tmp >  b)   =  1;
+    if strcmp(dist_type, 'diff_mean_same_std')
+       raw.Chat = -raw.Chat;
+    end
     
     if ~model.choice_only % all non-optimal confidence models
         for g = 1 : conf_levels * 2
             if strcmp(model.family, 'lin')
-                raw.g( p.b_i(g) + p.m_i(g) * raw.sig < abs(raw.x) ...
-                    &  p.b_i(g+1) + p.m_i(g+1) * raw.sig >= abs(raw.x)) = confidences(g);
+                raw.g( p.b_i(g) + p.m_i(g) * raw.sig < x_tmp ...
+                    &  p.b_i(g+1) + p.m_i(g+1) * raw.sig >= x_tmp) = confidences(g);
             elseif strcmp(model.family, 'quad')
-                raw.g( p.b_i(g) + p.m_i(g) * raw.sig.^2 < abs(raw.x) ...
-                    &  p.b_i(g+1) + p.m_i(g+1) * raw.sig.^2 >= abs(raw.x)) = confidences(g);
+                raw.g( p.b_i(g) + p.m_i(g) * raw.sig.^2 < x_tmp ...
+                    &  p.b_i(g+1) + p.m_i(g+1) * raw.sig.^2 >= x_tmp) = confidences(g);
             else
-                raw.g( p.b_i(g)   <  abs(raw.x) ...
-                    &  p.b_i(g+1) >= abs(raw.x)) = confidences(g);
+                raw.g( p.b_i(g)   <  x_tmp ...
+                    &  p.b_i(g+1) >= x_tmp) = confidences(g);
             end
         end
     end
@@ -181,12 +211,11 @@ if model.multi_lapse
 else % models with full lapse
     Chat_lapse_rate = p.lambda;
 end
-
 Chat_lapse_trials = randvals < Chat_lapse_rate; % lapse Chat at each conf level
 n_Chat_lapse_trials = sum(Chat_lapse_trials);
 raw.Chat(Chat_lapse_trials) = randsample([-1 1], n_Chat_lapse_trials, 'true');
 if ~model.choice_only && ~model.multi_lapse
-    raw.g(Chat_lapse_trials) = randsample(conf_levels, n_lapse_trials, 'true');
+    raw.g(Chat_lapse_trials) = randsample(conf_levels, n_Chat_lapse_trials, 'true');
 end
 
 if model.partial_lapse

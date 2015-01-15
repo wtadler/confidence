@@ -29,7 +29,7 @@ end
 load(subject_files{length(subject_files)}{1}) % load the first file for the last subject, to get the full structure shape
 model = gen.opt;
 
-fields = {'p','nll','hessian'};%'exitflag','output','lambda','grad'};%, 'sum_test_nll'};
+fields = {'p','nll','hessian'};%,'exitflag','output','lambda','grad'};%, 'sum_test_nll'};
 nFields = length(fields);
 
 nModels = length(model);
@@ -40,7 +40,7 @@ for model_id = 1 : nModels
     end
 end
 % nDatasets
-% 
+%
 % for file = 1:length(job_files)
 %     tmp=load(job_files{file});
 %     file
@@ -52,7 +52,7 @@ end
 %             model(length(model)+1).name = tmp.model(model_id).name;
 %             [~,idx]=ismember(tmp.model(model_id).name, {model.name})
 %         end
-%         
+%
 %         if crossvalidate % shouldn't have to do this except this one time.
 %             for k = 1 : 10;
 %                 tmp.model(model_id).extracted(dataset).train(k).test_nll = nloglik_fcn(tmp.model(model_id).extracted(dataset).train(k).best_params, tmp.data.test(k), tmp.opt_models{model_id}, randn(1000, 324));
@@ -60,7 +60,7 @@ end
 %             tmp.model(model_id).extracted(dataset).sum_test_nll = sum([tmp.model(model_id).extracted(dataset).train.test_nll]);
 %             tmp.model(model_id).extracted(dataset).mean_test_nll = mean([tmp.model(model_id).extracted(dataset).train.test_nll]);
 %         end
-%         
+%
 %         for field = 1 : nFields
 %             model(idx).extracted(dataset).(fields{field}) = [model(idx).extracted(dataset).(fields{field}) tmp.model(model_id).extracted(dataset).(fields{field})];
 %         end
@@ -72,8 +72,8 @@ for dataset = 1 : nDatasets
     tic
     dataset
     for model_id = 1 : nModels
-            model_id;
-            for fid = 1 : length(subject_files{dataset})
+        model_id;
+        for fid = 1 : length(subject_files{dataset})
             %run through all the files, and keep tacking on fields.
             tmp = load(subject_files{dataset}{fid});
             tmp.model = tmp.gen.opt;
@@ -106,25 +106,24 @@ for dataset = 1 : nDatasets
             [model(model_id).extracted(dataset).min_nll, model(model_id).extracted(dataset).min_idx] = min(model(model_id).extracted(dataset).nll(model(model_id).extracted(dataset).nll > 10));
             model(model_id).extracted(dataset).best_params = model(model_id).extracted(dataset).p(:, model(model_id).extracted(dataset).min_idx);
             nParams = length(model(model_id).extracted(dataset).best_params);
-
+            
             model(model_id).best_params(:, dataset) = model(model_id).extracted(dataset).best_params;
             model(model_id).extracted(dataset).n_good_params = sum(model(model_id).extracted(dataset).nll < model(model_id).extracted(dataset).min_nll + nll_tolerance & model(model_id).extracted(dataset).nll > 1000);
             [model(model_id).extracted(dataset).aic, model(model_id).extracted(dataset).bic, model(model_id).extracted(dataset).aicc] = aicbic(-model(model_id).extracted(dataset).min_nll, nParams, nSamples);
-
+            
             model(model_id).extracted(dataset).best_hessian = model(model_id).extracted(dataset).hessian(:,:,model(model_id).extracted(dataset).min_idx);
             model(model_id).extracted(dataset).hessian=[]; % clear hessian matrix after finding the best one. too big.
-            %c = parameter_constraints(model(model_id))
             param_prior = model(model_id).param_prior;
             h = model(model_id).extracted(dataset).best_hessian;
             model(model_id).extracted(dataset).laplace = -model(model_id).extracted(dataset).min_nll + log(param_prior) +  (nParams/2)*log(2*pi) - .5 * log(det(h));
-
+            
             model(model_id).extracted(dataset).name = tmp.model(model_id).extracted(dataset).name; % otherwise you have a repeating name, eg 'wtawtawta'
         end
     end
     toc
 end
-
-clear tmp
+gen.opt=[];
+clear tmp ex_output ex_lambda ex_hessian extracted_hessian
 %cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations')
 save(sprintf('COMBINED_%i.mat', jobid))%,'-v7.3')
 return
@@ -142,8 +141,8 @@ for m=1:5
         param_prior = c.(mtmp(m).name).param_prior;
         h = mtmp(m).extracted(dataset).best_hessian;
         mtmp(m).extracted(dataset).laplace = -mtmp(m).extracted(dataset).min_nll + log(param_prior) +  (nParams/2)*log(2*pi) - .5 * log(det(h));
-
-
+        
+        
         %for f=1:length(fields)
         %    modelsmall(m).extracted(dataset).(fields{f}) = model(m).extracted(dataset).(fields{f});
         %end

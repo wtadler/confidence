@@ -9,10 +9,12 @@ job_id = '';
 opt_models = struct;
 
 opt_models(1).family = 'fixed';
-opt_models(1).multi_lapse = 1;
-opt_models(1).partial_lapse = 1;
-opt_models(1).repeat_lapse = 1;
-opt_models(1).choice_only = 0;
+opt_models(1).multi_lapse = 0;
+opt_models(1).partial_lapse = 0;
+opt_models(1).repeat_lapse = 0;
+opt_models(1).choice_only = 1;
+opt_models(1).diff_mean_same_std = 0;
+opt_models(1).ori_dep_noise = 0;
 
 opt_models(2) = opt_models(1);
 opt_models(2).family = 'lin';
@@ -22,7 +24,7 @@ opt_models(3).family = 'quad';
 
 opt_models(4) = opt_models(1);
 opt_models(4).family = 'opt';
-opt_models(4).d_noise = 1;
+opt_models(4).d_noise = 0;
 opt_models(4).symmetric = 0;
 
 opt_models(5) = opt_models(4);
@@ -50,6 +52,16 @@ opt_models(10).d_noise = 1;
 opt_models(11) = opt_models(7);
 opt_models(11).family = 'MAP';
 
+opt_models(12) = opt_models(6);
+opt_models(12).ori_dep_noise = 1;
+
+opt_models(13) = opt_models(6);
+opt_models(13).choice_only = 0;
+
+opt_models(14) = opt_models(13);
+opt_models(14).ori_dep_noise = 1;
+
+
 opt_models = parameter_constraints(opt_models);
 %%
 
@@ -60,7 +72,8 @@ active_opt_models = 1:length(opt_models);
 %%
 nRegOptimizations = 40;
 nDNoiseOptimizations = 8;
-nDNoiseSets = 100;
+nMAPOriDepNoiseOptimizations = 4;
+nDNoiseSets = 101;
 
 progress_report_interval = 20;
 
@@ -82,6 +95,14 @@ fake_data_params =  'random'; % 'extracted' or 'random'
 
 dist_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 
+category_params.sigma_s = 1; % for 'diff_mean_same_std' and 'half_gaussian'
+category_params.a = 0; % overlap for sym_uniform
+category_params.mu_1 = 5; % mean for 'diff_mean_same_std'
+category_params.mu_2 = -5;
+category_params.uniform_range = 1;
+category_params.sigma_1 = 3;
+category_params.sigma_2 = 12;
+
 gen_models = opt_models;
 
 active_gen_models = 1 : length(gen_models);
@@ -89,7 +110,7 @@ gen_nSamples = 3240;
 fixed_params_gen = []; % can fix parameters here. set fixed values in beq, in parameter_constraints.m.
 fixed_params_opt = [];
 %%
-
+slimdown = true; % throws away information like hessian for every optimization, etc. that takes up a lot of space.
 crossvalidate = false;
 k = 1; % for k-fold cross-validation
 
@@ -133,13 +154,17 @@ assignopts(who,varargin); % reassign datasets (for multiple jobs)
 
 datetime_str = datetimefcn;
 if hpc
-    if length(datasets)==1
-        savedir = sprintf('/home/wta215/Analysis/output/%.f_subject%g.mat', job_id, datasets)
-    else
-        savedir = sprintf('/home/wta215/Analysis/output/%.f_multiplesubjects.mat', job_id)
+    if strcmp(data_type,'real')
+        if length(datasets)==1
+            savedir = sprintf('/home/wta215/Analysis/output/%.f_subject%g.mat', job_id, datasets)
+        else
+            savedir = sprintf('/home/wta215/Analysis/output/%.f_multiplesubjects.mat', job_id)
+        end
+    elseif strcmp(data_type,'fake')
+        savedir = sprintf('/home/wta215/Analysis/output/%.f_model%g.mat', job_id, active_gen_models);
     end
 else
-    savedir = sprintf('/Users/will/Google Drive/Ma lab/output/%s', datetime_str);
+    savedir = sprintf('/Users/will/Google Drive/Ma lab/output/%s.mat', datetime_str);
 end
 
 
@@ -190,8 +215,8 @@ if strcmp(data_type, 'fake')
                 case 'fake'
                     % generate data from parameters
                     save before.mat
-                    gen(gen_model_id).data(dataset).raw = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'dist_type', dist_type, 'contrasts', exp(-4:.5:-1.5));
-                    gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), gen(gen_model_id).data(dataset).raw, g, nDNoiseSets);
+                    gen(gen_model_id).data(dataset).raw = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'dist_type', dist_type, 'contrasts', exp(-4:.5:-1.5), 'category_params', category_params);
+                    gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), gen(gen_model_id).data(dataset).raw, g, nDNoiseSets, category_params);
                     save after.mat
                 case 'modelfit' % deprecated, might not work
                     streal = compile_data('datadir', datadir); % get real data
@@ -218,8 +243,10 @@ for gen_model_id = active_gen_models
         
         fprintf('\n\nFITTING MODEL ''%s''\n\n', o.name)
         
-        if strcmp(opt_models(opt_model_id).family, 'opt') && o.d_noise
+        if strcmp(o.family, 'opt') && o.d_noise
             nOptimizations = nDNoiseOptimizations;
+        elseif strcmp(o.family, 'MAP') && o.ori_dep_noise
+            nOptimizations = nMAPOriDepNoiseOptimizations;
         else
             nOptimizations = nRegOptimizations;
         end
@@ -319,7 +346,7 @@ for gen_model_id = active_gen_models
                             d = data.raw;
                         end
                         % use anon objective function to fix data parameter.
-                        f = @(p) nloglik_fcn(p, d, o, nDNoiseSets);%, optimization_method, randn_samples{dataset});
+                        f = @(p) nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
                         
                         ex_p = nan(nParams,nOptimizations);
                         ex_nll = nan(1,nOptimizations);
@@ -333,7 +360,7 @@ for gen_model_id = active_gen_models
                         ex_ncall=nan(1,nOptimizations);
                         ex_ncloc=nan(1,nOptimizations);
                         
-                        for optimization = 1 : nOptimizations;
+                        parfor optimization = 1 : nOptimizations;
                             if rand < 1 / progress_report_interval % every so often, print est. time remaining.
                                 fprintf('Dataset: %.0f\nElapsed: %.1f mins\n\n', dataset, toc(start_t)/60);
                             end
@@ -409,7 +436,7 @@ for gen_model_id = active_gen_models
                             [ex.train(trainset).min_nll, ex.train(trainset).min_idx] = min(ex.train(trainset).nll);
                             ex.train(trainset).best_params = ex.train(trainset).p(:, ex.train(trainset).min_idx);
                             
-                            ex.train(trainset).test_nll = nloglik_fcn(ex.train(trainset).best_params, d_test, fitting_model, nDNoiseSets);
+                            ex.train(trainset).test_nll = nloglik_fcn(ex.train(trainset).best_params, d_test, fitting_model, nDNoiseSets, category_params);
                         end
 
                     end
@@ -426,9 +453,10 @@ for gen_model_id = active_gen_models
             %   for opt_model_id = 1:3;
             %  nParams = size(gen.opt(opt_model_id).extracted(1).p,1);
             % gen_nSamples = 3240
-
+            
+            
             if crossvalidate
-                fields = fieldnames(ex)
+                fields = fieldnames(ex);
                 for f = 1 : length(fields)
                     gen(gen_model_id).opt(opt_model_id).extracted(dataset).(fields{f}) = ex.(fields{f});
                 end
@@ -439,13 +467,18 @@ for gen_model_id = active_gen_models
                 [ex.aic, ex.bic, ex.aicc] = aicbic(-ex.min_nll, nParams, gen_nSamples);
                 paramprior      = o.param_prior;
                 ex.best_hessian = ex.hessian(:,:,ex.min_idx);
-                h               = ex.best_hessian; 
+                h               = ex.best_hessian;
                 ex.laplace = -ex.min_nll + log(paramprior) +  (nParams/2)*log(2*pi) - .5 * log(det(h));
                 
                 if strcmp(data_type, 'real')
                     gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = data.name;
                 end
-                fields = fieldnames(ex);
+                if slimdown
+                    fields = {'p','nll','hessian','min_nll','min_idx','best_params','n_good_params','aic','bic','aicc','best_hessian','laplace'};
+                else
+                    fields = fieldnames(ex)
+                end
+
                 for f = 1 : length(fields)
                     gen(gen_model_id).opt(opt_model_id).extracted(dataset).(fields{f}) = ex.(fields{f});
                 end
@@ -463,22 +496,23 @@ fprintf('Total optimization time: %.2f mins.\n',toc(start_t)/60);
 
 %% COMPARE TRUE AND REAL PARAMETERS IN SUBPLOTS
 if ~hpc && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
-    figure
+    figure;
     % for each parameter, plot all datasets
     for parameter = 1 : nParams
-        subplot(5,5,parameter)
+        subplot(5,5,parameter);
         extracted_params = [gen(active_gen_models).opt(active_opt_models).extracted.best_params];
-        plot(gen(active_gen_models).p(parameter,:), extracted_params(parameter,:), '.','markersize',10)
+        plot(gen(active_gen_models).p(parameter,:), extracted_params(parameter,:), '.','markersize',10);
         hold on
-        xlim([g.lb_gen(parameter) g.ub_gen(parameter)])
-        ylim([g.lb(parameter) g.ub(parameter)])
-        axis square
-        plot([g.lb(parameter) g.ub(parameter)], [g.lb(parameter) g.ub(parameter)], '--')
+        xlim([g.lb_gen(parameter) g.ub_gen(parameter)]);
+        ylim([g.lb_gen(parameter) g.ub_gen(parameter)]);
+        %ylim([g.lb(parameter) g.ub(parameter)]);
+        axis square;
+        plot([g.lb(parameter) g.ub(parameter)], [g.lb(parameter) g.ub(parameter)], '--');
         
-        title(g.parameter_names{parameter})
+        title(g.parameter_names{parameter});
     end
-    suplabel('true parameter', 'x')
-    suplabel('extracted parameter', 'y')
+    suplabel('true parameter', 'x');
+    suplabel('extracted parameter', 'y');
 end
 %%
 delete([savedir '~'])

@@ -35,6 +35,10 @@ else
     end
 end
 
+if model.diff_mean_same_std
+    p.b_i(p.b_i==0) = -Inf;
+end
+
 % ... and multi-lapse.
 if model.multi_lapse
     p.lambda_i = linspace(p.lambda_1, p.lambda_4, 4);
