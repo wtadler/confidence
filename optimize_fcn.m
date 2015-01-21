@@ -22,7 +22,7 @@ opt_models(2).family = 'lin';
 opt_models(3) = opt_models(1);
 opt_models(3).family = 'quad';
 
-opt_models(4) = opt_models(1);
+opt_models(4) = opt_models(1);r
 opt_models(4).family = 'opt';
 opt_models(4).d_noise = 0;
 opt_models(4).symmetric = 0;
@@ -79,10 +79,13 @@ progress_report_interval = 20;
 
 x0_reasonable = false; %limits starting points for optimization to those reasonable ranges defined in lb_gen and ub_gen
 
-optimization_method = 'fmincon'; % 'fmincon', 'lgo','npsol','mcs','snobfit','ga', 'patternsearch', 'gridsearch'
+optimization_method = 'fmincon'; % 'fmincon', 'lgo','npsol','mcs','snobfit','ga', 'patternsearch', 'gridsearch','mcmc_slice'
     nGrid = 50; % for gridsearch only
     maxtomlabsecs = 100; % for lgo,npsol only
     maxsnobfcalls = 10000; % for snobfit only
+    nKeptSamples = 1e4; % for mcmc_slice
+    nChains = 4;
+    
 data_type = 'real'; % 'real' or 'fake' or 'modelfit'
 % 'fake' generates trials and responses, to test parameter extraction
 % 'real' takes real trials and real responses, to extract parameters
@@ -136,6 +139,8 @@ else
 end    
     
 assignopts(who,varargin); % reassign datadir now if it's been specified
+
+thin = max(1,round(nRealSamples/nKeptSamples));
 
 if strcmp(data_type, 'real')
     gen = compile_data('datadir', datadir, 'crossvalidate', crossvalidate, 'k', k);
@@ -251,6 +256,14 @@ for gen_model_id = active_gen_models
             nOptimizations = nRegOptimizations;
         end
         
+        if strcmp(optimization_method,'mcmc_slice')
+            nSamples = nOptimizations;
+            burnin = round(nSamples/2);
+            thin = max(1,round(nRealSample/nKeptSamples));
+            nOptimizations = nChains;
+        end
+            
+        
         nParams = length(o.lb);
         
         unfixed_params = setdiff(1:nParams, fixed_params_opt);
@@ -359,6 +372,11 @@ for gen_model_id = active_gen_models
                         ex_fmi=cell(1,nOptimizations);
                         ex_ncall=nan(1,nOptimizations);
                         ex_ncloc=nan(1,nOptimizations);
+                        if strcmp(optimization_method,'mcmc_slice')
+                            ex_p = cell(1,nOptimizations);
+                            ex_ncall = cell(1,nOptimizations);
+                            ex_nll = cell(1,nOptimizations);
+                        end
                         
                         parfor optimization = 1 : nOptimizations;
                             if rand < 1 / progress_report_interval % every so often, print est. time remaining.
@@ -366,8 +384,13 @@ for gen_model_id = active_gen_models
                             end
                             
                             switch optimization_method
+                                case 'mcmc_slice'
+                                    wrapper2 = @(x) wrapper1(x, g, d);
+                                    [ex_p{optimization}, ex_ncall{optimization}]=slicesample(x0(optimization,:)',nKeptSamples,'logpdf',wrapper2, 'width', g.ub-g.lb,'burnin',burnin,'thin',thin);
+                                    for s = 1:nKeptSamples
+                                        ex_nll{optimization}(s) = -ww(ex_p{optimization}(s,:));
+                                    end
                                 case 'fmincon'
-                                    % figure out undefined at init point bug
                                     [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}, ex_lambda{optimization}, ex_grad(:,optimization), ex_hessian(:,:,optimization)] = fmincon(f, x0(:,optimization), o.A, o.b, o.Aeq, o.beq, o.lb, o.ub, [], fmincon_opts);
                                 case 'npsol'
                                     Prob=ProbDef;
@@ -461,14 +484,25 @@ for gen_model_id = active_gen_models
                     gen(gen_model_id).opt(opt_model_id).extracted(dataset).(fields{f}) = ex.(fields{f});
                 end
             else
-                [ex.min_nll, ex.min_idx]    = min(ex.nll);
-                ex.best_params          = ex.p(:, ex.min_idx);
-                ex.n_good_params                          = sum(ex.nll < ex.min_nll + nll_tolerance & ex.nll > 10);
-                [ex.aic, ex.bic, ex.aicc] = aicbic(-ex.min_nll, nParams, gen_nSamples);
-                paramprior      = o.param_prior;
-                ex.best_hessian = ex.hessian(:,:,ex.min_idx);
-                h               = ex.best_hessian;
-                ex.laplace = -ex.min_nll + log(paramprior) +  (nParams/2)*log(2*pi) - .5 * log(det(h));
+                if strcmp(optimization_method, 'mcmc_slice')
+                    all_nll = vertcat(ex.nll{:});
+                    all_p = vertcat(ex.p{:});
+                    [ex.min_nll, ex.min_idx] = min(all_nll);
+                    ex.best_params = all_p(ex.min_idx,:)';
+                    ex.mean_params = mean(all_p);
+                    dbar = 2*mean(all_nll);
+                    %dtbar= 2*nloglik_fcn(ex.mean_params, FINISH THIS. ALSO NEED TO DEAL WITH PRIOR.
+                    % ALSO KEEP GOING AND SEE WHAT ELSE NEEDS TO CHANGE
+                else
+                    [ex.min_nll, ex.min_idx]    = min(ex.nll);
+                    ex.best_params          = ex.p(:, ex.min_idx);
+                    ex.n_good_params                          = sum(ex.nll < ex.min_nll + nll_tolerance & ex.nll > 10);
+                    [ex.aic, ex.bic, ex.aicc] = aicbic(-ex.min_nll, nParams, gen_nSamples);
+                    paramprior      = o.param_prior;
+                    ex.best_hessian = ex.hessian(:,:,ex.min_idx);
+                    h               = ex.best_hessian;
+                    ex.laplace = -ex.min_nll + log(paramprior) +  (nParams/2)*log(2*pi) - .5 * log(det(h));
+                end
                 
                 if strcmp(data_type, 'real')
                     gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = data.name;
@@ -518,4 +552,12 @@ end
 delete([savedir '~'])
 save(savedir)
 
+end
+
+function ll = wrapper1(x,g,raw)
+if any(x<g.lb) || any(x>g.ub) || any(g.A*x' > g.b)
+    ll = -Inf;
+else
+    ll = -nloglik_fcn(x, raw, g);
+end
 end

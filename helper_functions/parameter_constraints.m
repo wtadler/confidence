@@ -92,7 +92,7 @@ for m_id = 1 : nModels
         row = [zeros(l, low-1) unit zeros(l, nParams - high)];
         A = [A;row];
     end
-    save pctest.mat
+    
     c.A = [A;
         zeros(1, 25) 1 2 2 1 1 0 0 0]; % need to add a zero here when you add a new param
     c.b = [zeros(size(A,1),1); 1];

@@ -126,10 +126,12 @@ if strcmp(model.family,'opt') % for all opt family models
     raw.Chat(raw.d >= p.b_i(5)) = -1;
     raw.Chat(raw.d < p.b_i(5)) = 1;
 
+    if ~model.choice_only
         for g = 1 : conf_levels * 2;
             raw.g( p.b_i(g) <= raw.d ...
                  & raw.d    <= p.b_i(g+1)) = confidences(g);
         end
+    end
         
 elseif strcmp(model.family, 'MAP') && strcmp(dist_type, 'same_mean_diff_std')
     raw.shat = zeros(1,3240);
@@ -230,9 +232,10 @@ end
 
 if model.repeat_lapse
     repeat_lapse_rate = p.lambda_r;
-    repeat_lapse_trials = find(randvals > Chat_lapse_rate + partial_lapse_rate...
-                             & randvals < Chat_lapse_rate + partial_lapse_rate + repeat_lapse_rate);
-    raw.g(repeat_lapse_trials) = raw.g(max(1,repeat_lapse_trials-1)); % max(1,etc) is to avoid issues when the first trial is chosen to be a repeat lapse (impossible)
+    repeat_lapse_trials = find(randvals > Chat_lapse_rate + partial_lapse_rate & randvals < Chat_lapse_rate + partial_lapse_rate + repeat_lapse_rate);
+    if ~model.choice_only
+        raw.g(repeat_lapse_trials) = raw.g(max(1,repeat_lapse_trials-1)); % max(1,etc) is to avoid issues when the first trial is chosen to be a repeat lapse (impossible)
+    end
     raw.Chat(repeat_lapse_trials) = raw.Chat(max(1,repeat_lapse_trials-1));
 else
     repeat_lapse_rate = 0; % this is in case we come up with another kind of lapsing.
