@@ -385,7 +385,7 @@ for gen_model_id = active_gen_models
                             
                             switch optimization_method
                                 case 'mcmc_slice'
-                                    [ex_p(:,:,optimization), ex_ncall(optimization)]=slicesample(x0(:,optimization)',nKeptSamples,'logpdf',ww, 'width', o.ub-o.lb,'burnin',burnin,'thin',thin);
+                                    [ex_p(:,:,optimization), ex_ncall(optimization)]=slicesample(x0(:,optimization)',nKeptSamples,'logpdf',ww, 'width', g.ub-g.lb,'burnin',burnin,'thin',thin);
 %                                case 'fmincon'
 %                                     [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}, ex_lambda{optimization}, ex_grad(:,optimization), ex_hessian(:,:,optimization)] = fmincon(f, x0(:,optimization), o.A, o.b, o.Aeq, o.beq, o.lb, o.ub, [], fmincon_opts);
 %                                 case 'npsol'
@@ -479,6 +479,7 @@ for gen_model_id = active_gen_models
             %   for opt_model_id = 1:3;
             %  nParams = size(gen.opt(opt_model_id).extracted(1).p,1);
             % gen_nSamples = 3240
+            save oftest
             %%
             if crossvalidate
                 fields = fieldnames(ex);
@@ -559,34 +560,19 @@ if ~hpc
         suplabel('true parameter', 'x');
         suplabel('extracted parameter', 'y');
     elseif strcmp(optimization_method,'mcmc_slice')
-        % open windows for every model/dataset combo.
         for gen_model = 1:length(gen)
-            g = gen(gen_model);
-            for opt_model = 1:length(g.opt)
-                o = g.opt(opt_model);
-                for dataset = 1:length(o.extracted)
-                    d = g.data(dataset).raw;
-                    ww = @wrapper;
+            for opt_model = 1:length(gen(gen_model).opt)
+                for dataset = 1:length(gen(gen_model).opt(opt_model))
                     samples=cell(1,nChains);
                     logliks=cell(1,nChains);
                     for c = 1:nChains
-                        samples{c} = o.extracted(dataset).p(:,:,c);
+                        samples{c} = gen(gen_model).opt(opt_model).extracted(dataset).p(:,:,c);
                         logliks{c} = nan(nKeptSamples,1);
                         for s=1:nSamples
                             logliks{c}(s) = ww(samples{c}(s,:));
                         end
                     end
-                    
-                    [true_p,true_ll]=deal([]);
-                    if strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
-                        true_p = g.p(:,dataset);
-                        true_ll = -g.true_nll(dataset);
-                    end
-                    [fh,ah]=mcmcdiagnosis(samples,logliks,o,true_p,true_ll,dataset);
-                     
-                end
-            end
-        end
+                    [fh,ah]=mcmcdiagnosis(samples,logliks,gen(active_gen_models).opt(active_opt_models));
     end
 end
 
@@ -597,10 +583,10 @@ delete([savedir '~'])
 save(savedir)
 
 function ll = wrapper(x)
-if any(x<o.lb) || any(x>o.ub) || any(o.A*x' > o.b)
+if any(x<g.lb) || any(x>g.ub) || any(g.A*x' > g.b)
     ll = -Inf;
 else
-    ll = -nloglik_fcn(x, d, o);
+    ll = -nloglik_fcn(x, data(dataset).raw, g);
 end
 end
 end

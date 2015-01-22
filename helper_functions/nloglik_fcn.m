@@ -21,9 +21,7 @@ try
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % SETUP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-    global p conf_levels d_bounds
-    
+        
     p = parameter_variable_namer(p_in, model.parameter_names, model);
     contrasts = exp(-4:.5:-1.5);
     nContrasts = length(contrasts);
@@ -428,6 +426,27 @@ catch error_log
     nloglik = 1e5;
 end
 
+
+
+
+function bval = bf(name)
+bval = p.b_i(name + conf_levels + 1);
+end
+
+function mval = mf(name)
+mval = p.m_i(name + conf_levels + 1);
+end
+
+function aval = af(name)
+aval = p.a_i(name + conf_levels + 1);
+end
+
+function d_boundsval = d_boundsf(name)
+d_boundstmp = [Inf d_bounds 0];
+d_boundsval = d_boundstmp(name + conf_levels + 1);
+end
+
+
 end
 
 function retval = f(y,s,sigma,sq_flag)
@@ -447,27 +466,5 @@ end
 
 function retval = sym_f(y,s,sigma)
 retval = 0.5 * erf((s+y)./(sigma*sqrt(2)));
-end
-
-function bval = bf(name)
-global p conf_levels
-%bval = p.b_i(name + repmat(conf_levels + 1, 1, length(name)));
-bval = p.b_i(name + conf_levels + 1);
-end
-
-function mval = mf(name)
-global p conf_levels
-mval = p.m_i(name + conf_levels + 1);
-end
-
-function aval = af(name)
-global p conf_levels
-aval = p.a_i(name + conf_levels + 1);
-end
-
-function d_boundsval = d_boundsf(name)
-global conf_levels d_bounds
-d_boundstmp = [Inf d_bounds 0];
-d_boundsval = d_boundstmp(name + conf_levels + 1);
 end
 
