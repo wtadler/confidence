@@ -1,6 +1,7 @@
 function [samples, neval, logliks] = slice_sample_test(varargin)
 
 %%
+opt_models = struct;
 d = 0;
 opt_models(1+d).family = 'opt'; % works well with 1e4 samples
 opt_models(1+d).multi_lapse = 0;

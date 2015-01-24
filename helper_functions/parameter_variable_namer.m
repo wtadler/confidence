@@ -3,6 +3,20 @@ function p = parameter_variable_namer(p_in, parameter_names, model)
 % parameter_names is an input so that you don't have to run
 % parameter_constraints
 
+% exponentiate logs
+logparams = strncmpi(parameter_names,'log',3);
+p_in(logparams) = exp(p_in(logparams)); % exponentiate the log params
+for l = find(logparams)'
+    parameter_names{l} = parameter_names{l}(4:end);
+end
+
+% add terms
+termparams = ~cellfun(@isempty,strfind(parameter_names,'Term'));
+for t = find(termparams)'
+    p_in(t)=p_in(t-1)+p_in(t);
+    parameter_names{t} = parameter_names{t}(1:end-4);
+end
+
 % name all the single variables
 for i = 1 : length(parameter_names)
     p.(parameter_names{i}) = p_in(i);
