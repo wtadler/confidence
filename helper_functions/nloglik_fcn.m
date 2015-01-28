@@ -33,6 +33,9 @@ try
         d_noise = 0;
         d_noise_big = 0;
     elseif model.d_noise
+        if ~exist('nDNoiseSets')
+            nDNoiseSets=101;
+        end
         nSTDs = 5;
         weights = normpdf(linspace(-nSTDs, nSTDs, nDNoiseSets), 0, 1);
         normalized_weights = weights ./ sum(weights);
@@ -417,13 +420,13 @@ try
     end
     
 catch error_log
-    warning('Error caught:')
     error_log
     for i=1:length(error_log.stack)
         error_log.stack(i)
     end
-    %save nl_error.mat
-    nloglik = 1e5;
+    save(sprintf('nl_error%i.mat',randi(1000)))
+%     nloglik = Inf;
+    error('Error saved')
 end
 
 

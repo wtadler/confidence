@@ -1,4 +1,6 @@
 function lp = logprior_fcn(x,o)
+% this should be generalizable
+
 lapse_params = strncmpi(o.parameter_names,'lambda',6);
 uniform_range = o.ub(~lapse_params)-o.lb(~lapse_params);
 a=1; % beta dist params
