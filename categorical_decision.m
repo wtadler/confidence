@@ -1,6 +1,8 @@
-%Ryan George
-%Theoretical Neuroscience Lab, Baylor College of Medicine
-%Categorial decisions pilot program
+function categorical_decision(category_type, initial, new_subject_flag, room_letter, exp_number, nExperiments)
+% Ryan George
+% Theoretical Neuroscience Lab, Baylor College of Medicine
+% Will Adler
+% Ma Lab, New York University
 
 rng('shuffle','twister')
 
@@ -13,25 +15,14 @@ end
 
 cd(dir)
 
+%initial = input('Please enter your initials.\n> ', 's'); % 's' returns entered text as a string
 
-% persistent have_done
-% if numel(have_done) == 0 %if no previous session has been run today
-%     %reset random seed to clock value (see help RandStream)
-%     s = RandStream.create('mt19937ar','seed',sum(100*clock));
-%     RandStream.setDefaultStream(s);
-%     have_done = 1;
-% end
+%new_subject_flag = input('\nAre you new to this experiment? Please enter y or n.\n> ', 's');
+%while ~strcmp(new_subject_flag,'y') && ~strcmp(new_subject_flag,'n')
+%    new_subject_flag = input('You must enter y or n.\nAre you new to this experiment? Please enter y or n.\n> ', 's');
+%end
 
-%fprintf('To abort the program, press x and z buttons simultaneously \n\n')
-
-initial = input('Please enter your initials.\n> ', 's'); % 's' returns entered text as a string
-
-new_subject_flag = input('\nAre you new to this experiment? Please enter y or n.\n> ', 's');
-while ~strcmp(new_subject_flag,'y') && ~strcmp(new_subject_flag,'n')
-    new_subject_flag = input('You must enter y or n.\nAre you new to this experiment? Please enter y or n.\n> ', 's');
-end
-
-room_letter = input('\nPlease enter the room name [mbp] or [home] or [1139].\n> ', 's');
+%room_letter = input('\nPlease enter the room name [mbp] or [home] or [1139].\n> ', 's');
 
 %initial = 'test';
 %new = 'y'
@@ -83,8 +74,8 @@ demo_type='new'; % 'old' or 'new' ("movie")
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
-category_type = 'sym_uniform'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian'. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
-attention_manipulation = true;
+%category_type = 'sym_uniform'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian'. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
+attention_manipulation = false;
 cue_validity = .7;
 % colors in 0:1 space
 % color.bg = [0.4902    0.5647    0.5137];
@@ -105,17 +96,19 @@ countdown = 30; % countdown between blocks
 if strcmp(category_type, 'same_mean_diff_std')
     Test.category_params.sigma_1 = 3;
     Test.category_params.sigma_2 = 12;
+    task_number = 2;
 elseif strcmp(category_type, 'diff_mean_same_std')
     Test.category_params.sigma_s = 5; % these params give a level of performance that is about on par withthe original task (above)
     Test.category_params.mu_1 = -4;
     Test.category_params.mu_2 = 4;
+    task_number = 1;
 elseif strcmp(category_type, 'sym_uniform')
     Test.category_params.uniform_range = 15;
     Test.category_params.overlap = 0;
 elseif strcmp(category_type, 'half_gaussian')
     Test.category_params.sigma_s = 5;
 end
-
+Test.category_params.category_type = category_type;
 
 if strcmp(P.stim_type, 'ellipse')
     Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
@@ -139,7 +132,7 @@ Training.initial.n.sections = 2; % WTA: 2
 Training.initial.n.trials = 36;% WTA: 36
 Training.confidence.n.blocks = 1;
 Training.confidence.n.sections = 1;
-Training.confidence.n.trials = 16; % WTA: 16
+Training.confidence.n.trials = 24; % WTA: 16
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 1; %changed from '2' on 10/14
 Training.n.trials = 48; % WTA: 48
@@ -148,7 +141,7 @@ Demo.t.pres = 250;
 Demo.t.betwtrials = 200;
 
 
-Test.t.pres = 500;           %50. needs to be longer for attention experiment?
+Test.t.pres = 50;           %50. needs to be longer for attention experiment?
 Test.t.pause = 200;         %200 isn't used
 Test.t.feedback = 1200;     %1200 isn't used
 Test.t.betwtrials = 1000;   %1000
@@ -384,16 +377,23 @@ try
             example_w = 6*P.gabor_wavelength;
             %r_gabor(P,0,scr,1,[],[scr.cx-example_w/2 ny scr.cx+example_w/2 ny+example_w])
             r_gabor(P,scr,[],stim,[scr.cx-example_w/2 ny scr.cx+example_w/2 ny+example_w])
+            ny = ny+example_w;
         elseif strcmp(P.stim_type, 'ellipse')
             im = drawEllipse(P.ellipseAreaPx, .95, 0, P.ellipseColor, mean(P.bgColor));
             max_ellipse_d = size(im,1); % in this case, this is the height of the longest (tallest) ellipse
             %ellipse(P, 0, scr, .95, 0)%, [scr.cx-size(im,2)/2 ny scr.cx+size(im,2)/2 ny+size(im,1)])
             ellipse(P, scr, [], stim)
+            ny = ny+max_ellipse_d;
         end
-        Screen('Flip', scr.win)%,[],1);
-        WaitSecs(1);
-        %Screen('Flip', scr.win); % can't the above flip be 0 and this line be removed?
-        KbWait;
+        
+        flip_pak_flip(scr,ny,color,'continue');
+        
+        [nx,ny]=DrawFormattedTest(scr.win, ['Important: You are now doing Task ' num2str(task_number)], 'center', 'center', color.wt);
+        flip_pak_flip(scr,ny,color,'continue');
+        
+        %Screen('Flip', scr.win)%,[],1);
+        %WaitSecs(1);
+        %KbWait;
         
         if strcmp(demo_type, 'old')
 %             nExamples = 6;
@@ -473,7 +473,7 @@ try
             for category = 1 : 2
                 DrawFormattedText(scr.win, sprintf('Examples of Category %i stimuli:', category), 'center', scr.cy-60, color.wt);
                 Screen('Flip', scr.win);
-                WaitSecs(1);
+                WaitSecs(2);
                 KbWait;
                                 
                 for i = 1:nDemoTrials
@@ -539,15 +539,15 @@ try
         %load top scores
         load top_ten
         
-        ranking = 11 - sum(blockscore>=top_ten.scores); % calculate current ranking
+        ranking = 11 - sum(blockscore>=top_ten.(category_type).scores); % calculate current ranking
                 
         if ranking < 11
-            top_ten.scores = [top_ten.scores(1:(ranking-1));  blockscore;  top_ten.scores(ranking:9)];
+            top_ten.(category_type).scores = [top_ten.(category_type).scores(1:(ranking-1));  blockscore;  top_ten.(category_type).scores(ranking:9)];
             for m = 10:-1:ranking+1
-                top_ten.initial{m} = top_ten.initial{m-1};
+                top_ten.(category_type).initial{m} = top_ten.(category_type).initial{m-1};
             end
-            top_ten.initial{ranking} = initial;
-            hitxt='\n\nCongratulations! You made the top ten!\n\n';
+            top_ten.(category_type).initial{ranking} = initial;
+            hitxt=['\n\nCongratulations! You made the top ten for task' num2str(task_number) '!\n\n'];
         else
             hitxt='\n\n\n\n';
         end
@@ -559,9 +559,9 @@ try
         save(strrep([dir '/data/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P') % block by block backup. strrep makes the file separator system-dependent.
         
         [nx,ny] = DrawFormattedText(scr.win,[hitxt 'Your score for Testing Block ' num2str(k) ': ' num2str(blockscore,'%.1f') '%\n\n'...
-            'Top Ten:\n\n'],'center',0,color.wt);
+            'Top Ten for task ' num2str(task_number) ':\n\n'],'center',0,color.wt);
         for j = 1:10
-            [nx,ny] = DrawFormattedText(scr.win,[num2str(j) ') ' num2str(top_ten.scores(j),'%.1f') '%    ' top_ten.initial{j} '\n'],scr.cx*.8 - (j==10)*20,ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,[num2str(j) ') ' num2str(top_ten.(category_type).scores(j),'%.1f') '%    ' top_ten.(category_type).initial{j} '\n'],scr.cx*.8 - (j==10)*20,ny,color.wt);
         end
         
         if k ~= Test.n.blocks % if didn't just finish final testing block
@@ -583,8 +583,26 @@ try
             
             flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
         % end top ten scores
-           
-        else
+        elseif k == Test.n.blocks && exp_number ~= nExperiments % if just finished experiment one, and there's another experiment coming up.   
+            [nx,ny] = DrawFormattedText(scr.win,'\nYou''re done with the first task of the day.\n\n\n','center',ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,sprintf('Task %i will begin in ',task_number),scr.cx-570,ny,color.wt);
+            countx=nx; county=ny;
+            [nx,ny] = DrawFormattedText(scr.win,'   seconds,\n\n',countx,county,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,['but you may take a longer break\n\n'...
+                'and leave the room or walk around.\n\n\n'...
+                'Coming up: Task ' num2str(task_number)],'center',ny,color.wt,50);
+            
+            for i=1:countdown+1;
+                Screen('FillRect',scr.win,128,[countx county countx+1.5*fontsize county+1.1*fontsize]) %timer background
+                DrawFormattedText(scr.win,[num2str(countdown+1-i) '  '],countx,county,color.wt);
+                Screen('Flip',scr.win,[],1); % flip to screen without clearing
+                WaitSecs(1);
+            end
+            
+            flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
+
+        
+        elseif k == Test.n.blocks && exp_number == nExperiments % if done with both experiments
             [nx,ny] = DrawFormattedText(scr.win,'\n\n\n\nYou''re done with the experiment.\n\nThank you for participating!','center',ny,color.wt);
             Screen('Flip',scr.win)
             WaitSecs(1);
@@ -601,7 +619,7 @@ try
     
     save top_ten top_ten;
     elapsed_mins = toc(start_t)/60;
-    save(strrep([dir '/data/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P') % save complete session
+    save(strrep([dir '/data/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P', 'elapsed_mins') % save complete session
     recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
     delete([dir '/data/backup/' initial '_' datetimestamp '.mat']) % delete the block by block backup
     
