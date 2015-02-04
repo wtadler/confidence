@@ -187,10 +187,10 @@ try
     % OPEN IN WINDOW
     %[scr.win, scr.rect] = Screen('OpenWindow', screenid, 128, [100 100 1200 1000]);
  
-    LoadIdentityClut(scr.win) % default gamma table
+    %LoadIdentityClut(scr.win) % default gamma table
     if strcmp(room_letter, '1139')
-    load('calibration/iPadGammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
-    Screen('LoadNormalizedGammaTable', scr.win, gammaTable*[1 1 1]);
+        load('calibration/iPadGammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
+        Screen('LoadNormalizedGammaTable', scr.win, gammaTable*[1 1 1]);
     end
     
     scr.w = scr.rect(3); % screen width in pixels
