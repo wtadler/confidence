@@ -70,7 +70,7 @@ end
 close all;
 %%
 demo_type='new'; % 'old' or 'new' ("movie")
-    nDemoTrials = 50; % for 'new' style demo
+    nDemoTrials = 10; % for 'new' style demo
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
@@ -187,9 +187,9 @@ try
     % OPEN IN WINDOW
     %[scr.win, scr.rect] = Screen('OpenWindow', screenid, 128, [100 100 1200 1000]);
  
-    %LoadIdentityClut(scr.win) % default gamma table
+    LoadIdentityClut(scr.win) % default gamma table
     if strcmp(room_letter, '1139')
-    load('calibration/1139_L_Dell_GammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
+    load('calibration/iPadGammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
     Screen('LoadNormalizedGammaTable', scr.win, gammaTable*[1 1 1]);
     end
     
