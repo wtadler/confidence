@@ -1,9 +1,4 @@
-function gen=optimize_fcn(varargin)
-%%
-hpc = false;
-job_id = '';
-
-%%
+function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
@@ -11,9 +6,9 @@ opt_models(1).family = 'fixed';
 opt_models(1).multi_lapse = 0;
 opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
-opt_models(1).choice_only = 0;
+opt_models(1).choice_only = 1;
 opt_models(1).diff_mean_same_std = 0;
-opt_models(1).ori_dep_noise = 0;
+opt_models(1).ori_dep_noise = 1;
 
 opt_models(2) = opt_models(1);
 opt_models(2).family = 'lin';
@@ -24,7 +19,8 @@ opt_models(3).family = 'quad';
 opt_models(4) = opt_models(1);
 opt_models(4).family = 'opt';
 opt_models(4).d_noise = 1;
-opt_models(4).symmetric = 0;
+opt_models(4).choice_only = 1;
+opt_models(4).ori_dep_noise = 1;
 
 opt_models(5) = opt_models(4);
 opt_models(5).symmetric = 1;
@@ -33,10 +29,11 @@ opt_models(6) = opt_models(1);
 opt_models(6).family = 'MAP';
 
 opt_models(7).family = 'fixed';
-opt_models(7).multi_lapse = 0;
-opt_models(7).partial_lapse = 0;
+opt_models(7).multi_lapse = 1;
+opt_models(7).partial_lapse = 1;
 opt_models(7).repeat_lapse = 1;
-opt_models(7).choice_only = 1;
+opt_models(7).choice_only = 0;
+opt_models(7).ori_dep_noise = 1;
 
 opt_models(8) = opt_models(7);
 opt_models(8).family = 'lin';
@@ -63,12 +60,11 @@ opt_models(14).ori_dep_noise = 1;
 
 opt_models = parameter_constraints(opt_models);
 %%
-
+hpc = false;
 assignopts(who,varargin);
 
 active_opt_models = 1:length(opt_models);
 
-%%
 nRegOptimizations = 40;
 nDNoiseOptimizations = 8;
 nMAPOriDepNoiseOptimizations = 4;
@@ -77,22 +73,18 @@ nDNoiseSets = 101;
 maxWorkers = Inf; % set this to 0 to turn parfor loops into for loops
 
 progress_report_interval = Inf;
-time_lim = Inf; % time limit for slice_sample
+time_lim = Inf; % time limit (secs) for slice_sample
 
-x0_reasonable = false; %limits starting points for optimization to those reasonable ranges defined in lb_gen and ub_gen
+x0_reasonable = true; %limits starting points for optimization to those reasonable ranges defined in lb_gen and ub_gen
 
-optimization_method = 'mcmc_slice'; % 'fmincon', 'lgo','npsol','mcs','snobfit','ga', 'patternsearch','mcmc_slice'
-maxtomlabsecs = 100; % for lgo,npsol only
-maxsnobfcalls = 10000; % for snobfit only
+optimization_method = 'mcmc_slice'; % 'fmincon', 'mcmc_slice'
 nKeptSamples = 1e4; % for mcmc_slice
 nChains = 4;
-slicesampler = 'luigi'; % 'builtin' or 'luigi'
-
+slicesampler = 'custom'; % 'builtin' or 'custom'
 
 data_type = 'real'; % 'real' or 'fake'
 % 'fake' generates trials and responses, to test parameter extraction
 % 'real' takes real trials and real responses, to extract parameters
-
 
 %% fake data generation parameters
 fake_data_params =  'random'; % 'extracted' or 'random'
@@ -113,7 +105,7 @@ active_gen_models = 1 : length(gen_models);
 gen_nSamples = 3240;
 fixed_params_gen = []; % can fix parameters here. set fixed values in beq, in parameter_constraints.m.
 fixed_params_opt = [];
-%%
+
 slimdown = true; % throws away information like hessian for every optimization, etc. that takes up a lot of space.
 crossvalidate = false;
 k = 1; % for k-fold cross-validation
@@ -124,6 +116,10 @@ end
 
 nll_tolerance = 1e-3; % this is for determining what "good" parameters are.
 
+if strcmp(optimization_method,'fmincon')
+    fmincon_opts = optimoptions(@fmincon,'Algorithm','interior-point', 'display', 'off', 'UseParallel', 'never');
+end
+
 if hpc
     datadir='/home/wta215/data/v2/';
 else
@@ -131,16 +127,6 @@ else
 end
 
 assignopts(who,varargin);
-
-switch optimization_method
-    case 'fmincon'
-        fmincon_opts = optimoptions(@fmincon,'Algorithm','interior-point', 'display', 'off', 'UseParallel', 'never');
-    case 'patternsearch'
-        patternsearch_opts = psoptimset('MaxIter',1e4,'MaxFunEvals',1e4);
-    case 'ga'
-        ga_opts = gaoptimset('PlotFcns', {@gaplotbestf, @gaplotscorediversity, @gaplotbestindiv, @gaplotgenealogy, @gaplotscores, @gaplotrankhist});
-end
-
 
 if strcmp(data_type, 'real')
     gen = compile_data('datadir', datadir, 'crossvalidate', crossvalidate, 'k', k);
@@ -155,25 +141,21 @@ elseif strcmp(data_type,'fake')
     extracted_param_file = '';
 end
 
+job_id = datetimefcn;
 assignopts(who,varargin); % reassign datasets (for multiple jobs)
 
-datetime_str = datetimefcn;
+
+
 if hpc
-    savedir = '/home/wta215/Analysis/output/'
-    
-    if strcmp(data_type,'real')
-        if length(datasets)==1
-            filename = sprintf('%g_subject%g.mat', job_id, datasets)
-        else
-            filename = sprintf('%g_multiplesubjects.mat', job_id)
-        end
-    elseif strcmp(data_type,'fake')
-        filename = sprintf('%g_model%g.mat', job_id, active_gen_models);
-    end
+    savedir = '/home/wta215/Analysis/output/';
 else
-    savedir = '/Users/will/Google Drive/Ma lab/output/'
-    filename = sprintf('%s.mat', datetime_str)
+    savedir = '/Users/will/Google Drive/Ma lab/output/';
 end
+log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
+my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
+% my_print = @fprintf;
+cd(savedir)
+filename = sprintf('%s.mat',job_id);
 
 %% GENERATE FAKE DATA %%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -188,6 +170,7 @@ if strcmp(data_type, 'fake')
         switch fake_data_params
             case 'random'
                 gen(gen_model_id).p = random_param_generator(nDatasets, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
+                gen(gen_model_id).p
                 
             case 'extracted' % previously extracted using this script (deprecated, add model(i)... or something)
                 
@@ -218,14 +201,14 @@ start_t=tic;
 
 for gen_model_id = active_gen_models
     if strcmp(data_type,'fake')
-        fprintf('\n\n%%%%%%%%%%%% GENERATING MODEL ''%s'' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n',gen_models(gen_model_id).name);
+        my_print(sprintf('\n\n%%%%%%%%%%%% GENERATING MODEL ''%s'' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n',gen_models(gen_model_id).name));
     end
     for opt_model_id = active_opt_models
         model_start_t = tic;
         o = opt_models(opt_model_id);
         nParams = length(o.lb);
-
-        fprintf('\n\nFITTING MODEL ''%s''\n\n', o.name)
+        
+        my_print(sprintf('\n\nFITTING MODEL ''%s''\n\n', o.name));
         
         if strcmp(o.family, 'opt') && o.d_noise
             nOptimizations = nDNoiseOptimizations;
@@ -241,7 +224,8 @@ for gen_model_id = active_gen_models
         
         if strcmp(optimization_method,'mcmc_slice')
             nSamples = nOptimizations; % real samples to run
-            burnin = round(nSamples/2);
+            burnin = 0;%round(nSamples/2);
+            postburn = round(nKeptSamples/3);
             thin = ceil(nSamples/nKeptSamples);
             nOptimizations = nChains;
         end
@@ -280,111 +264,112 @@ for gen_model_id = active_gen_models
                 % use anon objective function to fix data parameter.
                 f = @(p) nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
                 
+                % possible outputs
+                % fmincon and mcmc
                 ex_p = nan(nParams,nOptimizations);
                 ex_nll = nan(1,nOptimizations);
+                % fmincon only
                 ex_exitflag = nan(1, nOptimizations);
                 ex_output = cell(1,nOptimizations);
                 ex_lambda = cell(1,nOptimizations);
                 ex_grad = nan(nParams, nOptimizations);
                 ex_hessian = nan(nParams, nParams, nOptimizations);
-                ex_xmin=cell(1,nOptimizations);
-                ex_fmi=cell(1,nOptimizations);
+                % mcmc
                 ex_ncall=nan(1,nOptimizations);
-                ex_ncloc=nan(1,nOptimizations);
+                ex_logprior = nan(nKeptSamples,nOptimizations);
                 if strcmp(optimization_method,'mcmc_slice')
                     ex_p = nan(nKeptSamples,nParams,nOptimizations);
-                    ex_ncall = nan(1,nOptimizations);
-                    [ex_nll, ex_logprior, ex_logposterior] = deal(nan(nKeptSamples,nOptimizations));
-                    aborted_flags = zeros(1,nOptimizations);
+                    ex_nll = nan(nKeptSamples,nOptimizations);
                 end
 
                 loglik_wrapper = @(p) -nloglik_fcn(p, d, o, nDNoiseSets, category_params);
                 logprior_wrapper = @log_prior;
                 
-                parfor (optimization = 1 : nOptimizations, maxWorkers)
-%                     if rand < 1 / progress_report_interval % every so often, print est. time remaining.
-%                         fprintf('Dataset: %.0f\nElapsed: %.1f mins\n\n', dataset, toc(start_t)/60);
-%                     end
-                    
-                    switch optimization_method
-                        case 'mcmc_slice'
-                            fprintf('Dataset: %.0f\nElapsed: %.1f mins\n\n', dataset, toc(start_t)/60);
-                            switch slicesampler
-                                case 'builtin'
-                                    [ex_p(:,:,optimization), ex_ncall(optimization)]=my_slicesample(x0(:,optimization)',nKeptSamples,'logpdf',lp_wrapper, 'width', o.ub-o.lb,'burnin',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization);
-                                case 'luigi'
-                                    [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nKeptSamples,'logdist',loglik_wrapper,'logpriordist',logprior_wrapper,'burnin',burnin,'thin',thin,'xx',x0(:,optimization)','widths',(o.ub-o.lb)','progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim);
-                                    if aborted_flags(optimization)
-                                        fprintf('aborted during slice_sample, chain %i.\n',optimization)
-                                    end
-                                    ex_p(:,:,optimization) = samples';
-                                    ex_nll(:,optimization) = -loglikes';
-                                    ex_logprior(:,optimization) = logpriors';
+                switch optimization_method
+                    case 'mcmc_slice'
+                        aborted_flags = zeros(1,nOptimizations);
+
+                        if exist([savedir 'aborted/aborted_' filename],'file')
+                            % RESUME PREVIOUSLY ABORTED SAMPLING
+                            load([savedir 'aborted/aborted_' filename])
+                            remaining_samples = isnan(ex_nll);
+                            nRemSamples = sum(remaining_samples);
+                            %remaining_p = isnan(ex_p);
+                            [s_tmp,ll_tmp,lp_tmp] = deal(cell(1,nOptimizations));
+                            parfor (optimization = 1:nOptimizations, maxWorkers)
+                                log_fid = fopen([job_id '.txt'],'a'); % reopen log for parfor
+                                [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nRemSamples(optimization), loglik_wrapper, ex_p(end-1-nRemSamples(optimization),:,optimization), (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
+                                    'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid);
+                                s_tmp{optimization} = samples';
+                                ll_tmp{optimization} = -loglikes';
+                                lp_tmp{optimization} = logpriors';
                             end
-                            %                                case 'fmincon'
-                            %                                     [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}, ex_lambda{optimization}, ex_grad(:,optimization), ex_hessian(:,:,optimization)] = fmincon(f, x0(:,optimization), o.A, o.b, o.Aeq, o.beq, o.lb, o.ub, [], fmincon_opts);
-                            %                                 case 'npsol'
-                            %                                     Prob=ProbDef;
-                            %                                     Prob.MaxCPU = maxtomlabsecs; % this doesn't work either. apparently can't limit npsol.
-                            %                                     %%%% Prob.MajorIter = 200; % this
-                            %                                     %%%% doesn't seem to eliminate the
-                            %                                     %%%% error "too many major
-                            %                                     %%%% iterations".
-                            %                                     Prob.Solver.Tomlab = 'npsol';
-                            %                                     [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}, ex_lambda{optimization}, ex_grad(:,optimization), ex_h] = fmincont(f, x0(:,optimization), A, b, Aeq, o.beq, lb, ub, [], [], Prob);
-                            %                                     if size(ex_h)==[nParams nParams] % because it doesn't seem to want to make hessians.
-                            %                                         ex_hessian(:,:,optimization) = ex_h;
-                            %                                     end
-                            %                                 case 'lgo'
-                            %                                     Prob=ProbDef;
-                            %                                     Prob.MaxCPU = maxtomlabsecs;
-                            %                                     Prob.Solver.Tomlab='lgo'; %no license for 'oqnlp'. 'lgo' is supposedly good. 'npsol' is default.
-                            %                                     %%this chokes up if I
-                            %                                     %%include lambda in outputs. same
-                            %                                     %%if I just say ~ instead of
-                            %                                     %%getting a lambda.
-                            %                                     [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}] = fmincont(f, x0(:,optimization), A, b, Aeq, o.beq, lb, ub, [], [], Prob);
-                            %                                 case 'mcs'
-                            %                                     % increase smax.
-                            %                                     smax = 50*nParams+10; %number of levels. governs the relative amount of global versus local search. default 5n+10. just ran at 50. trying 5..
-                            %                                     % By increasing smax, more weight is
-                            %                                     % given to global search.
-                            %                                     nf   = 480*nParams^2; %maximum number of function evaluations default 50n^2. try 4800n^2. was 20, with smax 50
-                            %                                     stop = 60*nParams; % max number of evals with no progress being made. default 3n
-                            %                                     [ex_p(:, optimization), ex_nll(optimization), ex_xmin{optimization}, ex_fmi{optimization}, ex_ncall(optimization), ex_ncloc(optimization), ex_exitflag(optimization)] = mcs('feval', f, lb', ub', 0, smax, nf, stop);
-                            %                                 case 'snobfit'
-                            %                                     ncall = maxsnobfcalls;   % limit on the number of function calls
-                            %                                     mysnobtest
-                            %
-                            %                                     ex_p(:, optimization) = xbest';
-                            %                                     ex_nll(optimization) = fbest;
-                            %                                     ex_ncall(optimization) = ncall0;
-                            %                                 case 'patternsearch'
-                            %                                     [ex_p(:, optimization), ex_nll(optimization)] = patternsearch(f, x0(:,optimization), A, b, Aeq, o.beq, lb, ub, [], patternsearch_opts);
-                            %                                 case 'ga'
-                            %                                     [ex_p(:, optimization), ex_nll(optimization)] = ga(f, length(lb), A, b, Aeq, o.beq, lb, ub, [], ga_opts)
-                    end
+                            for optimization = 1:nOptimizations
+                                ex_p(remaining_samples(:,optimization),:,optimization) = s_tmp{optimization};
+                                ex_nll(remaining_samples(:,optimization),optimization) = ll_tmp{optimization};
+                                ex_logprior(remaining_samples(:,optimization),optimization) = lp_tmp{optimization};
+                            end
+                            clear s_tmp ll_tmp lp_tmp
+                        else
+                            % NEW SAMPLING
+                            parfor (optimization = 1 : nOptimizations, maxWorkers)
+                                log_fid = fopen(sprintf('%s.txt',job_id),'a'); % reopen log for parfor
+                                [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nKeptSamples, loglik_wrapper, x0(:,optimization)', (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
+                                    'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid);
+                                ex_p(:,:,optimization) = samples';
+                                ex_nll(:,optimization) = -loglikes';
+                                ex_logprior(:,optimization) = logpriors';
+                            end
+                        end
+                        
+                        if any(aborted_flags)
+                            my_print(sprintf('aborted during slice_sample'));
+                            save([savedir 'aborted/aborted_' filename])
+                            aborted=true;
+                            return
+                        else
+                            aborted=false;
+                            if exist([savedir 'aborted/aborted_' filename])
+                                delete([savedir 'aborted/aborted_' filename])
+                            end
+                        end
+                        
+                        if end_early
+                            %%
+                            min_chain_completion = min(sum(~isnan(ex_nll)));
+                            ex_nll = ex_nll(1:min_chain_completion,:);
+                            ex_logprior = ex_logprior(1:min_chain_completion,:);
+                            ex_p = ex_p(1:min_chain_completion,:,:);
+                            postburn = 0;
+                        end
+
+                        % post-burn
+                        ex_p = ex_p(postburn+1:end,:,:);
+                        ex_nll = ex_nll(postburn+1:end,:);
+                        ex_logprior = ex_logprior(postburn+1:end,:);
+                        
+                    case 'fmincon'
+                        if rand < 1 / progress_report_interval % every so often, print est. time remaining.
+                            my_print('Dataset: %.0f\nElapsed: %.1f mins\n\n', dataset, toc(start_t)/60);
+                        end
+                        parfor (optimization = 1 : nOptimizations, maxWorkers)
+                            [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}, ex_lambda{optimization}, ex_grad(:,optimization), ex_hessian(:,:,optimization)] = fmincon(f, x0(:,optimization), [], [], o.Aeq, o.beq, o.lb, o.ub, [], fmincon_opts);
+                        end
                 end
                 
-                if any(aborted_flags)
-                    save([savedir 'aborted/aborted_' filename])
-                    return
-                end
-                    
-                
-%                 priorlikt = tic;
-%                 if strcmp(optimization_method,'mcmc_slice')                    
-%                     parfor (optimization = 1:nOptimizations, maxWorkers)
-%                         for s = 1:nKeptSamples
-%                             ex_nll(s,optimization) = f(ex_p(s,:,optimization));
-%                             ex_logprior(s,optimization) = logprior_fcn(ex_p(s,:,optimization),o);
-%                             ex_logposterior(s,optimization) = ex_logprior(s,optimization)-ex_nll(s,optimization);
-%                         end
-%                     end
-%                 end
-%                 
-%                 fprintf('\nIt took %g minutes to re-compute sample logpriors and loglikelihoods.\n\n',round(toc(priorlikt)*100/60)/100)
-                
+                %                 priorlikt = tic;
+                %                 if strcmp(optimization_method,'mcmc_slice')
+                %                     parfor (optimization = 1:nOptimizations, maxWorkers)
+                %                         for s = 1:nKeptSamples
+                %                             ex_nll(s,optimization) = f(ex_p(s,:,optimization));
+                %                             ex_logprior(s,optimization) = logprior_fcn(ex_p(s,:,optimization),o);
+                %                             ex_logposterior(s,optimization) = ex_logprior(s,optimization)-ex_nll(s,optimization);
+                %                         end
+                %                     end
+                %                 end
+                %
+                %                 my_print('\nIt took %g minutes to re-compute sample logpriors and loglikelihoods.\n\n',round(toc(priorlikt)*100/60)/100)
+                             %%         
                 ex.p = ex_p;
                 ex.nll = ex_nll;
                 ex.exitflag = ex_exitflag;
@@ -392,12 +377,9 @@ for gen_model_id = active_gen_models
                 ex.lambda = ex_lambda;
                 ex.grad = ex_grad;
                 ex.hessian = ex_hessian;
-                ex.xmin = ex_xmin;
-                ex.fmi = ex_fmi;
                 ex.ncall = ex_ncall;
-                ex.ncloc = ex_ncloc;
                 ex.log_prior = ex_logprior;
-                
+                %%
                 if crossvalidate
                     ex.train(trainset).p = ex.p;
                     ex.train(trainset).nll = ex.nll;
@@ -472,12 +454,12 @@ for gen_model_id = active_gen_models
             save([savedir filename '~'])
         end
         
-        fprintf('Total model %s time: %.1f mins\n\n', o.name, toc(model_start_t)/60);
+        my_print(sprintf('Total model %s time: %.1f mins\n\n', o.name, toc(model_start_t)/60));
         
     end
 end
 
-fprintf('Total optimization time: %.2f mins.\n',toc(start_t)/60);
+my_print(sprintf('Total optimization time: %.2f mins.\n',toc(start_t)/60));
 clear ex_p ex_nll ex_logposterior ex_logprior all_nll all_p d varargin;
 if hpc
     gen.data = [];
@@ -485,7 +467,6 @@ if hpc
 end
 
 %%
-hpc=0;
 if ~hpc
     if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
         % COMPARE TRUE AND FITTED PARAMETERS IN SUBPLOTS
@@ -508,16 +489,16 @@ if ~hpc
         suplabel('extracted parameter', 'y');
     elseif strcmp(optimization_method,'mcmc_slice')
         % DIAGNOSE MCMC
-        % open windows for every model/model//dataset combo.
-        for gen_model_id = 1:length(gen)
+        % open windows for every model/dataset combo.
+        for gen_model_id = active_gen_models%1:length(gen)
             g = gen_models(gen_model_id);
             if strcmp(data_type,'real')
                 g.name = [];
             end
-            for opt_model = active_opt_models%1:length(gen(gen_model_id).opt)
+            for opt_model = active_opt_models%1:length(gen(gen_model_id).opt) % active_opt_models
                 o = gen(gen_model_id).opt(opt_model);
-                for dataset_id = dataset%1:length(o.extracted)
-                    [samples,logposteriors]=deal(cell(1,nChains));
+                for dataset_id = dataset%1:length(o.extracted) % dataset
+                    [samples,logposteriors]=deal(cell(1,nChains)); 
                     
                     extraburn_pct=0; % burn some proportion of the samples
                     for c = 1:nChains
@@ -540,6 +521,7 @@ if ~hpc
     end
 end
 %%
+fh = [];
 delete([savedir filename '~'])
 save([savedir filename])
 %%

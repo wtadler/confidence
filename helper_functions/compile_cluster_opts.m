@@ -18,8 +18,18 @@ jobid
 cd(datadir)
 files = what(datadir);
 mat_files = files.mat;
-job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%i.*\\.mat', jobid))));
+job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%s.*\\.mat', jobid))));
 
+newjob = zeros(1,length(job_files));
+for j = 1:length(job_files)
+    t = regexp(job_files{j},'\.(.*?)\.','tokens');
+    newjob(j) = str2num(t{1}{1});
+end
+[~,sort_idx]=sort(newjob);
+
+job_files = job_files(sort_idx);
+
+%%
 if strfind(job_files{1},'model') % model recovery
     
     load(job_files{1}) % load first file to get nDatasets
@@ -161,7 +171,7 @@ else %real data
 end
 
 clear tmp
-save(sprintf('COMBINED_%i.mat', jobid))%,'-v7.3')
+save(sprintf('COMBINED_%s.mat', jobid))%,'-v7.3')
 
 return
 

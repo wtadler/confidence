@@ -1,5 +1,5 @@
-function nloglik = nloglik_fcn(p_in, raw, model, nDNoiseSets, varargin)
-try
+function [nloglik, loglik_vec] = nloglik_fcn(p_in, raw, model, nDNoiseSets, varargin)
+% try
     if length(varargin) == 1;
         category_params = varargin{1};
     end
@@ -192,12 +192,12 @@ try
     end
     
     if ~model.diff_mean_same_std
+        %save nltest_dnoise
         p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) -repmat(raw.Chat, nDNoiseSets, 1) .* f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1), sq_flag);
     elseif model.diff_mean_same_std
         p_choice = 0.5 - repmat(raw.Chat,nDNoiseSets, 1) .* sym_f(-k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
     end
     p_choice = normalized_weights*p_choice;
-    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % CONFIDENCE PROBABILITY %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -419,15 +419,15 @@ try
         %nloglik = 1e10;
     end
     
-catch error_log
-    error_log
-    for i=1:length(error_log.stack)
-        error_log.stack(i)
-    end
-    save(sprintf('nl_error%i.mat',randi(1000)))
-%     nloglik = Inf;
-    error('Error saved')
-end
+% catch error_log
+%     error_log
+%     for i=1:length(error_log.stack)
+%         error_log.stack(i)
+%     end
+%     save(sprintf('nl_error%i.mat',randi(1000)))
+% %     nloglik = Inf;
+%     error('Error saved')
+% end
 
 
 

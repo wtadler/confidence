@@ -131,8 +131,8 @@ else
 end
 
 Test.n.blocks = 3;% WTA from 3
-Test.n.sections = 2; % WTA from 3
-Test.n.trials = 18*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
+Test.n.sections = 3; % WTA from 3
+Test.n.trials = 12*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
 
 Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % WTA: 2
@@ -372,7 +372,7 @@ try
     
     Training.confidence.R = setup_exp_order(Training.confidence.n, Test.category_params, category_type);
     
-
+    start_t = tic;
     %% DEMO for new subjects
     if strcmp(new_subject_flag,'y')
         [nx,ny]=DrawFormattedText(scr.win, 'Example Stimulus\n\n', 'center', scr.cy-60, color.wt);
@@ -600,7 +600,7 @@ try
     end
     
     save top_ten top_ten;
-    
+    elapsed_mins = toc(start_t)/60;
     save(strrep([dir '/data/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P') % save complete session
     recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
     delete([dir '/data/backup/' initial '_' datetimestamp '.mat']) % delete the block by block backup

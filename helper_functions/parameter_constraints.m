@@ -1,5 +1,4 @@
 function models = parameter_constraints(models)
-
 nModels = length(models);
 
 for m_id = 1 : nModels
@@ -78,18 +77,19 @@ for m_id = 1 : nModels
         };
     log_params = strncmpi(c.parameter_names,'log',3);
     
-    %               alp bet sig bn3dbn2dbn1dbn0db1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0xc
+    %               alp bet sig0bn3dbn2dbn1dbn0db1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0xc
     c.lb       = [  0   0   0   -60 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   -60 0   -30   ];
-    c.lb_gen   = [  0   0   0   -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  0   0   0   0   0   0   2   8   0   -2  3   0];
-    c.ub       = [  50  8   30  60  10  10  10  10  10  10  90  30  30  30  30  30  30  30  10  10  10  10  10  10  20  .5  .25 .25 .5  .5  25  25  50  60  40  30 ];
-    c.ub_gen   = [  50  8   30  1.2 1.2 1.2 1.2 1.2 1.2 1.2 3   5   5   5   5   5   5   1   1   1   1   1   1   1   3   .1  .1  .1  .2  .1  4   10  5   1.2 8   2];
+    c.lb_gen   = [  0   0   1   -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  1   0   0   0   0   0   2   8   2   -2  3   0];
+    c.ub       = [  50  8   30  60  10  10  10  10  10  10  90  30  30  30  30  30  30  30  10  10  10  10  10  10  20  .5  .25 .25 .5  .5  25  25  25  60  40  30 ];
+    c.ub_gen   = [  50  8   30  1.2 1.2 1.2 1.2 1.2 1.2 1.2 3   5   5   5   5   5   5   1   1   1   1   1   1   1   3   .1  .1  .1  .2  .1  4   10  10  1.2 8   2];
+    
     c.beq      = [  1   1   1   -2  .7  .7  .7  .7  .7  .7  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5]';
     
     fields = {'lb','ub','lb_gen','ub_gen'}; % convert log param bounds
     c.lb(log_params) = -10;
-    c.lb_gen(log_params) = -3;
+    c.lb_gen(log_params) = -1.5;
     c.ub(log_params) = 10;
-    c.ub_gen(log_params) = 3;
+    c.ub_gen(log_params) = 4;
 %     for field = 1:length(fields)
 %         c.(fields{field})(log_params) = log(c.(fields{field})(log_params));
 %         c.(fields{field})(c.(fields{field})==-Inf) = -100;
@@ -106,6 +106,9 @@ for m_id = 1 : nModels
     c = repeat_lapseizer(c);
     c = free_catsizer(c);
     c = sig_ampizer(c);
+    
+    % calculate uniform param prior
+    c.param_prior = prod(1 ./ (c.ub - c.lb)); % this is not great. lapse param should be a beta dist, not uniform. but only applies when doing hessian, which we've moved on from.
     
     % put back into model
     fields = fieldnames(c);
