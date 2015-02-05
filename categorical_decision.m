@@ -32,6 +32,8 @@ datetimestamp = datetimefcn; % establishes a timestamp for when the experiment w
 
 % map keys with 'WaitSecs(0.2); [~, keyCode] = KbWait;find(keyCode==1)' and
 % then press a key.
+fontsize = 28; % unless the hires_rig below
+
 switch room_letter
     case 'home'
         screen_width = 64;%64 %30" cinema display width in cm (.250 mm pixels)
@@ -56,6 +58,15 @@ switch room_letter
             scr.key7, scr.key8, scr.key9, scr.key10] ...
             = deal(112, 113, 114, 115, 116, 119, 120, 121, 122, 123);
         % This is for keys F1-5, F8-12.
+    case '1139_hires_rig'
+        screen_width = 19.7042; %iPad screen width in cm
+        scr.keyinsert = 45; % insert
+        scr.keyenter = 13; % enter
+        [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
+            scr.key7, scr.key8, scr.key9, scr.key10] ...
+            = deal(112, 113, 114, 115, 116, 119, 120, 121, 122, 123);
+        % This is for keys F1-5, F8-12.
+        fontsize = 42;
 end
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp')
     [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
@@ -63,14 +74,14 @@ if strcmp(room_letter,'home') || strcmp(room_letter,'mbp')
         = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
     scr.keyinsert=53;% backspace
     scr.keyenter=42;%tilde
-        %scr.keyx=27; %x
+    %scr.keyx=27; %x
     %scr.keyz=29; %z
 end
 
 close all;
 %%
 demo_type='new'; % 'old' or 'new' ("movie")
-    nDemoTrials = 10; % for 'new' style demo
+nDemoTrials = 50; % for 'new' style demo
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
@@ -85,9 +96,12 @@ cue_validity = .7;
 % color.grn = [0.2667    0.6588    0.3294];
 
 % colors in 0:255 space
-color.bg = [125.0010  143.9985  130.9935]; % this doesn't appear to be used?
+%color.bg = [125.0010  143.9985  130.9935]; % this doesn't appear to be used?
+gray = 127.5;
+color.bg = gray;
 color.wt = [255 255 255];
-color.bk = [0 0 0];
+black = 0;
+color.bk = [black black black];
 color.red = [100 0  0];
 color.grn = [0 100 0];
 
@@ -166,8 +180,7 @@ if strfind(initial,'short') > 0 % if 'short' is in the initials, the exp will be
     nDemoTrials = 5;
 end
 
-fontsize = 28;
-fontstyle = 0;
+fontstyle = 1; % 1 is bold, 0 is thin text
 
 
 try
@@ -183,10 +196,10 @@ try
     end
     
     % OPEN FULL SCREEN
-    [scr.win, scr.rect] = Screen('OpenWindow', screenid, 128); %scr.win is the window id (10?), and scr.rect is the coordinates in the form [ULx ULy LRx LRy]
+    [scr.win, scr.rect] = Screen('OpenWindow', screenid, color.bg); %scr.win is the window id (10?), and scr.rect is the coordinates in the form [ULx ULy LRx LRy]
     % OPEN IN WINDOW
-    %[scr.win, scr.rect] = Screen('OpenWindow', screenid, 128, [100 100 1200 1000]);
- 
+    %[scr.win, scr.rect] = Screen('OpenWindow', screenid, color.bg, [100 100 1200 1000]);
+    
     %LoadIdentityClut(scr.win) % default gamma table
     if strcmp(room_letter, '1139')
         load('calibration/iPadGammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
@@ -198,145 +211,71 @@ try
     scr.cx = mean(scr.rect([1 3])); % screen center x
     scr.cy = mean(scr.rect([2 4])); % screen center y
     
-    HideCursor;
-    SetMouse(0,0);
+    if ~strfind(initial,'test')
+        HideCursor;
+        SetMouse(0,0);
+    end
     
     Screen('TextSize', scr.win,fontsize); % Set default text size for this window, ie 28
     Screen('TextStyle', scr.win, fontstyle); % Set default text style for this window. 0 means normal, not bold/condensed/etc
     Screen('Preference', 'TextAlphaBlending', 0);
     
     % screen info
-    
     screen_resolution = [scr.w scr.h];                 % screen resolution ie [1440 900]
     screen_distance = 50;                      % distance between observer and screen (in cm)
     screen_angle = 2*(180/pi)*(atan((screen_width/2) / screen_distance)) ; % total visual angle of screen in degrees
-    screen_ppd = screen_resolution(1) / screen_angle;  % pixels per degree
+    P.pxPerDeg = screen_resolution(1) / screen_angle;  % pixels per degree
     
     %set up fixation cross
-    f_c_size = 18; %pixels
-    black = 10;
-    gray = 69;
-    bg = 128;
-    f_c = bg*ones(f_c_size);
-    f_c(f_c_size/2: f_c_size/2 + 1,:) = black;
-    f_c(:,f_c_size/2: f_c_size/2 + 1) = black;
+    f_c_size = 37; % must be odd
+    thickness = 3; % must be odd
+    f_c = color.bg*ones(f_c_size);
+    row1=1+0.5*(f_c_size-thickness);
+    row2=0.5*(f_c_size+thickness);
+    f_c(row1:row2,:)=black;
+    f_c(:,row1:row2)=black;
     scr.cross = Screen('MakeTexture', scr.win , f_c);
     
-    %set up attention arrow. this is kind of hacky, and a bit ugly.
-    a_h = 87; % must be divisible by 3 and odd? this is annoying.
-    a_w = ((a_h-1)/2)*3;
-    arrow = bg*ones(a_h,a_w+1);
-    %unfilled_arrow = arrow;
-    rect_end = 2*a_w/3;
-    arrow([a_h/3:2*a_h/3],[1:rect_end]) = black;
-    %unfilled_arrow([a_h/3 2*a_h/3],1:rect_end) = black;
-    for col = 1:(a_h-1)/2+1
-        arrow(col:end+1-col,rect_end+col) = black;
-    end
-    gray_arrow = arrow;
-    gray_arrow(gray_arrow==black) = gray;
-    scr.arrowL = Screen('MakeTexture', scr.win, fliplr(arrow));
-    scr.arrowR = Screen('MakeTexture', scr.win, arrow);
-    scr.gray_arrowL = Screen('MakeTexture', scr.win, fliplr(gray_arrow));
-    scr.gray_arrowR = Screen('MakeTexture', scr.win, gray_arrow);
-
-    
-    
-    
-    %Stimulus Parameters stored in struct 'P'
-    %if strcmp(P.stim_type, 'gabor')
-    
-    P.sc = 50.0;
-    P.freq = .1;
-    P.contrast = 100.0;
-    P.gabor_spatialFreq = 70;  % spatial frequency of grating (cycles / deg)
-    P.gabor_period = 1 / P.gabor_spatialFreq;
-    P.gabor_wavelength    = 30; %gaussian envelope of gabor (pixels). Also called 'gabor_sigma'
-    P.gabor_phase    = 0;    % gabor phase
-    P.gabor_contrast = 50;   % gabor contrast (in %)
-    P.gabor_mean     = 128;  % background luminance (in range [0..255])
-    
-    %elseif strcmp(P.stim_type, 'grate')
-    
-    
-    % Grating parameters
-    %P.textureSize = 500;
-    %P.alphaMaskSize = 500;
-    P.diskSize = 150;
-    % some member variables
-    P.refresh = 60;
-    
-    % read parameters
-    P.stimTime = 1500;
-    P.location = [0 0]';
-    P.postStimTime = 200;
-    
-    % new grating parameters
-    %old:  P.spatialFreq = 1; % spatial frequency of grating (cycles / deg)
-    %P.pxPerDeg = 68; % pixels per degree
-    
-    %new:
-    P.spatialFreq = .526; % spatial frequency of grating (cycles / deg)
-    dist = 24*2.54; %cm Why have this in addition to screen_width above? WTA
-    P.pxPerDeg     = scr.rect(3)*(1/screen_width)*dist*tan(pi/180); %
-    %pixels/degree = (px/screen)*   (screen/cm)  *   (cm/deg)
-    
+    % set up grating parameters
+    P.grateSigma = .8; % Gabor Gaussian envelope standard deviation (degrees)
+    P.grateSigma = P.grateSigma * P.pxPerDeg; %...converted to pixels
+    P.grateAspectRatio = 1;
+    P.grateSpatialFreq = .8; % cycles/degree
+    P.grateSpatialFreq = P.grateSpatialFreq / P.pxPerDeg; % cycles / pixel
+    P.grateSpeed = 7; % cycles per second
+    P.grateDt = .01; %seconds per frame
+    P.grateAlphaMaskSize = round(10*P.grateSigma);
     
     % Ellipse parameters
     P.ellipseAreaDegSq = 1; % ellipse area in degrees squared
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
-    %P.ellipseArea = 40000; % in degrees squared
     P.ellipseColor = 0;
-
     
-    P.spatialFreq = P.spatialFreq / P.pxPerDeg; % cycles / pixel
-    P.gabor_wavelength = 30;
-    P.orientation = 0; % orientation of grating
-    P.initialPhase = 0;
-    P.phi = P.initialPhase; % initial phase
-    P.period = 1 / P.spatialFreq;
-    P.speed = 4.5; % cycles per second
-    P.dt = .02; %seconds per frame
-    P.speed = P.speed * P.period * P.dt;  % convert to px/frame
-    
-    % determine size
-    %P.maxPeriod = max(P.textureSize) - max(P.diskSize);
-    %P.alphaMaskSize = ceil(max(P.diskSize) / 2 + P.maxPeriod) + 5;
-    alphaMaskSize = 5; %degrees % CHANGE ME?????
-    %EFFECTIVE RADIUS OF ALPHA MASK
-    %for 97% filtered: 2.25 degrees (diam 4.5)
-    %for 97.5% filtered: 2.30 degrees (diam(4.6)
-    %for 99% filtered:  2.55 degrees  (diam(4.7)
-    P.alphaMaskSize = round(alphaMaskSize*P.pxPerDeg); % alpha mask square size in pixels
-    
-    
-    % set contrast and luminance
-    P.contrast = 100;
-    P.luminance = .5;
-    P.color = [1 1 1];
-    P.bgColor = [127 127 127]';
-    
-    P.attention_stim_spacing = 3.5;% for two stimuli, distance from center, in degrees
-    P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
-%save cdtest.mat    
-    if strcmp(P.stim_type, 'grate')
-        % make the alpha map
-        x = -P.alphaMaskSize:P.alphaMaskSize-1;
-        [X,Y] = meshgrid(x,x);
-        alphaLum = repmat(permute(P.bgColor,[2 3 1]),2*P.alphaMaskSize,2*P.alphaMaskSize); % 204x204x3 matrix. 204px square, with equal RGB values (gray) at each pixel
-        %alphaBlend = 255 * (sqrt(X.^2 + Y.^2) > P.diskSize/2);
-        [x2,y2] = meshgrid(x,x);
-        arg   = -(x2.*x2 + y2.*y2)/(2*(P.gabor_wavelength^2));
-        filt     = exp(arg);    %set up Bivariate Distribution
-        normm = sum(filt(:));
-        if normm ~= 0,
-            filt  = filt/normm; %normalize it
-        end;
-        alphaBlend = 255*(1-(filt/max(max(filt))));
-        scr.alphaMask = Screen('MakeTexture',scr.win,cat(3,alphaLum,alphaBlend)); %not totally following here, but this is 204x204x4
+    if attention_manipulation
+        %set up attention arrow. this is kind of hacky, and a bit ugly.
+        a_h = 87; % must be divisible by 3 and odd? this is annoying.
+        a_w = ((a_h-1)/2)*3;
+        arrow = color.bg*ones(a_h,a_w+1);
+        %unfilled_arrow = arrow;
+        rect_end = 2*a_w/3;
+        arrow([a_h/3:2*a_h/3],[1:rect_end]) = black;
+        %unfilled_arrow([a_h/3 2*a_h/3],1:rect_end) = black;
+        for col = 1:(a_h-1)/2+1
+            arrow(col:end+1-col,rect_end+col) = black;
+        end
+        gray_arrow = arrow;
+        gray_arrow(gray_arrow==black) = gray;
+        scr.arrowL = Screen('MakeTexture', scr.win, fliplr(arrow));
+        scr.arrowR = Screen('MakeTexture', scr.win, arrow);
+        scr.gray_arrowL = Screen('MakeTexture', scr.win, fliplr(gray_arrow));
+        scr.gray_arrowR = Screen('MakeTexture', scr.win, gray_arrow);
     end
     
-    %%%Setup routine. this is some complicated stuff to deal with the
+    % attention stimuli parameters
+    P.attention_stim_spacing = 3.5;% for two stimuli, distance from center, in degrees
+    P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
+
+    %%%Setup blocks, sections, trials. this is some complicated stuff to deal with the
     %%%two-part training thing
     
     InitialTrainingpreR = setup_exp_order(Training.initial.n, Training.category_params, category_type);
@@ -368,136 +307,53 @@ try
     start_t = tic;
     %% DEMO for new subjects
     if strcmp(new_subject_flag,'y')
-        [nx,ny]=DrawFormattedText(scr.win, 'Example Stimulus\n\n', 'center', scr.cy-60, color.wt);
         
         stim.ort = 0;
         stim.cur_sigma = Training.category_params.test_sigmas;
-
+        
         if strcmp(P.stim_type, 'grate')
-            example_w = 6*P.gabor_wavelength;
-            %r_gabor(P,0,scr,1,[],[scr.cx-example_w/2 ny scr.cx+example_w/2 ny+example_w])
-            r_gabor(P,scr,[],stim,[scr.cx-example_w/2 ny scr.cx+example_w/2 ny+example_w])
-            ny = ny+example_w;
+            gabortex = CreateProceduralGabor(scr.win, P.grateAlphaMaskSize, P.grateAlphaMaskSize, [], [0.5 0.5 0.5 0.0],1,0.5);
+            Screen('DrawTexture', scr.win, gabortex, [], [], 90-stim.ort, [], [], [], [], kPsychDontDoRotation, [0, P.grateSpatialFreq, P.grateSigma, stim.cur_sigma, P.grateAspectRatio, 0, 0, 0]);
+            [nx,ny]=DrawFormattedText(scr.win, 'Example Stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize/2, color.wt);
+            ny = ny+P.grateAlphaMaskSize/2;
         elseif strcmp(P.stim_type, 'ellipse')
             im = drawEllipse(P.ellipseAreaPx, .95, 0, P.ellipseColor, mean(P.bgColor));
             max_ellipse_d = size(im,1); % in this case, this is the height of the longest (tallest) ellipse
-            %ellipse(P, 0, scr, .95, 0)%, [scr.cx-size(im,2)/2 ny scr.cx+size(im,2)/2 ny+size(im,1)])
             ellipse(P, scr, [], stim)
             ny = ny+max_ellipse_d;
         end
         
         flip_pak_flip(scr,ny,color,'continue');
         
-        [nx,ny]=DrawFormattedTest(scr.win, ['Important: You are now doing Task ' num2str(task_number)], 'center', 'center', color.wt);
+        [nx,ny]=DrawFormattedText(scr.win, ['Important: You are now doing task ' num2str(task_number) '!'], 'center', 'center', color.wt);
         flip_pak_flip(scr,ny,color,'continue');
         
-        %Screen('Flip', scr.win)%,[],1);
-        %WaitSecs(1);
-        %KbWait;
-        
-        if strcmp(demo_type, 'old')
-%             nExamples = 6;
-%             
-%             if strcmp(category_type, 'same_mean_diff_std')
-%                 %class_1_orts = Test.category_params.sigma_1*randn(examples,1) + 90; % generate
-%                 %orientations. runs risk of getting nonrepresentative sample.
-%                 class_1_orts = [83.6018   90.6598   92.8989   91.0500   92.7054 88.3012]-90; % might be best to do arbitrarily.
-%                 %class_2_orts = Test.category_params.sigma_2*randn(examples,1) + 90; % generate
-%                 class_2_orts = [115.4543  104.9830   76.5218   80.0390   88.5387 109.2334]-90; % arbitrary
-%             elseif strcmp(category_type, 'sym_uniform')
-%                 class_1_orts = -15 * rand(1,6);
-%                 class_2_orts = 15 * rand(1,6);
-%             end
-%             
-%             upper_left_corner = [scr.cx*.05 scr.cy*.4]; %[scr.cx*.35 scr.cy*.4]
-%             
-%             x_int = scr.cx*.05; % space between each example
-%             y_int = scr.cy*.6;%go back to:  scr.cy*.8;
-% 
-%             
-%             for category=1:2;
-%                 Screen('DrawText', scr.win, 'Examples of Category 1 stimuli:', upper_left_corner(1)-20, upper_left_corner(2)-60);
-%                 if category==2;
-%                     Screen('DrawText', scr.win, 'Examples of Category 2 stimuli:', upper_left_corner(1)-20, upper_left_corner(2)-60+y_int);
-%                 end
-%                 
-%                 if strcmp(P.stim_type, 'grate')
-%                     
-%                     dest_one = [upper_left_corner   upper_left_corner+example_w]; % coordinates spanned by leftmost class 1 gabor
-%                     dest_two = dest_one +  y_int*[0 1 0 1]; % coordinates spanned by leftmost class 2 gabor
-%                     
-%                     %demo_contrasts = rand(examples,2)/2; % random and relatively high contrast
-%                     %demo_contrasts = [datasample(Test.category_params.test_sigmas,examples); %datasample(Test.category_params.test_sigmas,5)]' % real, from experiment. not true for training
-%                     demo_contrasts = ones(nExamples,2); % 100% contrast. best for training
-%                     
-%                     for n = 1:nExamples
-%                         % DEPRECATED r_gabor
-%                         r_gabor(P, class_1_orts(n), scr, demo_contrasts(n,1), [], dest_one); % draw gabor on screen
-%                         dest_one([1 3]) = dest_one([1 3]) + x_int + example_w; % next gabor's location
-%                         if category==2;
-%                             r_gabor(P, class_2_orts(n), scr, demo_contrasts(n,2), [], dest_two);
-%                             dest_two([1 3]) = dest_two([1 3]) + x_int + example_w;
-%                         end
-%                     end
-%                     
-%                 elseif strcmp(P.stim_type, 'ellipse')
-%                     demo_contrasts = .95*ones(nExamples, 2);
-%                     for n = 1:nExamples
-%                         if category==1
-%                             im = drawEllipse(P.ellipseAreaPx, demo_contrasts(n,1), class_1_orts(n), P.ellipseColor, mean(P.bgColor));
-%                             ew = size(im,2);
-%                             eh = size(im,1);
-%                             dest_one = [upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d-ew)/2, upper_left_corner(2)+(max_ellipse_d-eh)/2, upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d+ew)/2, upper_left_corner(2)+(max_ellipse_d+eh)/2];
-%                             ellipse(P, class_1_orts(n), scr, demo_contrasts(n,1), [], dest_one);
-%                         elseif category==2
-%                             im = drawEllipse(P.ellipseAreaPx, demo_contrasts(n,1), class_2_orts(n), P.ellipseColor, mean(P.bgColor));
-%                             ew = size(im,2);
-%                             eh = size(im,1);
-%                             dest_one = [upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d-ew)/2, upper_left_corner(2)+(max_ellipse_d-eh)/2, upper_left_corner(1)+(n-1)*(max_ellipse_d + x_int)+(max_ellipse_d+ew)/2, upper_left_corner(2)+(max_ellipse_d+eh)/2];
-%                             dest_one = dest_one + y_int*[0 1 0 1];
-%                             ellipse(P, class_2_orts(n), scr, demo_contrasts(n,2), [], dest_one);
-%                             
-%                         end
-%                     end
-%                 end
-%                 
-%                 
-%                 Screen('Flip', scr.win,[],1);
-%                 WaitSecs(1);
-%                 %Screen('Flip', scr.win,[],1);
-%                 KbWait;
-%             end
-%             Screen('Flip', scr.win);
-%             
-        elseif strcmp(demo_type,'new')
-            for category = 1 : 2
-                DrawFormattedText(scr.win, sprintf('Examples of Category %i stimuli:', category), 'center', scr.cy-60, color.wt);
-                Screen('Flip', scr.win);
-                WaitSecs(2);
-                KbWait;
-                                
-                for i = 1:nDemoTrials
-                
-                    Screen('DrawTexture', scr.win, scr.cross);
-                    Screen('Flip', scr.win);
-                    WaitSecs(Demo.t.betwtrials/1000);
-                    
-                    stim.ort = stimulus_orientations(Test.category_params, category_type, category, 1, 1);
+        for category = 1 : 2
+            DrawFormattedText(scr.win, sprintf('Examples of Category %i stimuli:', category), 'center', scr.cy-60, color.wt);
+            Screen('Flip', scr.win);
+            WaitSecs(2.5);
 
-                    if strcmp(P.stim_type, 'gabor')
-                        r_gabor(P, scr, Demo.t, stim); % haven't yet added phase info to this function
-                    elseif strcmp(P.stim_type, 'grate')
-                        stim.phase = 360*rand;
-                        grate(P, scr, Demo.t, stim);
-                    elseif strcmp(P.stim_type, 'ellipse')
-                        ellipse(P, scr, Demo.t, stim);
-                    end            
-                end
+            for i = 1:nDemoTrials
                 
-                KbWait;
+                Screen('DrawTexture', scr.win, scr.cross);
+                Screen('Flip', scr.win);
+                WaitSecs(Demo.t.betwtrials/1000);
+                
+                stim.ort = stimulus_orientations(Test.category_params, category_type, category, 1, 1);
+                
+                if strcmp(P.stim_type, 'gabor')
+                    r_gabor(P, scr, Demo.t, stim); % haven't yet added phase info to this function
+                elseif strcmp(P.stim_type, 'grate')
+                    stim.phase = 360*rand;
+                    grate(P, scr, Demo.t, stim);
+                elseif strcmp(P.stim_type, 'ellipse')
+                    ellipse(P, scr, Demo.t, stim);
+                end
             end
             
+            flip_pak_flip(scr,scr.cy,color,'continue');
         end
+        
     end
     %END DEMO
     
@@ -535,12 +391,12 @@ try
         end
         if flag ==1,  break;  end
         
-       
+        
         %load top scores
         load top_ten
         
         ranking = 11 - sum(blockscore>=top_ten.(category_type).scores); % calculate current ranking
-                
+        
         if ranking < 11
             top_ten.(category_type).scores = [top_ten.(category_type).scores(1:(ranking-1));  blockscore;  top_ten.(category_type).scores(ranking:9)];
             for m = 10:-1:ranking+1
@@ -553,7 +409,7 @@ try
         end
         
         if ~any(strfind(initial,'test'))
-        save top_ten top_ten;
+            save top_ten top_ten;
         end
         
         save(strrep([dir '/data/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P') % block by block backup. strrep makes the file separator system-dependent.
@@ -575,40 +431,40 @@ try
                 'Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
             
             for i=1:countdown+1;
-                Screen('FillRect',scr.win,128,[countx county countx+1.5*fontsize county+1.1*fontsize]) %timer background
+                Screen('FillRect',scr.win,color.bg,[countx county countx+1.5*fontsize county+1.1*fontsize]) %timer background
                 DrawFormattedText(scr.win,[num2str(countdown+1-i) '  '],countx,county,color.wt);
                 Screen('Flip',scr.win,[],1); % flip to screen without clearing
                 WaitSecs(1);
             end
             
             flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
-        % end top ten scores
-        elseif k == Test.n.blocks && exp_number ~= nExperiments % if just finished experiment one, and there's another experiment coming up.   
+            % end top ten scores
+        elseif k == Test.n.blocks && exp_number ~= nExperiments % if just finished experiment one, and there's another experiment coming up.
             [nx,ny] = DrawFormattedText(scr.win,'\nYou''re done with the first task of the day.\n\n\n','center',ny,color.wt);
-            [nx,ny] = DrawFormattedText(scr.win,sprintf('Task %i will begin in ',task_number),scr.cx-570,ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,sprintf('Task %i will begin in ',3-task_number),scr.cx-570,ny,color.wt);
             countx=nx; county=ny;
             [nx,ny] = DrawFormattedText(scr.win,'   seconds,\n\n',countx,county,color.wt);
             [nx,ny] = DrawFormattedText(scr.win,['but you may take a longer break\n\n'...
                 'and leave the room or walk around.\n\n\n'...
-                'Coming up: Task ' num2str(task_number)],'center',ny,color.wt,50);
+                'Coming up: Task ' num2str(3-task_number)],'center',ny,color.wt,50);
             
             for i=1:countdown+1;
-                Screen('FillRect',scr.win,128,[countx county countx+1.5*fontsize county+1.1*fontsize]) %timer background
+                Screen('FillRect',scr.win,color.bg,[countx county countx+1.5*fontsize county+1.1*fontsize]) %timer background
                 DrawFormattedText(scr.win,[num2str(countdown+1-i) '  '],countx,county,color.wt);
                 Screen('Flip',scr.win,[],1); % flip to screen without clearing
                 WaitSecs(1);
             end
             
             flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
-
-        
+            
+            
         elseif k == Test.n.blocks && exp_number == nExperiments % if done with both experiments
             [nx,ny] = DrawFormattedText(scr.win,'\n\n\n\nYou''re done with the experiment.\n\nThank you for participating!','center',ny,color.wt);
             Screen('Flip',scr.win)
             WaitSecs(1);
             KbWait([], 0, GetSecs+180); % automatically quit after 3 minutes
         end
-
+        
         WaitSecs(1);
         
     end
