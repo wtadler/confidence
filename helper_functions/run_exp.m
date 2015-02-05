@@ -148,15 +148,14 @@ try
         if section ~= n.sections
             [~,scorereport]=calcscore(responses,n.trials);
             if strcmp('Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
-                midtxt = ['Very good! You got ' scorereport...
-                    '\n\nYou are halfway through Category Training.'];
+                midtxt = sprintf('Very good! You got %s\n\nYou have completed %s of Category Training.',scorereport,fractionizer(section,n.sections));
                 str = 'continue';
-            elseif strcmp('Training', type) % this isn't happening right now; every training block is 1 section long
+            elseif strcmp('Training', type) % this isn't happening right now;
                 midtxt = ['Coming up: Testing Block ' num2str(section+1) '\n\n'...
                     'Training Block ' num2str(blok) '\n\n\n\n'];
                 str = 'begin';
             else
-                midtxt = ['You are halfway through Testing Block ' num2str(blok) ' of ' num2str(n.blocks) '.'];
+                midtxt = sprintf('You have completed %s of Testing Block %i of %i.',fractionizer(section,n.sections),blok,n.blocks)
                 str = 'continue';
             end
             
@@ -209,4 +208,26 @@ catch
     psychrethrow(psychlasterror)
     save responses
     flag = 1;
+    
+end
+end
+
+function str = fractionizer(numerator,denominator)
+n = {'one','two','three','four','five'};
+d = {'','half','third','quarter','fifth'};
+
+if numerator > denominator
+    warning('numerator greater than denominator!')
+    str = '';
+else
+    if numerator==denominator
+        str = 'all';
+    else
+        if numerator==1
+            str = sprintf('%s %s',n{1}, d{denominator});
+        else
+            str = sprintf('%s %ss',n{numerator}, d{denominator});
+        end
+    end
+end
 end
