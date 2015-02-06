@@ -170,10 +170,14 @@ try
     if strcmp(type, 'Training') && blok == 1 && strcmp(new_subject_flag,'y')
         hitxt = ['Great job! You just got ' scorereport '\n\n\n'...
             'Please go get the experimenter from the other room!'];
+    elseif strcmp(type, 'Training') && blok ==1 && strcmp(new_subject_flag,'n')
+        hitxt = ['Great job! You just got ' scorereport '\n\n\n'...
+            'SOMETHING HERE?'];
+        str = 'continue';
     elseif strcmp(type,'Confidence Training')
         hitxt = ['Great job! You have just finished Confidence Training.\n\n'...
             'Coming up: Testing Block 1 of 3.'];
-        str = 'begin'
+        str = 'begin';
     elseif strcmp(type,'Training')
         hitxt = ['Nice work! You just got ' scorereport ...
             '\n\nComing up: Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];

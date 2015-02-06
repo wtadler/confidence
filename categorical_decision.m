@@ -308,7 +308,7 @@ try
     
     start_t = tic;
     %% DEMO for new subjects
-    if strcmp(new_subject_flag,'y')
+    %if strcmp(new_subject_flag,'y')
         
         stim.ort = 0;
         stim.cur_sigma = Training.category_params.test_sigmas;
@@ -356,7 +356,7 @@ try
             flip_pak_flip(scr,scr.cy,color,'continue');
         end
         
-    end
+    %end
     %END DEMO
     
     
@@ -376,7 +376,7 @@ try
         [Training.responses{k}, flag] = run_exp(numbers, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag);
         if flag ==1,  break;  end
         
-        if k == 1 && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
+        %if k == 1 && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
             [~,ny]=DrawFormattedText(scr.win,['Let''s get some quick practice with confidence ratings.\n\n'...
                 'Coming up: Confidence Training'],'center',ny,color.wt);
             flip_pak_flip(scr,ny,color,'begin')
@@ -384,7 +384,7 @@ try
             [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag);
             if flag==1,break;end
             
-        end
+        %end
         
         if attention_manipulation
             [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, Test.R2);
