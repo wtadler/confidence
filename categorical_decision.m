@@ -1,4 +1,4 @@
-function categorical_decision(category_type, initial, new_subject_flag, room_letter, exp_number, nExperiments)
+function categorical_decision(category_type, initial, new_subject_flag, room_letter, exp_number, nExperiments, first_task_letter)
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
 % Will Adler
@@ -7,6 +7,7 @@ function categorical_decision(category_type, initial, new_subject_flag, room_let
 rng('shuffle','twister')
 
 Screen('Preference', 'SkipSyncTests', 1); % WTA.
+Screen('Preference', 'VisualDebuglevel', 3);
 if strcmp(computer,'MACI64') % Assuming this is running on my MacBook
     dir = '/Users/will/Google Drive/Ma lab/repos/qamar confidence';
 elseif strcmp(computer,'PCWIN64') % Assuming the left Windows psychophysics machine
@@ -80,8 +81,7 @@ end
 
 close all;
 %%
-demo_type='new'; % 'old' or 'new' ("movie")
-nDemoTrials = 50; % for 'new' style demo
+nDemoTrials = 72; % for 'new' style demo
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
@@ -105,17 +105,19 @@ color.bk = [black black black];
 color.red = [100 0  0];
 color.grn = [0 100 0];
 
-countdown = 30; % countdown between blocks
+countdown_time = 30; % countdown between blocks
 
 if strcmp(category_type, 'same_mean_diff_std')
     Test.category_params.sigma_1 = 3;
     Test.category_params.sigma_2 = 12;
-    task_number = 2;
+    task_letter = 'B';
+    other_task_letter = 'A';
 elseif strcmp(category_type, 'diff_mean_same_std')
     Test.category_params.sigma_s = 5; % these params give a level of performance that is about on par withthe original task (above)
     Test.category_params.mu_1 = -4;
     Test.category_params.mu_2 = 4;
-    task_number = 1;
+    task_letter = 'A';
+    other_task_letter = 'B';
 elseif strcmp(category_type, 'sym_uniform')
     Test.category_params.uniform_range = 15;
     Test.category_params.overlap = 0;
@@ -127,7 +129,7 @@ Test.category_params.category_type = category_type;
 if strcmp(P.stim_type, 'ellipse')
     Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
 else
-    Test.category_params.test_sigmas= exp(-4:.5:-1.5); %4 of these 6 are in qamar 2013. WTA. to test final two:exp(-2:.5:-1.5)
+    Test.category_params.test_sigmas= exp(linspace(-5.5,-2,6));%exp(-4:.5:-1.5); %4 of these 6 are in qamar 2013. WTA. to test final two:exp(-2:.5:-1.5)
 end
 
 Training.category_params = Test.category_params;
@@ -170,7 +172,7 @@ Training.t.attention_cue = 1000;
 
 %%8
 if strfind(initial,'fast') > 0 % if 'fast' is in the initials, the exp will be super fast (for debugging)
-    [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,Training.t.feedback,Training.t.betwtrials,countdown]...
+    [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,Training.t.feedback,Training.t.betwtrials,countdown_time, Demo.t.pres, Demo.t.betwtrials]...
         = deal(1);
 end
 
@@ -228,7 +230,7 @@ try
     
     %set up fixation cross
     f_c_size = 37; % must be odd
-    thickness = 3; % must be odd
+    thickness = 5; % must be odd
     f_c = color.bg*ones(f_c_size);
     row1=1+0.5*(f_c_size-thickness);
     row2=0.5*(f_c_size+thickness);
@@ -242,7 +244,7 @@ try
     P.grateAspectRatio = 1;
     P.grateSpatialFreq = .8; % cycles/degree
     P.grateSpatialFreq = P.grateSpatialFreq / P.pxPerDeg; % cycles / pixel
-    P.grateSpeed = 7; % cycles per second
+    P.grateSpeed = 10; % cycles per second
     P.grateDt = .01; %seconds per frame
     P.grateAlphaMaskSize = round(10*P.grateSigma);
     
@@ -306,7 +308,7 @@ try
     
     start_t = tic;
     %% DEMO for new subjects
-    if strcmp(new_subject_flag,'y')
+    %if strcmp(new_subject_flag,'y')
         
         stim.ort = 0;
         stim.cur_sigma = Training.category_params.test_sigmas;
@@ -325,7 +327,7 @@ try
         
         flip_pak_flip(scr,ny,color,'continue');
         
-        [nx,ny]=DrawFormattedText(scr.win, ['Important: You are now doing task ' num2str(task_number) '!'], 'center', 'center', color.wt);
+        [nx,ny]=DrawFormattedText(scr.win, ['Important: You are now doing Task ' task_letter '!'], 'center', 'center', color.wt);
         flip_pak_flip(scr,ny,color,'continue');
         
         for category = 1 : 2
@@ -354,12 +356,12 @@ try
             flip_pak_flip(scr,scr.cy,color,'continue');
         end
         
-    end
+    %end
     %END DEMO
     
     
     %% START TRIALS
-    [~,ny]=DrawFormattedText(scr.win,'Coming up: Category Training','center','center',color.wt)
+    [~,ny]=DrawFormattedText(scr.win,['Coming up: Task ' task_letter ' Category Training'],'center','center',color.wt)
     
     flip_pak_flip(scr,ny,color,'begin');
     
@@ -371,23 +373,23 @@ try
             numbers = Training.n;
         end
         
-        [Training.responses{k}, flag] = run_exp(numbers, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag);
+        [Training.responses{k}, flag] = run_exp(numbers, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag, task_letter, first_task_letter);
         if flag ==1,  break;  end
         
-        if k == 1 && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
+        if k == 1% && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
             [~,ny]=DrawFormattedText(scr.win,['Let''s get some quick practice with confidence ratings.\n\n'...
-                'Coming up: Confidence Training'],'center',ny,color.wt);
+                'Coming up: Task ' task_letter ' Confidence Training'],'center',ny,color.wt);
             flip_pak_flip(scr,ny,color,'begin')
             
-            [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag);
+            [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag, task_letter, first_task_letter);
             if flag==1,break;end
             
         end
         
         if attention_manipulation
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, Test.R2);
+            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, task_letter, first_task_letter, Test.R2);
         else
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag);
+            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, task_letter, first_task_letter);
         end
         if flag ==1,  break;  end
         
@@ -403,7 +405,7 @@ try
                 top_ten.(category_type).initial{m} = top_ten.(category_type).initial{m-1};
             end
             top_ten.(category_type).initial{ranking} = initial;
-            hitxt=['\n\nCongratulations! You made the top ten for task' num2str(task_number) '!\n\n'];
+            hitxt=['\n\nCongratulations! You made the top ten for Task ' task_letter '!\n\n'];
         else
             hitxt='\n\n\n\n';
         end
@@ -415,45 +417,35 @@ try
         save(strrep([dir '/data/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P') % block by block backup. strrep makes the file separator system-dependent.
         
         [nx,ny] = DrawFormattedText(scr.win,[hitxt 'Your score for Testing Block ' num2str(k) ': ' num2str(blockscore,'%.1f') '%\n\n'...
-            'Top Ten for task ' num2str(task_number) ':\n\n'],'center',0,color.wt);
+            'Top Ten for Task ' task_letter ':\n\n'],'center',-90,color.wt);
         for j = 1:10
             [nx,ny] = DrawFormattedText(scr.win,[num2str(j) ') ' num2str(top_ten.(category_type).scores(j),'%.1f') '%    ' top_ten.(category_type).initial{j} '\n'],scr.cx*.8 - (j==10)*20,ny,color.wt);
         end
         
         if k ~= Test.n.blocks % if didn't just finish final testing block
-            [nx,ny] = DrawFormattedText(scr.win,'\nPlease take a short break.\n\n\n','center',ny,color.wt);
-            [nx,ny] = DrawFormattedText(scr.win,'You may start the next Training Block in ',scr.cx-570,ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,'\nPlease take a short break.\n\n\nYou may begin the next Training Block\n\n','center',ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,'in ',scr.cx-570,ny,color.wt);
             countx=nx; county=ny;
-            [nx,ny] = DrawFormattedText(scr.win,'   seconds,\n\n',countx,county,color.wt);
-            [nx,ny] = DrawFormattedText(scr.win,['but you may take a longer break\n\n'...
-                'and leave the room or walk around.\n\n\n'...
-                'Coming up: Category Training before\n\n'...
-                'Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
+            [nx,ny] = DrawFormattedText(scr.win,'   seconds, but you may take a\n\n',countx,county,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,['longer break and leave the room\n\n'...
+                'or walk around.\n\n\n'...
+                'Coming up: Task ' task_letter ' Category Training before\n\n'...
+                'Task ' task_letter ' Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
             
-            for i=1:countdown+1;
-                Screen('FillRect',scr.win,color.bg,[countx county countx+1.5*fontsize county+1.1*fontsize]) %timer background
-                DrawFormattedText(scr.win,[num2str(countdown+1-i) '  '],countx,county,color.wt);
-                Screen('Flip',scr.win,[],1); % flip to screen without clearing
-                WaitSecs(1);
-            end
+            countdown
             
             flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
             % end top ten scores
         elseif k == Test.n.blocks && exp_number ~= nExperiments % if just finished experiment one, and there's another experiment coming up.
-            [nx,ny] = DrawFormattedText(scr.win,'\nYou''re done with the first task of the day.\n\n\n','center',ny,color.wt);
-            [nx,ny] = DrawFormattedText(scr.win,sprintf('Task %i will begin in ',3-task_number),scr.cx-570,ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with Task ' task_letter '.\n\n\n'],'center',ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,['You may begin Task ' other_task_letter ' in '],scr.cx-570,ny,color.wt);
             countx=nx; county=ny;
             [nx,ny] = DrawFormattedText(scr.win,'   seconds,\n\n',countx,county,color.wt);
             [nx,ny] = DrawFormattedText(scr.win,['but you may take a longer break\n\n'...
                 'and leave the room or walk around.\n\n\n'...
-                'Coming up: Task ' num2str(3-task_number)],'center',ny,color.wt,50);
+                'Coming up: Task ' other_task_letter],'center',ny,color.wt,50);
             
-            for i=1:countdown+1;
-                Screen('FillRect',scr.win,color.bg,[countx county countx+1.5*fontsize county+1.1*fontsize]) %timer background
-                DrawFormattedText(scr.win,[num2str(countdown+1-i) '  '],countx,county,color.wt);
-                Screen('Flip',scr.win,[],1); % flip to screen without clearing
-                WaitSecs(1);
-            end
+            countdown
             
             flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
             
@@ -491,4 +483,15 @@ catch %if error or script is cancelled
     save(strrep([dir '/data/backup/' initial '_recovered_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P')
     
     psychrethrow(psychlasterror);
+end
+
+    function countdown
+        for i=1:countdown_time+1;
+            Screen('FillRect',scr.win,color.bg,[countx county countx+1.6*fontsize county+1.2*fontsize]) %timer background
+            DrawFormattedText(scr.win,[num2str(countdown_time+1-i) '  '],countx,county,color.wt);
+            Screen('Flip',scr.win,[],1); % flip to screen without clearing
+            WaitSecs(1);
+        end
+    end
+
 end

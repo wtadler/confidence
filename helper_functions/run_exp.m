@@ -1,4 +1,4 @@
-function [responses, flag, blockscore] = run_exp(n, R, t, scr, color, P, type, blok, new_subject_flag, varargin)
+function [responses, flag, blockscore] = run_exp(n, R, t, scr, color, P, type, blok, new_subject_flag, task_letter, first_task_letter, varargin)
 
 attention_manipulation = false;
 if length(varargin) == 1
@@ -148,15 +148,14 @@ try
         if section ~= n.sections
             [~,scorereport]=calcscore(responses,n.trials);
             if strcmp('Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
-                midtxt = ['Very good! You got ' scorereport...
-                    '\n\nYou are halfway through Category Training.'];
+                midtxt = sprintf('Very good! You got %s\n\nYou have completed\n\n%s of Task %s Category Training.',scorereport,fractionizer(section,n.sections), task_letter);
                 str = 'continue';
-            elseif strcmp('Training', type) % this isn't happening right now; every training block is 1 section long
+            elseif strcmp('Training', type) % this isn't happening right now;
                 midtxt = ['Coming up: Testing Block ' num2str(section+1) '\n\n'...
                     'Training Block ' num2str(blok) '\n\n\n\n'];
                 str = 'begin';
             else
-                midtxt = ['You are halfway through Testing Block ' num2str(blok) ' of ' num2str(n.blocks) '.'];
+                midtxt = sprintf('You have completed\n\n%s of Task %s Testing Block %i of %i.',fractionizer(section,n.sections),task_letter,blok,n.blocks);
                 str = 'continue';
             end
             
@@ -168,19 +167,22 @@ try
         
     end
     [blockscore,scorereport]= calcscore(responses,n.sections*n.trials);
-    if strcmp(type, 'Training') && blok == 1 && strcmp(new_subject_flag,'y')
+    if strcmp(type, 'Training') && blok == 1 && strcmp(new_subject_flag,'y') && strcmp(first_task_letter, task_letter);
         hitxt = ['Great job! You just got ' scorereport '\n\n\n'...
             'Please go get the experimenter from the other room!'];
+    elseif strcmp(type, 'Training') && blok ==1
+        hitxt = ['Great job! You just got ' scorereport '\n\n\n'];
+        str = 'continue';
     elseif strcmp(type,'Confidence Training')
         hitxt = ['Great job! You have just finished Confidence Training.\n\n'...
-            'Coming up: Testing Block 1 of 3.'];
-        str = 'begin'
+            'Coming up: Task ' task_letter ' Testing Block 1 of 3']; % number of blocks is hard coded here!!! BAD!!!
+        str = 'begin';
     elseif strcmp(type,'Training')
         hitxt = ['Nice work! You just got ' scorereport ...
-            '\n\nComing up: Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
+            '\n\nComing up: Task ' task_letter ' Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
         str = 'begin';
     elseif strcmp(type, 'Test')
-        hitxt = ['Great! You''ve just finished Testing Block ' num2str(blok) ' with\n\n' scorereport];
+        hitxt = ['Great! You''ve just finished Task ' task_letter ' Testing Block ' num2str(blok) ' with\n\n' scorereport];
         str = 'continue';
     end
     
@@ -209,4 +211,26 @@ catch
     psychrethrow(psychlasterror)
     save responses
     flag = 1;
+    
+end
+end
+
+function str = fractionizer(numerator,denominator)
+n = {'one','two','three','four','five'};
+d = {'','half','third','quarter','fifth'};
+
+if numerator > denominator
+    warning('numerator greater than denominator!')
+    str = '';
+else
+    if numerator==denominator
+        str = 'all';
+    else
+        if numerator==1
+            str = sprintf('%s %s',n{1}, d{denominator});
+        else
+            str = sprintf('%s %ss',n{numerator}, d{denominator});
+        end
+    end
+end
 end
