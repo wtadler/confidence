@@ -1,4 +1,4 @@
-function categorical_decision(category_type, initial, new_subject_flag, room_letter, exp_number, nExperiments)
+function categorical_decision(category_type, initial, new_subject_flag, room_letter, exp_number, nExperiments, first_task_letter)
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
 % Will Adler
@@ -7,6 +7,7 @@ function categorical_decision(category_type, initial, new_subject_flag, room_let
 rng('shuffle','twister')
 
 Screen('Preference', 'SkipSyncTests', 1); % WTA.
+Screen('Preference', 'VisualDebuglevel', 3);
 if strcmp(computer,'MACI64') % Assuming this is running on my MacBook
     dir = '/Users/will/Google Drive/Ma lab/repos/qamar confidence';
 elseif strcmp(computer,'PCWIN64') % Assuming the left Windows psychophysics machine
@@ -80,8 +81,7 @@ end
 
 close all;
 %%
-demo_type='new'; % 'old' or 'new' ("movie")
-nDemoTrials = 50; % for 'new' style demo
+nDemoTrials = 72; % for 'new' style demo
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
@@ -172,7 +172,7 @@ Training.t.attention_cue = 1000;
 
 %%8
 if strfind(initial,'fast') > 0 % if 'fast' is in the initials, the exp will be super fast (for debugging)
-    [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,Training.t.feedback,Training.t.betwtrials,countdown_time]...
+    [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,Training.t.feedback,Training.t.betwtrials,countdown_time, Demo.t.pres, Demo.t.betwtrials]...
         = deal(1);
 end
 
@@ -230,7 +230,7 @@ try
     
     %set up fixation cross
     f_c_size = 37; % must be odd
-    thickness = 3; % must be odd
+    thickness = 5; % must be odd
     f_c = color.bg*ones(f_c_size);
     row1=1+0.5*(f_c_size-thickness);
     row2=0.5*(f_c_size+thickness);
@@ -361,7 +361,7 @@ try
     
     
     %% START TRIALS
-    [~,ny]=DrawFormattedText(scr.win,'Coming up: Category Training','center','center',color.wt)
+    [~,ny]=DrawFormattedText(scr.win,['Coming up: Task ' task_letter ' Category Training'],'center','center',color.wt)
     
     flip_pak_flip(scr,ny,color,'begin');
     
@@ -373,23 +373,23 @@ try
             numbers = Training.n;
         end
         
-        [Training.responses{k}, flag] = run_exp(numbers, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag);
+        [Training.responses{k}, flag] = run_exp(numbers, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag, task_letter, first_task_letter);
         if flag ==1,  break;  end
         
-        %if k == 1 && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
+        if k == 1% && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
             [~,ny]=DrawFormattedText(scr.win,['Let''s get some quick practice with confidence ratings.\n\n'...
-                'Coming up: Confidence Training'],'center',ny,color.wt);
+                'Coming up: Task ' task_letter ' Confidence Training'],'center',ny,color.wt);
             flip_pak_flip(scr,ny,color,'begin')
             
-            [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag);
+            [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag, task_letter, first_task_letter);
             if flag==1,break;end
             
-        %end
+        end
         
         if attention_manipulation
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, Test.R2);
+            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, task_letter, first_task_letter, Test.R2);
         else
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag);
+            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, task_letter, first_task_letter);
         end
         if flag ==1,  break;  end
         
@@ -423,22 +423,22 @@ try
         end
         
         if k ~= Test.n.blocks % if didn't just finish final testing block
-            [nx,ny] = DrawFormattedText(scr.win,'\nPlease take a short break.\n\n\nYou may start the next Training Block\n\n','center',ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,'\nPlease take a short break.\n\n\nYou may begin the next Training Block\n\n','center',ny,color.wt);
             [nx,ny] = DrawFormattedText(scr.win,'in ',scr.cx-570,ny,color.wt);
             countx=nx; county=ny;
             [nx,ny] = DrawFormattedText(scr.win,'   seconds, but you may take a\n\n',countx,county,color.wt);
             [nx,ny] = DrawFormattedText(scr.win,['longer break and leave the room\n\n'...
                 'or walk around.\n\n\n'...
-                'Coming up: Category Training before\n\n'...
-                'Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
+                'Coming up: Task ' task_letter ' Category Training before\n\n'...
+                'Task ' task_letter ' Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
             
             countdown
             
             flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
             % end top ten scores
         elseif k == Test.n.blocks && exp_number ~= nExperiments % if just finished experiment one, and there's another experiment coming up.
-            [nx,ny] = DrawFormattedText(scr.win,'\nYou''re done with the first task of the day.\n\n\n','center',ny,color.wt);
-            [nx,ny] = DrawFormattedText(scr.win,['Task ' other_task_letter ' will begin in '],scr.cx-570,ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with Task ' task_letter '.\n\n\n'],'center',ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,['You may begin Task ' other_task_letter ' in '],scr.cx-570,ny,color.wt);
             countx=nx; county=ny;
             [nx,ny] = DrawFormattedText(scr.win,'   seconds,\n\n',countx,county,color.wt);
             [nx,ny] = DrawFormattedText(scr.win,['but you may take a longer break\n\n'...
