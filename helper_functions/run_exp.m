@@ -14,9 +14,7 @@ try
     responses.c = zeros(n.sections, n.trials);
     responses.conf = zeros(n.sections, n.trials);
     responses.rt = zeros(n.sections, n.trials);
-    
-    %abc = {'a','b','c'};
-    
+        
     for section = 1:n.sections
         for trial = 1:n.trials
             Screen('DrawTexture', scr.win, scr.cross);

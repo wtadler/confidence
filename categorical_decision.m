@@ -327,7 +327,21 @@ try
         
         flip_pak_flip(scr,ny,color,'continue');
         
-        [nx,ny]=DrawFormattedText(scr.win, ['Important: You are now doing Task ' task_letter '!'], 'center', 'center', color.wt);
+        hitxt=sprintf('Important: You are now doing Task %s!\n\n',task_letter);
+        
+        %[nx,ny]=DrawFormattedText(scr.win, ['Important: You are now doing Task ' task_letter '!\n\n'], 'center', 'center', color.wt);
+        if strcmp(new_subject_flag,'y')
+            if strcmp(task_letter, 'A')
+                midtxt = 'In task A, stimuli from Category 1 tend to\n\nbe left-tilted, and stimuli from Category 2\n\ntend to be right-tilted.\n\nSee Task sheet for more info.'
+            elseif strcmp(task_letter, 'B')
+                midtxt = 'In task B, a flat stimulus is more likely\n\nto be from Category 1, and a strongly tilted\n\nstimulus is more likely\n\nto befrom Category 2.\n\nSee Task sheet for more info.'
+            else
+                midtxt = '';
+            end
+        else
+            midtxt = '';
+        end
+        [nx,ny]=DrawFormattedText(scr.win, [hitxt midtxt], 'center', 'center', color.wt);
         flip_pak_flip(scr,ny,color,'continue');
         
         for category = 1 : 2
@@ -434,9 +448,24 @@ try
             
             countdown
             
-            flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
+            flip_pak_flip(scr,ny,color,'continue','initial_wait',0);
+            
+            [nx,ny] = DrawFormattedText(scr.win,['You will now begin Task ' task_letter ' Category Training before\n\n'...
+                'Task ' task_letter ' Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
+            flip_pak_flip(scr,ny,color,'begin');
+
+        
             % end top ten scores
-        elseif k == Test.n.blocks && exp_number ~= nExperiments % if just finished experiment one, and there's another experiment coming up.
+            
+        elseif k == Test.n.blocks && exp_number ~= nExperiments && strcmp(new_subject_flag,'y')
+            [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with Task ' task_letter '.\n\n\n'...
+                'Please go get the experimenter from the other room!'],'center',ny,color.wt);
+            Screen('Flip',scr.win);
+            WaitSecs(5);
+            KbWait;
+            Screen('Flip',scr.win);
+
+        elseif k == Test.n.blocks && exp_number ~= nExperiments && strcmp(new_subject_flag,'n')% if just finished experiment one, and there's another experiment coming up.
             [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with Task ' task_letter '.\n\n\n'],'center',ny,color.wt);
             [nx,ny] = DrawFormattedText(scr.win,['You may begin Task ' other_task_letter ' in '],scr.cx-570,ny,color.wt);
             countx=nx; county=ny;
