@@ -74,6 +74,7 @@ maxWorkers = Inf; % set this to 0 to turn parfor loops into for loops
 
 progress_report_interval = Inf;
 time_lim = Inf; % time limit (secs) for slice_sample
+end_early = false;
 
 x0_reasonable = true; %limits starting points for optimization to those reasonable ranges defined in lb_gen and ub_gen
 
@@ -296,6 +297,7 @@ for gen_model_id = active_gen_models
                             nRemSamples = sum(remaining_samples);
                             %remaining_p = isnan(ex_p);
                             [s_tmp,ll_tmp,lp_tmp] = deal(cell(1,nOptimizations));
+                            fclose(log_fid);
                             parfor (optimization = 1:nOptimizations, maxWorkers)
                                 log_fid = fopen([job_id '.txt'],'a'); % reopen log for parfor
                                 [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nRemSamples(optimization), loglik_wrapper, ex_p(end-1-nRemSamples(optimization),:,optimization), (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
@@ -303,7 +305,9 @@ for gen_model_id = active_gen_models
                                 s_tmp{optimization} = samples';
                                 ll_tmp{optimization} = -loglikes';
                                 lp_tmp{optimization} = logpriors';
+                                fclose(log_fid);
                             end
+                            fopen([job_id '.txt'],'a');
                             for optimization = 1:nOptimizations
                                 ex_p(remaining_samples(:,optimization),:,optimization) = s_tmp{optimization};
                                 ex_nll(remaining_samples(:,optimization),optimization) = ll_tmp{optimization};
@@ -312,6 +316,7 @@ for gen_model_id = active_gen_models
                             clear s_tmp ll_tmp lp_tmp
                         else
                             % NEW SAMPLING
+                            fclose(log_fid);
                             parfor (optimization = 1 : nOptimizations, maxWorkers)
                                 log_fid = fopen(sprintf('%s.txt',job_id),'a'); % reopen log for parfor
                                 [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nKeptSamples, loglik_wrapper, x0(:,optimization)', (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
@@ -319,13 +324,16 @@ for gen_model_id = active_gen_models
                                 ex_p(:,:,optimization) = samples';
                                 ex_nll(:,optimization) = -loglikes';
                                 ex_logprior(:,optimization) = logpriors';
+                                fclose(log_fid);
                             end
+                            fopen([job_id '.txt'],'a');
                         end
                         
                         if any(aborted_flags)
                             my_print(sprintf('aborted during slice_sample'));
                             save([savedir 'aborted/aborted_' filename])
                             aborted=true;
+                            fclose(log_fid);
                             return
                         else
                             aborted=false;
@@ -522,6 +530,7 @@ if ~hpc
 end
 %%
 fh = [];
+fclose(log_fid);
 delete([savedir filename '~'])
 save([savedir filename])
 %%
