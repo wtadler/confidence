@@ -1,6 +1,6 @@
-initial = 'wjshort';
-new_subject_flag = 'y';
-first_task_letter = 'A';
+initial = 'sr';
+new_subject_flag = 'n';
+first_task_letter = 'A   ';
 
 room_letter = '1139_hires_rig';
 category_types = {'diff_mean_same_std','same_mean_diff_std'};

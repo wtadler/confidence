@@ -82,6 +82,7 @@ end
 close all;
 %%
 nDemoTrials = 72; % for 'new' style demo
+elapsed_mins = 0;
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
@@ -141,7 +142,7 @@ end
 
 Test.n.blocks = 3;% WTA from 3
 Test.n.sections = 3; % WTA from 3
-Test.n.trials = 12*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
+Test.n.trials = 8*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
 
 Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % WTA: 2
@@ -165,7 +166,7 @@ Test.t.attention_cue = 1000;
 
 Training.t.pres = 300; %300 %how long to show first stimulus (ms)
 Training.t.pause = 100; %100 time between response and feedback
-Training.t.feedback = 1200;  %1700 time of "correct" or "incorrect" onscreen
+Training.t.feedback = 1100;  %1700 time of "correct" or "incorrect" onscreen
 Training.t.betwtrials = 1000; %1000
 Training.t.attention_cue = 1000;
 
@@ -330,7 +331,7 @@ try
         hitxt=sprintf('Important: You are now doing Task %s!\n\n',task_letter);
         
         %[nx,ny]=DrawFormattedText(scr.win, ['Important: You are now doing Task ' task_letter '!\n\n'], 'center', 'center', color.wt);
-        if strcmp(new_subject_flag,'y')
+        if strcmp(new_subject_flag,'n')
             if strcmp(task_letter, 'A')
                 midtxt = 'In task A, stimuli from Category 1 tend to\n\nbe left-tilted, and stimuli from Category 2\n\ntend to be right-tilted.\n\nSee Task sheet for more info.'
             elseif strcmp(task_letter, 'B')
@@ -427,8 +428,8 @@ try
         if ~any(strfind(initial,'test'))
             save top_ten top_ten;
         end
-        
-        save(strrep([dir '/data/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P') % block by block backup. strrep makes the file separator system-dependent.
+        elapsed_mins = toc(start_t)/60;
+        save(strrep([dir '/data/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins','category_type') % block by block backup. strrep makes the file separator system-dependent.
         
         [nx,ny] = DrawFormattedText(scr.win,[hitxt 'Your score for Testing Block ' num2str(k) ': ' num2str(blockscore,'%.1f') '%\n\n'...
             'Top Ten for Task ' task_letter ':\n\n'],'center',-90,color.wt);
@@ -450,8 +451,8 @@ try
             
             flip_pak_flip(scr,ny,color,'continue','initial_wait',0);
             
-            [nx,ny] = DrawFormattedText(scr.win,['You will now begin Task ' task_letter ' Category Training before\n\n'...
-                'Task ' task_letter ' Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
+            [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\nTask ' task_letter ' Category Training before\n\n'...
+                'Task ' task_letter ' Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
             flip_pak_flip(scr,ny,color,'begin');
 
         
@@ -496,7 +497,7 @@ try
     
     save top_ten top_ten;
     elapsed_mins = toc(start_t)/60;
-    save(strrep([dir '/data/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P', 'elapsed_mins') % save complete session
+    save(strrep([dir '/data/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P', 'category_type', 'elapsed_mins') % save complete session
     recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
     delete([dir '/data/backup/' initial '_' datetimestamp '.mat']) % delete the block by block backup
     
@@ -509,7 +510,7 @@ catch %if error or script is cancelled
     
     %file_name = ['backup/' initial '_recovered'];
     %savedatafcn(file_name, datetimestamp, Training, Test, P); %save what we have
-    save(strrep([dir '/data/backup/' initial '_recovered_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P')
+    save(strrep([dir '/data/backup/' initial '_recovered_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','category_type', 'elapsed_mins')
     
     psychrethrow(psychlasterror);
 end
