@@ -4,6 +4,8 @@ function categorical_decision(category_type, initial, new_subject_flag, room_let
 % Will Adler
 % Ma Lab, New York University
 
+% THIS HAS SOME UNTESTED STUFF: flip_wait_for_experimenter_flip stuff.
+
 rng('shuffle','twister')
 
 Screen('Preference', 'SkipSyncTests', 1); % WTA.
@@ -307,8 +309,7 @@ try
     Training.confidence.R = setup_exp_order(Training.confidence.n, Test.category_params, category_type);
     
     start_t = tic;
-    %% DEMO for new subjects
-    %if strcmp(new_subject_flag,'y')
+    %% DEMO
         
         stim.ort = 0;
         stim.cur_sigma = Training.category_params.test_sigmas;
@@ -325,7 +326,11 @@ try
             ny = ny+max_ellipse_d;
         end
         
-        flip_pak_flip(scr,ny,color,'continue');
+        if strcmp(new_subject_flag,'y')
+            flip_wait_for_experimenter_flip(scr.keyenter);
+        elseif strcmp(new_subject_flag,'n')
+            flip_pak_flip(scr,ny,color,'continue');
+        end
         
         hitxt=sprintf('Important: You are now doing Task %s!\n\n',task_letter);
         
@@ -460,10 +465,11 @@ try
         elseif k == Test.n.blocks && exp_number ~= nExperiments && strcmp(new_subject_flag,'y')
             [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with Task ' task_letter '.\n\n\n'...
                 'Please go get the experimenter from the other room!'],'center',ny,color.wt);
-            Screen('Flip',scr.win);
-            WaitSecs(5);
-            KbWait;
-            Screen('Flip',scr.win);
+%             Screen('Flip',scr.win);
+            %WaitSecs(5);
+            flip_wait_for_experimenter_flip(scr.keyenter);
+%             KbWait;
+%             Screen('Flip',scr.win);
 
         elseif k == Test.n.blocks && exp_number ~= nExperiments && strcmp(new_subject_flag,'n')% if just finished experiment one, and there's another experiment coming up.
             [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with Task ' task_letter '.\n\n\n'],'center',ny,color.wt);

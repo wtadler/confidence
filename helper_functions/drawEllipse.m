@@ -1,8 +1,9 @@
 function im = drawEllipse(area, eccentricity, rot, fgcol, bgcol)
-% makes an ellipse with given area and eccentricity.
-% major axis is on the vertical with rot = 0. rotates clockwise by rot.
-% fgcol is the color of the ellipse.
-% bgcol is the color of the background.
+% makes an ellipse with given area and eccentricity. major axis is on the
+% vertical with rot = 0. rotates clockwise by rot. fgcol is the color of
+% the ellipse. bgcol is the color of the background. v1 Someone? Hongsup?
+% v2 Will Adler. improved cropping, antialiasing, and changed parameters to
+% area and eccentricity
 
 d1 = round (sqrt( (4 * area * sqrt(1 - eccentricity^2)) / pi)); % length of minor axis
 d2 = round (4 * area / (d1 * pi)); % length of major axis
@@ -39,5 +40,5 @@ end
 im = im(:, any(diff(im)));
 im = im(any(diff(im')), :);
 
-%imshow(im)
-%colormap(gray);
+imshow(im)
+colormap(gray);

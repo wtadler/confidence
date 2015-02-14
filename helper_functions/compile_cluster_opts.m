@@ -19,6 +19,7 @@ cd(datadir)
 files = what(datadir);
 mat_files = files.mat;
 job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%s.*\\.mat', jobid))));
+job_files
 
 newjob = zeros(1,length(job_files));
 for j = 1:length(job_files)
@@ -76,6 +77,9 @@ else %real data
             tmp = load(job_files{fid});
             cur_model = tmp.active_opt_models;
             if length(model)<cur_model || ~isfield(model(cur_model), 'name') || isempty(model(cur_model).name)
+                if isfield(tmp.gen.opt,'param_prior')
+                    tmp.gen.opt=rmfield(tmp.gen.opt,'param_prior');
+                end
                 model(cur_model) = tmp.gen.opt(cur_model);
             end
             model(cur_model).extracted(tmp.dataset) = tmp.gen.opt(cur_model).extracted(tmp.dataset);

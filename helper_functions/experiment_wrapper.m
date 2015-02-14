@@ -2,6 +2,11 @@ initial = 'wjshort';
 new_subject_flag = 'y';
 first_task_letter = 'A';
 
+if ~(strcmp(new_subject_flag,'y') || strcmp(new_subject_flag,'n')) || ~(strcmp(first_task_letter, 'A') || strcmp(first_task_letter, 'B'))
+    error('bad params in experiment_wrapper.m!')
+end
+
+
 room_letter = '1139_hires_rig';
 category_types = {'diff_mean_same_std','same_mean_diff_std'};
 

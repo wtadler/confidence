@@ -187,10 +187,11 @@ try
     [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
     
     if strcmp(type,'Training') && blok == 1 && strcmp(new_subject_flag,'y') % this is the situation when the experimenter comes in.
-        Screen('Flip', scr.win);
-        WaitSecs(2);
-        KbWait;
-        Screen('Flip', scr.win);
+%         Screen('Flip', scr.win);
+%         WaitSecs(2);
+%         KbWait;
+        flip_wait_for_experimenter_flip(scr.keyenter);
+%         Screen('Flip', scr.win);
     else % print the directions if the experimenter isn't supposed to come in.
         flip_pak_flip(scr,ny,color,str)
     end

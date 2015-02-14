@@ -300,7 +300,7 @@ for gen_model_id = active_gen_models
                             fclose(log_fid);
                             parfor (optimization = 1:nOptimizations, maxWorkers)
                                 log_fid = fopen([job_id '.txt'],'a'); % reopen log for parfor
-                                [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nRemSamples(optimization), loglik_wrapper, ex_p(end-1-nRemSamples(optimization),:,optimization), (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
+                                [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nRemSamples(optimization), loglik_wrapper, ex_p(end-nRemSamples(optimization),:,optimization), (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
                                     'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid);
                                 s_tmp{optimization} = samples';
                                 ll_tmp{optimization} = -loglikes';
@@ -476,6 +476,7 @@ end
 
 %%
 if ~hpc
+    %gen.opt=model; % this is for after CCO
     if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
         % COMPARE TRUE AND FITTED PARAMETERS IN SUBPLOTS
         figure;
@@ -505,13 +506,13 @@ if ~hpc
             end
             for opt_model = active_opt_models%1:length(gen(gen_model_id).opt) % active_opt_models
                 o = gen(gen_model_id).opt(opt_model);
-                for dataset_id = dataset%1:length(o.extracted) % dataset
+                for dataset_id = dataset%:length(o.extracted) % dataset
                     [samples,logposteriors]=deal(cell(1,nChains)); 
                     
-                    extraburn_pct=0; % burn some proportion of the samples
+                    extraburn_prop=.99; % burn some proportion of the samples
                     for c = 1:nChains
                         nSamples = size(o.extracted(dataset_id).p,1);
-                        burn_start = max(1,round(nSamples*extraburn_pct));
+                        burn_start = max(1,round(nSamples*extraburn_prop));
                         samples{c} = o.extracted(dataset_id).p(burn_start:end,:,c);
                         logposteriors{c} = -o.extracted(dataset_id).nll(burn_start:end,c) + o.extracted(dataset_id).log_prior(burn_start:end,c);
                     end
