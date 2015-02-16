@@ -42,16 +42,28 @@ else
             p.b_i = [-Inf p.b_n3_d p.b_n2_d p.b_n1_d p.b_0_d p.b_1_d p.b_2_d p.b_3_d Inf];
         end
     elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'MAP')
-        p.b_i = [0 p.b_n3_x p.b_n2_x p.b_n1_x p.b_0_x p.b_1_x p.b_2_x p.b_3_x Inf];
+        if model.symmetric % only applies for task A. no symmetry in these models for task B.
+            tmp = [p.b_0_x p.b_1_x p.b_2_x p.b_3_x];
+            p.b_i = [-Inf -fliplr(tmp(2:4)-tmp(1))+tmp(1) tmp Inf];
+        else
+            p.b_i = [0 p.b_n3_x p.b_n2_x p.b_n1_x p.b_0_x p.b_1_x p.b_2_x p.b_3_x Inf];
+        end
     elseif strcmp(model.family, 'lin') || strcmp(model.family, 'quad')
-        p.b_i = [0 p.b_n3_x p.b_n2_x p.b_n1_x p.b_0_x p.b_1_x p.b_2_x p.b_3_x Inf];
-        p.m_i = [0 p.m_n3 p.m_n2 p.m_n1 p.m_0 p.m_1 p.m_2 p.m_3 Inf];
+        if model.symmetric % only applies for task A. no symmetry in these models for task B.
+            tmp = [p.b_0_x p.b_1_x p.b_2_x p.b_3_x];
+            p.b_i = [-Inf -fliplr(tmp(2:4)-tmp(1))+tmp(1) tmp Inf];
+            tmp = [p.m_0 p.m_1 p.m_2 p.m_3];
+            p.m_i = [-Inf -fliplr(tmp(2:4)-tmp(1))+tmp(1) tmp Inf];
+        else
+            p.b_i = [0 p.b_n3_x p.b_n2_x p.b_n1_x p.b_0_x p.b_1_x p.b_2_x p.b_3_x Inf];
+            p.m_i = [0 p.m_n3 p.m_n2 p.m_n1 p.m_0 p.m_1 p.m_2 p.m_3 Inf];
+        end
     end
 end
-
-if model.diff_mean_same_std
-    p.b_i(p.b_i==0) = -Inf;
-end
+% 
+% if model.diff_mean_same_std % why did i put this in here??
+%     p.b_i(p.b_i==0) = -Inf;
+% end
 
 % ... and multi-lapse.
 if model.multi_lapse
@@ -59,4 +71,3 @@ if model.multi_lapse
 end
 
 
-% p.t_str???

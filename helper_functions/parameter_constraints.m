@@ -20,9 +20,14 @@ for m_id = 1 : nModels
     end
     
     if ~strcmp(c.family, 'opt')
-        % the below options are only for opt models. they don't make sense if opt has not been specified
-        c.symmetric = 0;
+        % d noise is only for opt
         c.d_noise = 0;
+    end
+    
+    if ~c.diff_mean_same_std && ~strcmp(c.family, 'opt')
+        c.symmetric = 0; % opt is the only model that can be symmetric in task B
+    elseif c.diff_mean_same_std
+        c.symmetric = 1; % bounds are symmetric for all Task A models.
     end
     
     % give model its name based on the settings. in future, might be better to report the alternative rather than just leave it out when it's zero.
@@ -74,16 +79,31 @@ for m_id = 1 : nModels
         'b_0_dChoice'
         'b_0_xChoice'
         'm_0Choice'
+        'b_0_d_TaskA'
+        'b_1_dTerm_TaskA'
+        'b_2_dTerm_TaskA'
+        'b_3_dTerm_TaskA'
+        'b_0_x_TaskA'
+        'b_1_xTerm_TaskA'
+        'b_2_xTerm_TaskA'
+        'b_3_xTerm_TaskA'
+        'm_0_TaskA'
+        'm_1Term_TaskA'
+        'm_2Term_TaskA'
+        'm_3Term_TaskA'
+        'b_0_dChoice_TaskA'
+        'b_0_xChoice_TaskA'
+        'm_0Choice_TaskA'
         };
     log_params = strncmpi(c.parameter_names,'log',3);
     
-    %               alp bet sig0bn3dbn2dbn1dbn0db1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0xc
-    c.lb       = [  0   0   0   -60 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   -60 0   -30   ];
-    c.lb_gen   = [  0   0   0   -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  0   0   0   0   0   0   2   8   2   -2  3   0];
-    c.ub       = [  50  3   30  60  10  10  10  10  10  10  90  30  30  30  30  30  30  30  10  10  10  10  10  10  20  .25 .25 .25 .25 .5  25  25  25  60  40  30 ];
-    c.ub_gen   = [  50  8   30  1.2 1.2 1.2 1.2 1.2 1.2 1.2 3   5   5   5   5   5   5   1   1   1   1   1   1   1   3   .1  .1  .1  .2  .1  4   10  10  1.2 8   2];
+    %               alp bet sig0bn3dbn2dbn1dbn0db1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA
+    c.lb       = [  0   0   0   -10 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   -10 0   -30     -10     0       0       0       -10     0       0       0       -10     0       0       0       -10     -10     -30];
+    c.lb_gen   = [  0   0   0   -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  0   0   0   0   0   0   2   8   2   -2  3   0       -1      .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5];
+    c.ub       = [  50  3   30  10  6   6   6   6   6   6   90  30  30  30  30  30  30  30  10  10  10  10  10  10  20  .25 .25 .25 .25 .5  25  25  25  10  40  30      10      6       6       6       10      30      30      30      10      10      10      10      10      10      30];
+    c.ub_gen   = [  50  8   30  1.2 1.2 1.2 1.2 1.2 1.2 1.2 3   5   5   5   5   5   5   1   1   1   1   1   1   1   3   .1  .1  .1  .2  .1  4   10  10  2   8   2       1       1.2     1.2     1.2     2       5       5       5       2       1       1       1       2       3       5];
     
-    c.beq      = [  1   1   1   -2  .7  .7  .7  .7  .7  .7  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5]';
+    c.beq      = [  1   1   1   -2  .7  .7  .7  .7  .7  .7  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0]';
     
     fields = {'lb','ub','lb_gen','ub_gen'}; % convert log param bounds
     c.lb(log_params) = -5;
@@ -97,6 +117,7 @@ for m_id = 1 : nModels
 %         c.(fields{field})(c.(fields{field})==Inf) = 100;
 %     end
     
+    c = taskizer(c);
     c = familyizer(c);
     c = symmetricizer(c);
     c = choiceizer(c);
@@ -118,7 +139,25 @@ for m_id = 1 : nModels
 end
 end
 
+function c = taskizer(c)
+if c.diff_mean_same_std
+    % TASK A
+    otherbounds = find(~cellfun(@isempty, regexp(c.parameter_names, '^[bm]_(.(?!TaskA))*$'))); % this regular expression says that all characters after ^[bm]_ must be a character that is not followed by 'TaskA'
+else
+    % TASK B
+    otherbounds = find(~cellfun(@isempty, regexp(c.parameter_names, '[bm]_.*TaskA')));
+end
+c = p_stripper(c,otherbounds);
 
+% chop TaskA off the end
+if c.diff_mean_same_std
+    TaskA_bounds = find(~cellfun(@isempty, regexp(c.parameter_names, 'TaskA$')));
+    for tb = TaskA_bounds'
+        c.parameter_names{tb} = c.parameter_names{tb}(1:end-6);
+    end
+end
+end
+    
 function c = familyizer(c)
 % strip out bound parameters from families other than the specified one
 optbounds = find(~cellfun(@isempty, regexp(c.parameter_names, 'b_.*d')));
@@ -133,26 +172,12 @@ elseif strcmp(c.family, 'opt')
     otherbounds = union(xbounds, slopebounds);
 end
 
-% for symmetric task, need to shift the range of the x bound to allow it to be negative.
-% (COME BACK TO THIS). might want to just add a new set of params. 1/23)
-if c.diff_mean_same_std && (strcmp(c.family, 'quad') || strcmp(c.family, 'lin') || strcmp(c.family, 'fixed'))
-    gen_range = c.ub_gen(xbounds(1)) - c.lb_gen(xbounds(1));
-    range = c.ub(xbounds(1)) - c.lb(xbounds(1));
-    gen_fields = {'lb_gen','ub_gen'};
-    fields = {'lb','ub'};
-    
-    for f = 1:2
-        c.(gen_fields{f})(xbounds) = c.(gen_fields{f})(xbounds)-gen_range/2;
-        c.(fields{f})(xbounds) = c.(fields{f})(xbounds)-range/2;
-    end
-end
-
 c = p_stripper(c,otherbounds);
 end
 
 function c = symmetricizer(c)
-if c.symmetric
-    % if doing symmetric (opt) model, strip out negative D parameters
+if c.symmetric && ~c.diff_mean_same_std
+    % if doing symmetric (opt) model and task B, strip out negative D parameters. Task A doesn't have any neg D params because thye are all symmetric.
     b0term = find(~cellfun(@isempty, regexp(c.parameter_names,'b_0_dTerm')));
     c.parameter_names{b0term} = 'b_0_d';
     fields = {'lb','ub','lb_gen','ub_gen'};
@@ -190,6 +215,7 @@ if ~c.d_noise
     d_noiseP = find(~cellfun(@isempty, regexp(c.parameter_names, 'sigma_d')));
     c = p_stripper(c,d_noiseP);
 end
+
 end
 
 function c = partial_lapseizer(c)

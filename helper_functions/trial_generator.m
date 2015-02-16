@@ -9,10 +9,10 @@ conf_levels = 4;
 
 category_params.sigma_1 = 3;
 category_params.sigma_2 = 12;
-category_params.sigma_s = 1; % for 'diff_mean_same_std' and 'half_gaussian'
+category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
 category_params.a = 0; % overlap for sym_uniform
-category_params.mu_1 = 5; % mean for 'diff_mean_same_std'
-category_params.mu_2 = -5;
+category_params.mu_1 = -4; % mean for 'diff_mean_same_std'
+category_params.mu_2 = 4;
 category_params.uniform_range = 1;
 
 assignopts(who,varargin);
@@ -66,6 +66,7 @@ end
 
 raw.x = raw.s + randn(size(raw.sig)) .* raw.sig; % add noise to s. this line is the same in both tasks
 
+% calculate d(x)
 switch dist_type
     case 'same_mean_diff_std'
         if strcmp(model.family,'opt')
@@ -132,21 +133,52 @@ if strcmp(model.family,'opt') % for all opt family models
                  & raw.d    <= p.b_i(g+1)) = confidences(g);
         end
     end
-        
-elseif strcmp(model.family, 'MAP') && strcmp(dist_type, 'same_mean_diff_std')
+    
+elseif strcmp(model.family, 'MAP')
     raw.shat = zeros(1,3240);
     for i = 1:nContrasts
         sig = sigs(i);
         idx = find(raw.contrast_id==i);
-        
-        k1 = sqrt(1/(sig^-2 + category_params.sigma_1^-2));
-        mu1 = raw.x(idx)'*sig^-2 * k1^2;
-        k2 = sqrt(1/(sig^-2 + category_params.sigma_2^-2));
-        mu2 = raw.x(idx)'*sig^-2 * k2^2;
-        
-        raw.shat(idx) = gmm1max_n2_fast([normpdf(raw.x(idx),0,sqrt(category_params.sigma_1^2 + sig^2))' normpdf(raw.x(idx),0,sqrt(category_params.sigma_2^2 + sig^2))'],...
-            [mu1 mu2], repmat([k1 k2],length(idx),1));
+
+        switch dist_type
+            case 'same_mean_diff_std'
+                k1 = sqrt(1/(sig^-2 + category_params.sigma_1^-2));
+                mu1 = raw.x(idx)*sig^-2 * k1^2;
+                k2 = sqrt(1/(sig^-2 + category_params.sigma_2^-2));
+                mu2 = raw.x(idx)*sig^-2 * k2^2;
+                
+                w1 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_1^2 + sig^2));
+                w2 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_2^2 + sig^2));
+                
+                raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k1 k2],length(idx),1));
+
+            case 'diff_mean_same_std'
+                k = sqrt(1/(sig^-2 + category_params.sigma_s^-2));
+                mu1 = (raw.x(idx)*sig^-2 + category_params.mu_1*category_params.sigma_s^-2) * k^2;
+                mu2 = (raw.x(idx)*sig^-2 + category_params.mu_2*category_params.sigma_s^-2) * k^2;
+                
+                w1 = exp(raw.x(idx)*category_params.mu_1./(category_params.sigma_s^2 + sig^2));
+                w2 = exp(raw.x(idx)*category_params.mu_2./(category_params.sigma_s^2 + sig^2)); % i got this order by fiddling. it might be better to indicate this as -mu_2 rather than +mu_1
+
+                raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k k],length(idx),1));
+% %%                
+%                 psx=normpdf(s,x,sig).*(normpdf(s,category_params.mu_1,category_params.sigma_s)+normpdf(s,category_params.mu_2,category_params.sigma_s));
+%                 plot(s,psx./sum(psx))
+%                 B = (x.^2*sig^-2 + category_params.mu_1^2 * category_params.sigma_s^-2) * k^2;
+%                 psx2=exp(-(s-mu1).^2./(2*k^2)).*exp(-(B-mu1^2)./(2*k^2)) + exp(-(s-mu2).^2./(2*k^2)).*exp(-(B-mu2^2)./(2*k^2))
+%                 hold on
+%                 plot(s,psx2./sum(psx2))
+%                 
+%                 psx3=normpdf(s,mu1,k).*exp(-(B-mu1^2)./(2*k^2)) + normpdf(s,mu2,k).*exp(-(B-mu2^2)./(2*k^2));
+%                 
+%                 psx4=normpdf(s,mu1,k).*exp(x*category_params.mu_1./(category_params.sigma_s^2 + sig^2)) + normpdf(s,mu2,k).*exp(x*category_params.mu_2./(category_params.sigma_s^2 + sig^2));
+%                 
+%                 
+                
+        end
     end
+    save tgtest
+    plot(raw.x,raw.shat,'.');
     
     b = p.b_i(5);
     raw.Chat(abs(raw.shat) <= b) = -1;
@@ -176,9 +208,9 @@ else % all measurement models
         
     raw.Chat(x_tmp <= b)   = -1;
     raw.Chat(x_tmp >  b)   =  1;
-    if strcmp(dist_type, 'diff_mean_same_std')
-       raw.Chat = -raw.Chat;
-    end
+%     if strcmp(dist_type, 'diff_mean_same_std')
+%        raw.Chat = -raw.Chat;
+%     end
     
     if ~model.choice_only % all non-optimal confidence models
         for g = 1 : conf_levels * 2

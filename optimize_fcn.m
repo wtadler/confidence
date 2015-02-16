@@ -2,60 +2,35 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'fixed';
+opt_models(1).family = 'MAP';
 opt_models(1).multi_lapse = 0;
 opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
 opt_models(1).choice_only = 1;
-opt_models(1).diff_mean_same_std = 0;
-opt_models(1).ori_dep_noise = 1;
+opt_models(1).diff_mean_same_std = 1;
+opt_models(1).ori_dep_noise = 0;
+opt_models(1).symmetric = 0;
+opt_models(1).d_noise = 0;
 
-opt_models(2) = opt_models(1);
-opt_models(2).family = 'lin';
+opt_models(2).family = 'opt';
+opt_models(2).multi_lapse = 1;
+opt_models(2).partial_lapse = 1;
+opt_models(2).repeat_lapse = 1;
+opt_models(2).choice_only = 0;
+opt_models(2).diff_mean_same_std = 0;
+opt_models(2).ori_dep_noise = 1;
+opt_models(2).symmetric = 0;
+opt_models(2).d_noise = 0;
 
-opt_models(3) = opt_models(1);
-opt_models(3).family = 'quad';
-
-opt_models(4) = opt_models(1);
-opt_models(4).family = 'opt';
-opt_models(4).d_noise = 1;
-opt_models(4).choice_only = 1;
-opt_models(4).ori_dep_noise = 1;
-
-opt_models(5) = opt_models(4);
-opt_models(5).symmetric = 1;
-
-opt_models(6) = opt_models(1);
-opt_models(6).family = 'MAP';
-
-opt_models(7).family = 'fixed';
-opt_models(7).multi_lapse = 1;
-opt_models(7).partial_lapse = 1;
-opt_models(7).repeat_lapse = 1;
-opt_models(7).choice_only = 0;
-opt_models(7).ori_dep_noise = 1;
-
-opt_models(8) = opt_models(7);
-opt_models(8).family = 'lin';
-
-opt_models(9) = opt_models(7);
-opt_models(9).family = 'quad';
-
-opt_models(10) = opt_models(7);
-opt_models(10).family = 'opt';
-opt_models(10).d_noise = 1;
-
-opt_models(11) = opt_models(7);
-opt_models(11).family = 'MAP';
-
-opt_models(12) = opt_models(6);
-opt_models(12).ori_dep_noise = 1;
-
-opt_models(13) = opt_models(6);
-opt_models(13).choice_only = 0;
-
-opt_models(14) = opt_models(13);
-opt_models(14).ori_dep_noise = 1;
+opt_models(3).family = 'fixed';
+opt_models(3).multi_lapse = 0;
+opt_models(3).partial_lapse = 0;
+opt_models(3).repeat_lapse = 1;
+opt_models(3).choice_only = 1;
+opt_models(3).diff_mean_same_std = 1;
+opt_models(3).ori_dep_noise = 0;
+opt_models(3).symmetric = 0;
+opt_models(3).d_noise = 0;
 
 
 opt_models = parameter_constraints(opt_models);
@@ -92,10 +67,10 @@ fake_data_params =  'random'; % 'extracted' or 'random'
 
 dist_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 
-category_params.sigma_s = 1; % for 'diff_mean_same_std' and 'half_gaussian'
+category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
 category_params.a = 0; % overlap for sym_uniform
-category_params.mu_1 = 5; % mean for 'diff_mean_same_std'
-category_params.mu_2 = -5;
+category_params.mu_1 = -4; % mean for 'diff_mean_same_std'
+category_params.mu_2 = 4;
 category_params.uniform_range = 1;
 category_params.sigma_1 = 3;
 category_params.sigma_2 = 12;
@@ -117,10 +92,6 @@ end
 
 nll_tolerance = 1e-3; % this is for determining what "good" parameters are.
 
-if strcmp(optimization_method,'fmincon')
-    fmincon_opts = optimoptions(@fmincon,'Algorithm','interior-point', 'display', 'off', 'UseParallel', 'never');
-end
-
 if hpc
     datadir='/home/wta215/data/v2/';
 else
@@ -128,6 +99,10 @@ else
 end
 
 assignopts(who,varargin);
+
+if strcmp(optimization_method,'fmincon')
+    fmincon_opts = optimoptions(@fmincon,'Algorithm','interior-point', 'display', 'off', 'UseParallel', 'never');
+end
 
 if strcmp(data_type, 'real')
     gen = compile_data('datadir', datadir, 'crossvalidate', crossvalidate, 'k', k);
@@ -187,10 +162,12 @@ if strcmp(data_type, 'fake')
         end
         for dataset = datasets;
             % generate data from parameters
-            d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'dist_type', dist_type, 'contrasts', exp(-4:.5:-1.5), 'category_params', category_params);
+            save before
+            d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'dist_type', dist_type, 'contrasts', exp(linspace(-5.5,-2,6)), 'category_params', category_params);
             gen(gen_model_id).data(dataset).raw = d;
             gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), d, g, nDNoiseSets, category_params);
             gen(gen_model_id).data(dataset).true_logposterior = -gen(gen_model_id).data(dataset).true_nll + log_prior(gen(gen_model_id).p(:,dataset)');
+            save after
         end
     end
 end
@@ -313,7 +290,7 @@ for gen_model_id = active_gen_models
                                 ex_nll(remaining_samples(:,optimization),optimization) = ll_tmp{optimization};
                                 ex_logprior(remaining_samples(:,optimization),optimization) = lp_tmp{optimization};
                             end
-                            clear s_tmp ll_tmp lp_tmp
+                            clear s_tmp ll_tmp lp_tmp samples loglikes logpriors
                         else
                             % NEW SAMPLING
                             fclose(log_fid);
@@ -326,6 +303,7 @@ for gen_model_id = active_gen_models
                                 ex_logprior(:,optimization) = logpriors';
                                 fclose(log_fid);
                             end
+                            clear samples loglikes logpriors
                             fopen([job_id '.txt'],'a');
                         end
                         
@@ -488,14 +466,14 @@ if ~hpc
             hold on
             xlim([g.lb_gen(parameter) g.ub_gen(parameter)]);
             ylim([g.lb_gen(parameter) g.ub_gen(parameter)]);
-            %ylim([g.lb(parameter) g.ub(parameter)]);
-            axis square;
+            
+            %axis square;
             plot([g.lb(parameter) g.ub(parameter)], [g.lb(parameter) g.ub(parameter)], '--');
             
             title(g.parameter_names{parameter});
         end
-        suplabel('true parameter', 'x');
-        suplabel('extracted parameter', 'y');
+%         suplabel('true parameter', 'x');
+%         suplabel('extracted parameter', 'y');
     elseif strcmp(optimization_method,'mcmc_slice')
         % DIAGNOSE MCMC
         % open windows for every model/dataset combo.
@@ -509,7 +487,7 @@ if ~hpc
                 for dataset_id = dataset%:length(o.extracted) % dataset
                     [samples,logposteriors]=deal(cell(1,nChains)); 
                     
-                    extraburn_prop=.99; % burn some proportion of the samples
+                    extraburn_prop=0; % burn some proportion of the samples
                     for c = 1:nChains
                         nSamples = size(o.extracted(dataset_id).p,1);
                         burn_start = max(1,round(nSamples*extraburn_prop));

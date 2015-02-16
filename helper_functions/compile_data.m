@@ -86,7 +86,7 @@ for subject = 1 : length(names)
                 end
                 
                 
-                
+save cdtest.mat                
                 % responses
                 raw.Chat       (start_trial:end_trial) = Test.responses{block}.c(section,:) * 2 - 3;
                 raw.tf         (start_trial:end_trial) = Test.responses{block}.tf(section,:);
