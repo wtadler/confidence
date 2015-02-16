@@ -10,10 +10,17 @@ rng('shuffle','twister')
 
 Screen('Preference', 'SkipSyncTests', 1); % WTA.
 Screen('Preference', 'VisualDebuglevel', 3);
-if strcmp(computer,'MACI64') % Assuming this is running on my MacBook
-    dir = '/Users/will/Google Drive/Ma lab/repos/qamar confidence';
-elseif strcmp(computer,'PCWIN64') % Assuming the left Windows psychophysics machine
-    dir = 'C:\Users\malab\Documents\GitHub\Confidence-Theory';
+user = 'rachel';
+switch user
+    case 'rachel'
+        dir = pwd;
+        addpath(genpath(dir))
+    otherwise
+        if strcmp(computer,'MACI64') % Assuming this is running on my MacBook
+            dir = '/Users/will/Google Drive/Ma lab/repos/qamar confidence';
+        elseif strcmp(computer,'PCWIN64') % Assuming the left Windows psychophysics machine
+            dir = 'C:\Users\malab\Documents\GitHub\Confidence-Theory';
+        end
 end
 
 cd(dir)
@@ -36,6 +43,7 @@ datetimestamp = datetimefcn; % establishes a timestamp for when the experiment w
 % map keys with 'WaitSecs(0.2); [~, keyCode] = KbWait;find(keyCode==1)' and
 % then press a key.
 fontsize = 28; % unless the hires_rig below
+fontstyle = 0; % unless the hires_rig below
 
 switch room_letter
     case 'home'
@@ -70,6 +78,8 @@ switch room_letter
             = deal(112, 113, 114, 115, 116, 119, 120, 121, 122, 123);
         % This is for keys F1-5, F8-12.
         fontsize = 42;
+		fontstyle = 1;
+
 end
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp')
     [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
@@ -88,8 +98,9 @@ elapsed_mins = 0;
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
-%category_type = 'sym_uniform'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian'. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
-attention_manipulation = false;
+category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
+attention_manipulation = true;
+attention_cue_type = 'cross_arm'; % 'arrow','cross_arm'
 cue_validity = .7;
 % colors in 0:1 space
 % color.bg = [0.4902    0.5647    0.5137];
@@ -122,7 +133,11 @@ elseif strcmp(category_type, 'diff_mean_same_std')
     task_letter = 'A';
     other_task_letter = 'B';
 elseif strcmp(category_type, 'sym_uniform')
-    Test.category_params.uniform_range = 15;
+    if attention_manipulation
+        Test.category_params.uniform_range = 5;
+    else
+        Test.category_params.uniform_range = 15;
+    end
     Test.category_params.overlap = 0;
 elseif strcmp(category_type, 'half_gaussian')
     Test.category_params.sigma_s = 5;
@@ -132,7 +147,11 @@ Test.category_params.category_type = category_type;
 if strcmp(P.stim_type, 'ellipse')
     Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
 else
-    Test.category_params.test_sigmas= exp(linspace(-5.5,-2,6));%exp(-4:.5:-1.5); %4 of these 6 are in qamar 2013. WTA. to test final two:exp(-2:.5:-1.5)
+    if attention_manipulation
+        Test.category_params.test_sigmas = exp(-3.5);
+    else
+        Test.category_params.test_sigmas= exp(linspace(-5.5,-2,6)); % on previous rig: exp(-4:.5:-1.5)
+    end
 end
 
 Training.category_params = Test.category_params;
@@ -160,17 +179,19 @@ Demo.t.pres = 250;
 Demo.t.betwtrials = 200;
 
 
-Test.t.pres = 50;           %50. needs to be longer for attention experiment?
+Test.t.pres = 50;           %50
 Test.t.pause = 200;         %200 isn't used
 Test.t.feedback = 1200;     %1200 isn't used
 Test.t.betwtrials = 1000;   %1000
-Test.t.attention_cue = 1000;
+Test.t.cue_dur = 150;
+Test.t.cue_target_isi = 150;
 
 Training.t.pres = 300; %300 %how long to show first stimulus (ms)
 Training.t.pause = 100; %100 time between response and feedback
 Training.t.feedback = 1100;  %1700 time of "correct" or "incorrect" onscreen
 Training.t.betwtrials = 1000; %1000
-Training.t.attention_cue = 1000;
+Training.t.cue_dur = 150;
+Training.t.cue_target_isi = 150;
 
 
 %%8
@@ -183,9 +204,14 @@ if strfind(initial,'short') > 0 % if 'short' is in the initials, the exp will be
     [Test.n.trials,Training.initial.n.trials,Training.confidence.n.trials,Training.n.trials]...
         = deal(numel(Test.category_params.test_sigmas)*2, 4, 4, 4);
     nDemoTrials = 5;
+    countdown_time = 2;
 end
 
-fontstyle = 1; % 1 is bold, 0 is thin text
+if strfind(initial,'notrain') > 0 % if 'notrain' is in the initials, the exp will not include training (for debugging)
+    notrain = 1;
+else
+    notrain = 0;
+end
 
 
 try
@@ -232,6 +258,9 @@ try
     P.pxPerDeg = screen_resolution(1) / screen_angle;  % pixels per degree
     
     %set up fixation cross
+fc_style = 'rachel';
+switch fc_style
+	case 'will'
     f_c_size = 37; % must be odd
     thickness = 5; % must be odd
     f_c = color.bg*ones(f_c_size);
@@ -239,9 +268,63 @@ try
     row2=0.5*(f_c_size+thickness);
     f_c(row1:row2,:)=black;
     f_c(:,row1:row2)=black;
+case 'rachel'
+    if attention_manipulation
+        f_c_size = 30;
+        fw = 1;
+    else
+        f_c_size = 18; %pixels
+        fw = 0; % 0 results in a line thickness of 1 pixel
+    end
+    white = 255;
+    lightgray = 180; % 200
+    black = 10;
+    gray = 69;
+    bg = 128;
+    f_c = bg*ones(f_c_size);
+    f_c(f_c_size/2 - fw: f_c_size/2 + 1 + fw,:) = black;
+    f_c(:,f_c_size/2 - fw: f_c_size/2 + 1 + fw) = black;
+end
     scr.cross = Screen('MakeTexture', scr.win , f_c);
     
-    % set up grating parameters
+    switch attention_cue_type
+        case 'cross_arm'
+            cross_whiteL = f_c;
+            cross_whiteL(f_c_size/2-fw:f_c_size/2 + 1 + fw, 1:f_c_size/2-1-fw) = white;
+            cross_grayL = f_c;
+            cross_grayL(f_c_size/2-fw:f_c_size/2 + 1 + fw, 1:f_c_size/2-1-fw) = lightgray;
+            
+            scr.cueL = Screen('MakeTexture', scr.win, cross_whiteL);
+            scr.cueR = Screen('MakeTexture', scr.win, fliplr(cross_whiteL));
+            scr.resp_cueL = Screen('MakeTexture', scr.win, cross_grayL);
+            scr.resp_cueR = Screen('MakeTexture', scr.win, fliplr(cross_grayL));
+        
+        case 'arrow'
+            %set up attention arrow. this is kind of hacky, and a bit ugly.
+            a_h = 87; % must be divisible by 3 and odd? this is annoying.
+            a_w = ((a_h-1)/2)*3;
+            arrow = bg*ones(a_h,a_w+1);
+            %unfilled_arrow = arrow;
+            rect_end = 2*a_w/3;
+            arrow([a_h/3:2*a_h/3],[1:rect_end]) = black;
+            %unfilled_arrow([a_h/3 2*a_h/3],1:rect_end) = black;
+            for col = 1:(a_h-1)/2+1
+                arrow(col:end+1-col,rect_end+col) = black;
+            end
+            gray_arrow = arrow;
+            gray_arrow(gray_arrow==black) = gray;
+            
+            scr.cueL = Screen('MakeTexture', scr.win, fliplr(arrow));
+            scr.cueR = Screen('MakeTexture', scr.win, arrow);
+            scr.resp_cueL = Screen('MakeTexture', scr.win, fliplr(gray_arrow));
+            scr.resp_cueR = Screen('MakeTexture', scr.win, gray_arrow);
+        
+        otherwise
+            error('attention_cue_type not recognized')
+    end
+      
+    
+   % set up grating parameters
     P.grateSigma = .8; % Gabor Gaussian envelope standard deviation (degrees)
     P.grateSigma = P.grateSigma * P.pxPerDeg; %...converted to pixels
     P.grateAspectRatio = 1;
@@ -249,38 +332,17 @@ try
     P.grateSpatialFreq = P.grateSpatialFreq / P.pxPerDeg; % cycles / pixel
     P.grateSpeed = 10; % cycles per second
     P.grateDt = .01; %seconds per frame
-    P.grateAlphaMaskSize = round(10*P.grateSigma);
+    P.grateAlphaMaskSize = round(10*P.grateSigma);    
     
     % Ellipse parameters
     P.ellipseAreaDegSq = 1; % ellipse area in degrees squared
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
     P.ellipseColor = 0;
     
-    if attention_manipulation
-        %set up attention arrow. this is kind of hacky, and a bit ugly.
-        a_h = 87; % must be divisible by 3 and odd? this is annoying.
-        a_w = ((a_h-1)/2)*3;
-        arrow = color.bg*ones(a_h,a_w+1);
-        %unfilled_arrow = arrow;
-        rect_end = 2*a_w/3;
-        arrow([a_h/3:2*a_h/3],[1:rect_end]) = black;
-        %unfilled_arrow([a_h/3 2*a_h/3],1:rect_end) = black;
-        for col = 1:(a_h-1)/2+1
-            arrow(col:end+1-col,rect_end+col) = black;
-        end
-        gray_arrow = arrow;
-        gray_arrow(gray_arrow==black) = gray;
-        scr.arrowL = Screen('MakeTexture', scr.win, fliplr(arrow));
-        scr.arrowR = Screen('MakeTexture', scr.win, arrow);
-        scr.gray_arrowL = Screen('MakeTexture', scr.win, fliplr(gray_arrow));
-        scr.gray_arrowR = Screen('MakeTexture', scr.win, gray_arrow);
-    end
-    
-    % attention stimuli parameters
     P.attention_stim_spacing = 3.5;% for two stimuli, distance from center, in degrees
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
-
-    %%%Setup blocks, sections, trials. this is some complicated stuff to deal with the
+    
+    %%%Setup routine. this is some complicated stuff to deal with the
     %%%two-part training thing
     
     InitialTrainingpreR = setup_exp_order(Training.initial.n, Training.category_params, category_type);
@@ -381,11 +443,16 @@ try
     
     
     %% START TRIALS
-    [~,ny]=DrawFormattedText(scr.win,['Coming up: Task ' task_letter ' Category Training'],'center','center',color.wt)
+    if ~notrain
+        [~,ny]=DrawFormattedText(scr.win,'Coming up: Category Training','center','center',color.wt)
+    else
+        [~,ny]=DrawFormattedText(scr.win,'Here comes the experiment','center','center',color.wt)
+    end
     
     flip_pak_flip(scr,ny,color,'begin');
     
     for k = 1:Test.n.blocks
+if ~notrain
         if k == 1
             Training.initial.n.blocks = Training.n.blocks;
             numbers = Training.initial.n;
@@ -405,6 +472,7 @@ try
             if flag==1,break;end
             
         end
+end
         
         if attention_manipulation
             [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, task_letter, first_task_letter, Test.R2);

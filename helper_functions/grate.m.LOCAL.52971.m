@@ -39,6 +39,4 @@ for i = 1:nStim
     Screen('Close', texture{i});
 end
 
-if numel(stim)==1 % don't show a blank screen in the attention task
-    Screen('Flip', scr.win);
-end
+Screen('Flip', scr.win);

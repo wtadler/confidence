@@ -18,8 +18,8 @@ try
     for section = 1:n.sections
         for trial = 1:n.trials
             Screen('DrawTexture', scr.win, scr.cross);
-            Screen('Flip', scr.win);
-            WaitSecs(t.betwtrials/1000);
+            t0 = Screen('Flip', scr.win);
+%             WaitSecs(t.betwtrials/1000);
             
             cval = R.trial_order{blok}(section, trial); %class
             
@@ -33,14 +33,19 @@ try
                 stim(2).cur_sigma = R2.sigma{blok}(section, trial);
                 stim(2).phase = R2.phase{blok}(section, trial);
                 
-                % DISPLAY CUE ARROW
+                % DISPLAY SPATIAL ATTENTION CUE
                 if R2.cue{blok}(section, trial) == 1
-                    Screen('DrawTexture', scr.win, scr.arrowL);
+                    Screen('DrawTexture', scr.win, scr.cueL);
                 elseif R2.cue{blok}(section, trial) == 2
-                    Screen('DrawTexture', scr.win, scr.arrowR);
+                    Screen('DrawTexture', scr.win, scr.cueR);
                 end
-                Screen('Flip', scr.win);
-                WaitSecs(t.attention_cue/1000);
+                t_cue = Screen('Flip', scr.win, t0 + t.betwtrials/1000);
+%                 WaitSecs(t.attention_cue/1000);
+                Screen('DrawTexture', scr.win, scr.cross);
+                t_cue_off = Screen('Flip', scr.win, t_cue + t.cue_dur/1000);
+                
+                %%% should make this timing exact by interfacing with grate
+                WaitSecs(t.cue_target_isi/1000);
             end
             
             
@@ -53,13 +58,16 @@ try
             end
             
             if attention_manipulation
-                % DISPLAY PROBE
+                % DISPLAY RESPONSE CUE (i.e. probe)
+                %%% should make this timing exact by interfacing with grate
+                Screen('DrawTexture', scr.win, scr.cross);
+                t_target_off = Screen('Flip', scr.win);
                 if R2.probe{blok}(section, trial) == 1
-                    Screen('DrawTexture', scr.win, scr.gray_arrowL);
+                    Screen('DrawTexture', scr.win, scr.resp_cueL);
                 elseif R2.probe{blok}(section, trial) == 2
-                    Screen('DrawTexture', scr.win, scr.gray_arrowR);
+                    Screen('DrawTexture', scr.win, scr.resp_cueR);
                 end
-                Screen('Flip', scr.win);
+                t_resp_cue = Screen('Flip', scr.win, t_target_off + t.cue_target_isi/1000);
             end
             
             
