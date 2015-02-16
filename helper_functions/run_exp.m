@@ -14,12 +14,12 @@ try
     responses.c = zeros(n.sections, n.trials);
     responses.conf = zeros(n.sections, n.trials);
     responses.rt = zeros(n.sections, n.trials);
-        
+    
     for section = 1:n.sections
         for trial = 1:n.trials
             Screen('DrawTexture', scr.win, scr.cross);
             t0 = Screen('Flip', scr.win);
-%             WaitSecs(t.betwtrials/1000);
+            %             WaitSecs(t.betwtrials/1000);
             
             cval = R.trial_order{blok}(section, trial); %class
             
@@ -40,7 +40,7 @@ try
                     Screen('DrawTexture', scr.win, scr.cueR);
                 end
                 t_cue = Screen('Flip', scr.win, t0 + t.betwtrials/1000);
-%                 WaitSecs(t.attention_cue/1000);
+                %                 WaitSecs(t.attention_cue/1000);
                 Screen('DrawTexture', scr.win, scr.cross);
                 t_cue_off = Screen('Flip', scr.win, t_cue + t.cue_dur/1000);
                 
@@ -195,11 +195,11 @@ try
     [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
     
     if strcmp(type,'Training') && blok == 1 && strcmp(new_subject_flag,'y') % this is the situation when the experimenter comes in.
-%         Screen('Flip', scr.win);
-%         WaitSecs(2);
-%         KbWait;
+        %         Screen('Flip', scr.win);
+        %         WaitSecs(2);
+        %         KbWait;
         flip_wait_for_experimenter_flip(scr.keyenter);
-%         Screen('Flip', scr.win);
+        %         Screen('Flip', scr.win);
     else % print the directions if the experimenter isn't supposed to come in.
         flip_pak_flip(scr,ny,color,str)
     end
