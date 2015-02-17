@@ -1,4 +1,4 @@
-function categorical_decision(category_type, initial, new_subject_flag, room_letter, exp_number, nExperiments, first_task_letter, attention_manipulation)
+function categorical_decision(category_type, initial, new_subject_flag, room_letter, exp_number, nExperiments, first_task_letter, attention_manipulation, user)
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
 % Will Adler
@@ -10,7 +10,7 @@ rng('shuffle','twister')
 
 Screen('Preference', 'SkipSyncTests', 1); % WTA.
 Screen('Preference', 'VisualDebuglevel', 3);
-user = 'rachel';
+
 switch user
     case 'rachel'
         dir = pwd;
@@ -18,8 +18,12 @@ switch user
     otherwise
         if strcmp(computer,'MACI64') % Assuming this is running on my MacBook
             dir = '/Users/will/Google Drive/Ma lab/repos/qamar confidence';
+            datadir = '/Users/will/Google Drive/Will - Confidence/Data';
+            
         elseif strcmp(computer,'PCWIN64') % Assuming the left Windows psychophysics machine
             dir = 'C:\Users\malab\Documents\GitHub\Confidence-Theory';
+            datadir = 'C:\Users\malab\Google Drive/Will - Confidence/Data';
+            
         end
 end
 
@@ -100,20 +104,15 @@ elapsed_mins = 0;
 P.stim_type = 'grate';  %options: 'grate', 'ellipse'
 %category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
 % attention_manipulation = true;
-attention_cue_type = 'cross_arm'; % 'arrow','cross_arm'
 cue_validity = .7;
-% colors in 0:1 space
-% color.bg = [0.4902    0.5647    0.5137];
-% color.wt = [1 1 1];
-% color.bk = [0 0 0];
-% color.red = [0.3882    0.1843    0.1843];
-% color.grn = [0.2667    0.6588    0.3294];
 
 % colors in 0:255 space
-%color.bg = [125.0010  143.9985  130.9935]; % this doesn't appear to be used?
-gray = 127.5;
-color.bg = gray;
-color.wt = [255 255 255];
+white = 255;
+color.wt = [white white white];
+lightgray = 180;
+bg = 127.5;
+color.bg = bg;
+darkgray = 10;
 black = 0;
 color.bk = [black black black];
 color.red = [100 0  0];
@@ -255,13 +254,12 @@ try
     
     % screen info
     screen_resolution = [scr.w scr.h];                 % screen resolution ie [1440 900]
-    screen_distance = 50;                      % distance between observer and screen (in cm)
+    screen_distance = 50;                      % distance between observer and screen (in cm) NOTE THAT FOR EXP v3 THIS WAS SET TO 50, BUT TRUE DIST WAS ~32
     screen_angle = 2*(180/pi)*(atan((screen_width/2) / screen_distance)) ; % total visual angle of screen in degrees
     P.pxPerDeg = screen_resolution(1) / screen_angle;  % pixels per degree
     
     %set up fixation cross
-    fc_style = 'rachel';
-    switch fc_style
+    switch user
         case 'will'
             f_c_size = 37; % must be odd
             thickness = 5; % must be odd
@@ -278,53 +276,23 @@ try
                 f_c_size = 18; %pixels
                 fw = 0; % 0 results in a line thickness of 1 pixel
             end
-            white = 255;
-            lightgray = 180; % 200
-            black = 10;
-            gray = 69;
-            bg = 128;
             f_c = bg*ones(f_c_size);
-            f_c(f_c_size/2 - fw: f_c_size/2 + 1 + fw,:) = black;
-            f_c(:,f_c_size/2 - fw: f_c_size/2 + 1 + fw) = black;
+            f_c(f_c_size/2 - fw: f_c_size/2 + 1 + fw,:) = darkgray;
+            f_c(:,f_c_size/2 - fw: f_c_size/2 + 1 + fw) = darkgray;
     end
     scr.cross = Screen('MakeTexture', scr.win , f_c);
-    
-    switch attention_cue_type
-        case 'cross_arm'
-            cross_whiteL = f_c;
-            cross_whiteL(f_c_size/2-fw:f_c_size/2 + 1 + fw, 1:f_c_size/2-1-fw) = white;
-            cross_grayL = f_c;
-            cross_grayL(f_c_size/2-fw:f_c_size/2 + 1 + fw, 1:f_c_size/2-1-fw) = lightgray;
-            
-            scr.cueL = Screen('MakeTexture', scr.win, cross_whiteL);
-            scr.cueR = Screen('MakeTexture', scr.win, fliplr(cross_whiteL));
-            scr.resp_cueL = Screen('MakeTexture', scr.win, cross_grayL);
-            scr.resp_cueR = Screen('MakeTexture', scr.win, fliplr(cross_grayL));
-            
-        case 'arrow'
-            %set up attention arrow. this is kind of hacky, and a bit ugly.
-            a_h = 87; % must be divisible by 3 and odd? this is annoying.
-            a_w = ((a_h-1)/2)*3;
-            arrow = bg*ones(a_h,a_w+1);
-            %unfilled_arrow = arrow;
-            rect_end = 2*a_w/3;
-            arrow([a_h/3:2*a_h/3],[1:rect_end]) = black;
-            %unfilled_arrow([a_h/3 2*a_h/3],1:rect_end) = black;
-            for col = 1:(a_h-1)/2+1
-                arrow(col:end+1-col,rect_end+col) = black;
-            end
-            gray_arrow = arrow;
-            gray_arrow(gray_arrow==black) = gray;
-            
-            scr.cueL = Screen('MakeTexture', scr.win, fliplr(arrow));
-            scr.cueR = Screen('MakeTexture', scr.win, arrow);
-            scr.resp_cueL = Screen('MakeTexture', scr.win, fliplr(gray_arrow));
-            scr.resp_cueR = Screen('MakeTexture', scr.win, gray_arrow);
-            
-        otherwise
-            error('attention_cue_type not recognized')
+
+    if attention_manipulation
+        cross_whiteL = f_c;
+        cross_whiteL(f_c_size/2-fw:f_c_size/2 + 1 + fw, 1:f_c_size/2-1-fw) = white;
+        cross_grayL = f_c;
+        cross_grayL(f_c_size/2-fw:f_c_size/2 + 1 + fw, 1:f_c_size/2-1-fw) = lightgray;
+        
+        scr.cueL = Screen('MakeTexture', scr.win, cross_whiteL);
+        scr.cueR = Screen('MakeTexture', scr.win, fliplr(cross_whiteL));
+        scr.resp_cueL = Screen('MakeTexture', scr.win, cross_grayL);
+        scr.resp_cueR = Screen('MakeTexture', scr.win, fliplr(cross_grayL));
     end
-    
     
     % set up grating parameters
     P.grateSigma = .8; % Gabor Gaussian envelope standard deviation (degrees)
@@ -504,7 +472,7 @@ try
             save top_ten top_ten;
         end
         elapsed_mins = toc(start_t)/60;
-        save(strrep([dir '/data/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins','category_type') % block by block backup. strrep makes the file separator system-dependent.
+        save(strrep([datadir '/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins','category_type') % block by block backup. strrep makes the file separator system-dependent.
         
         [nx,ny] = DrawFormattedText(scr.win,[hitxt 'Your score for Testing Block ' num2str(k) ': ' num2str(blockscore,'%.1f') '%\n\n'...
             'Top Ten for Task ' task_letter ':\n\n'],'center',-90,color.wt);
@@ -573,9 +541,9 @@ try
     
     save top_ten top_ten;
     elapsed_mins = toc(start_t)/60;
-    save(strrep([dir '/data/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P', 'category_type', 'elapsed_mins') % save complete session
+    save(strrep([datadir '/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P', 'category_type', 'elapsed_mins') % save complete session
     recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
-    delete([dir '/data/backup/' initial '_' datetimestamp '.mat']) % delete the block by block backup
+    delete([datadir '/backup/' initial '_' datetimestamp '.mat']) % delete the block by block backup
     
     Screen('CloseAll');
     
@@ -586,7 +554,7 @@ catch %if error or script is cancelled
     
     %file_name = ['backup/' initial '_recovered'];
     %savedatafcn(file_name, datetimestamp, Training, Test, P); %save what we have
-    save(strrep([dir '/data/backup/' initial '_recovered_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','category_type', 'elapsed_mins')
+    save(strrep([datadir '/backup/' initial '_recovered_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','category_type', 'elapsed_mins')
     
     psychrethrow(psychlasterror);
 end

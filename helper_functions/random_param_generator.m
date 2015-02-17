@@ -1,8 +1,6 @@
 function p = random_param_generator(sets, model, varargin);
 % this gets called by optimize_fcn. any others?
 
-contrasts=exp(-4:.5:-1.5);
-sig_lim = [20 3 .2]; % [max for highest sigma, max for lowest sigma, minimum difference between the two]
 fixed_params = [];
 generating_flag = false;
 assignopts(who,varargin);
@@ -14,6 +12,16 @@ else
     lb=model.lb;
     ub=model.ub;
 end
+
+contrast_type = 'new';
+switch contrast_type
+    case 'old'
+        contrasts=exp(-4:.5:-1.5);
+        sig_lim = [20 3 .2]; % [max for highest sigma, max for lowest sigma, minimum difference between the two]
+    case 'new'
+        sig_lim = [ub(1) ub(2) .2]; % bounds are handled directly by ub in this case
+end
+
 %A=model.A;
 %b=model.b;
 %Aeq=model.Aeq;
@@ -46,20 +54,27 @@ p = zeros(nParams,sets);
 for i = 1 : sets;
     maxsig = Inf;
     minsig = Inf;
-    x = zeros(nParams,1);
+    %x = zeros(nParams,1);
     while maxsig > sig_lim(1) || minsig > sig_lim(2) || maxsig - minsig < sig_lim(3)% || ~all(A * x <= b)
         x = lb + rand(nParams,1) .* (ub - lb);
-%         if iscell(monotonic_params) % for multiple sets of monotonic params (so far, only lin2 and quad2)
-%             for m = 1:length(monotonic_params)
-%                 mp = monotonic_params{m};
-%                 x(mp) = sort(x(mp));
-%             end
-%         else
-%             x(monotonic_params) = sort(x(monotonic_params));
-%         end
-        
-        maxsig = sqrt(x(3,:).^2 + x(1,:) .* contrasts(1) .^ - x(2,:));
-        minsig = sqrt(x(3,:).^2 + x(1,:) .* contrasts(6) .^ - x(2,:));
+        %         if iscell(monotonic_params) % for multiple sets of monotonic params (so far, only lin2 and quad2)
+        %             for m = 1:length(monotonic_params)
+        %                 mp = monotonic_params{m};
+        %                 x(mp) = sort(x(mp));
+        %             end
+        %         else
+        %             x(monotonic_params) = sort(x(monotonic_params));
+        %         end
+        contrast_type = 'new';
+        switch contrast_type
+            case 'old'
+                maxsig = sqrt(x(3).^2 + x(1) .* contrasts(1) .^ - x(2));
+                minsig = sqrt(x(3).^2 + x(1) .* contrasts(6) .^ - x(2));
+            case 'new'
+                maxsig = exp(x(1));
+                minsig = exp(x(2));
+                
+        end
     end
     
     p(:,i) = x;

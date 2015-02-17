@@ -3,7 +3,9 @@ function raw = trial_generator(p_in, model, varargin)
 % define defaults
 n_samples = 3240;
 dist_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
-contrasts  = exp(-4:.5:-1.5);%[.125 .25 .5 1 2 4];
+% contrasts  = exp(-4:.5:-1.5);%[.125 .25 .5 1 2 4];
+contrasts = exp(linspace(-5.5,-2,6));
+
 model_fitting_data = [];
 conf_levels = 4;
 
@@ -55,7 +57,7 @@ if isempty(model_fitting_data)
 end
 
 [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
-contrast_type = 'old';
+contrast_type = 'new';
 switch contrast_type
     case 'old'
         sigs = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast_values .^ - p.beta);
@@ -63,9 +65,9 @@ switch contrast_type
     case 'new'
         c_low = min(raw.contrast_values);
         c_hi = max(raw.contrast_values);
-        alpha = (p.sig_c_low^2-p.sig_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
-        sigs = sqrt(p.sig_c_low^2 - alpha * c_low^-p.beta + alpha*raw.contrast_values.^-beta);
-        raw.sig = sqrt(p.sig_c_low^2 - alpha * c_low^-p.beta + alpha*raw.contrast.^-beta);
+        alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
+        sigs = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*raw.contrast_values.^-p.beta);
+        raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*raw.contrast.^-p.beta);
 end
 raw.sig = reshape(raw.sig,1,length(raw.sig)); % make sure it's a row.
 

@@ -146,6 +146,7 @@ if strcmp(data_type, 'fake')
         switch fake_data_params
             case 'random'
                 gen(gen_model_id).p = random_param_generator(nDatasets, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
+                save oftest
                 gen(gen_model_id).p
                 
             case 'extracted' % previously extracted using this script (deprecated, add model(i)... or something)

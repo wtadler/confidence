@@ -46,9 +46,9 @@ for m_id = 1 : nModels
     % beta: -25:10; -2:2
     
     c.parameter_names = {
-        'alpha'
+        'logsigma_c_low'
+        'logsigma_c_hi'
         'beta'
-        'logsigma_0'
         'b_n3_d'
         'b_n2_dTerm'
         'b_n1_dTerm'
@@ -100,19 +100,19 @@ for m_id = 1 : nModels
         };
     log_params = strncmpi(c.parameter_names,'log',3);
     %%%% LAMBDA IS AT .5 INSTEAD OF .25
-    %               alp bet sig0bn3dbn2dbn1dbn0db1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA
-    c.lb       = [  0   0   0   -10 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   -10 0   -30     -10     0       0       0       -10     0       0       0       -10     0       0       0       -10     -10     -30];
-    c.lb_gen   = [  0   0   0   -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  0   0   0   0   0   0   2   8   2   -2  3   0       -1      .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5];
-    c.ub       = [  50  3   30  10  6   6   6   6   6   6   90  30  30  30  30  30  30  30  10  10  10  10  10  10  20  .5 .25 .25 .25 .5  25  25  25  10  40  30      10      6       6       6       10      30      30      30      10      10      10      10      10      10      30];
-    c.ub_gen   = [  50  8   30  1.2 1.2 1.2 1.2 1.2 1.2 1.2 3   5   5   5   5   5   5   1   1   1   1   1   1   1   3   .1  .1  .1  .2  .1  4   10  10  2   8   2       1       1.2     1.2     1.2     2       5       5       5       2       1       1       1       2       3       5];
+    %               scl sch betabn3dbn2dbn1dbn0db1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA
+    c.lb       = [  0   0   -25 -10 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   -10 0   -30     -10     0       0       0       -10     0       0       0       -10     0       0       0       -10     -10     -30];
+    c.lb_gen   = [  0   0   -2  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  0   0   0   0   0   0   2   8   2   -2  3   0       -1      .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5];
+    c.ub       = [  50  3   10  10  6   6   6   6   6   6   90  30  30  30  30  30  30  30  10  10  10  10  10  10  20  .5 .25 .25 .25 .5  25  25  25  10  40  30      10      6       6       6       10      30      30      30      10      10      10      10      10      10      30];
+    c.ub_gen   = [  50  8   2   1.2 1.2 1.2 1.2 1.2 1.2 1.2 3   5   5   5   5   5   5   1   1   1   1   1   1   1   3   .1  .1  .1  .2  .1  4   10  10  2   8   2       1       1.2     1.2     1.2     2       5       5       5       2       1       1       1       2       3       5];
     
     c.beq      = [  1   1   1   -2  .7  .7  .7  .7  .7  .7  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0]';
     
     fields = {'lb','ub','lb_gen','ub_gen'}; % convert log param bounds
-    c.lb(log_params) = -5;
+    c.lb(log_params) = -7;
     c.lb_gen(log_params) = -1.5;
-    c.ub(log_params) = 4;
-    c.ub_gen(log_params) = 1.2; % bring back to 4?
+    c.ub(log_params) = 6;
+    c.ub_gen(log_params) = 4;
     
 %     for field = 1:length(fields)
 %         c.(fields{field})(log_params) = log(c.(fields{field})(log_params));

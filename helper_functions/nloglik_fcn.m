@@ -23,8 +23,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 p = parameter_variable_namer(p_in, model.parameter_names, model);
-%contrasts = exp(linspace(-5.5,-2,6)); % THIS IS HARD CODED
-contrasts = exp(-4:.5:-1.5);
+contrasts = exp(linspace(-5.5,-2,6)); % THIS IS HARD CODED
+%contrasts = exp(-4:.5:-1.5);
 nContrasts = length(contrasts);
 nTrials = length(raw.s);
 if ~model.d_noise
@@ -62,15 +62,15 @@ else
 end
 
 
-contrast_type = 'old';
+contrast_type = 'new';
 switch contrast_type
     case 'old'
         unique_sigs = fliplr(sqrt(max(0,p.sigma_0^2 + p.alpha .* contrasts .^ -p.beta))); % low to high sigma. should line up with contrast id
     case 'new'
         c_low = min(contrasts);
         c_hi = max(contrasts);
-        alpha = (p.sig_c_low^2-p.sig_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
-        unique_sigs = fliplr(sqrt(p.sig_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-beta)); % low to high sigma. should line up with contrast id
+        alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
+        unique_sigs = fliplr(sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta)); % low to high sigma. should line up with contrast id
 end
 
 % now k will only be 6 cols, rather than 3240.
