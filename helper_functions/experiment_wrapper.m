@@ -1,6 +1,7 @@
 initial = 'sr';
 new_subject_flag = 'n';
 first_task_letter = 'B';
+attention_manipulation = false;
 
 if ~(strcmp(new_subject_flag,'y') || strcmp(new_subject_flag,'n')) || ~(strcmp(first_task_letter, 'A') || strcmp(first_task_letter, 'B'))
     error('bad params in experiment_wrapper.m!')
@@ -18,7 +19,7 @@ end
 
 
 for i = 1:2
-    categorical_decision(category_types{i}, initial, new_subject_flag, room_letter, i, 2, first_task_letter)
+    categorical_decision(category_types{i}, initial, new_subject_flag, room_letter, i, 2, first_task_letter, attention_manipulation)
 end 
 
 

@@ -48,16 +48,26 @@ if isempty(model_fitting_data)
     raw.s(raw.C == -1) = stimulus_orientations(category_params, dist_type, 1, 1, sum(raw.C ==-1));
     raw.s(raw.C ==  1) = stimulus_orientations(category_params, dist_type, 2, 1, sum(raw.C == 1));
 
-else % take real data
-    raw.C           = model_fitting_data.C;
-    raw.contrast    = model_fitting_data.contrast;
-    raw.s           = model_fitting_data.s;
+% else % take real data
+%     raw.C           = model_fitting_data.C;
+%     raw.contrast    = model_fitting_data.contrast;
+%     raw.s           = model_fitting_data.s;
 end
 
 [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
-sigs = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast_values .^ - p.beta);
-raw.sig = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast .^ - p.beta);
-raw.sig = reshape(raw.sig,1,length(raw.sig));
+contrast_type = 'old';
+switch contrast_type
+    case 'old'
+        sigs = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast_values .^ - p.beta);
+        raw.sig = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast .^ - p.beta);
+    case 'new'
+        c_low = min(raw.contrast_values);
+        c_hi = max(raw.contrast_values);
+        alpha = (p.sig_c_low^2-p.sig_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
+        sigs = sqrt(p.sig_c_low^2 - alpha * c_low^-p.beta + alpha*raw.contrast_values.^-beta);
+        raw.sig = sqrt(p.sig_c_low^2 - alpha * c_low^-p.beta + alpha*raw.contrast.^-beta);
+end
+raw.sig = reshape(raw.sig,1,length(raw.sig)); % make sure it's a row.
 
 if model.ori_dep_noise
     pre_sig = raw.sig;
