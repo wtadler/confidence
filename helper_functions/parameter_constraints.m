@@ -134,6 +134,9 @@ for m_id = 1 : nModels
     % calculate uniform param prior
     c.param_prior = prod(1 ./ (c.ub - c.lb)); % this is not great. lapse param should be a beta dist, not uniform. but only applies when doing hessian, which we've moved on from.
     
+    % indicate which are Term params, so that you don't have to do this every sample in parameter_variable_namer
+    c.termparams = find(~cellfun(@isempty, strfind(c.parameter_names,'Term')));
+    
     % put back into model
     fields = fieldnames(c);
     for f = 1:length(fields)

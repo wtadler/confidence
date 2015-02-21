@@ -1,4 +1,15 @@
 function [nloglik, loglik_vec] = nloglik_fcn(p_in, raw, model, nDNoiseSets, varargin)
+% 
+% % check to see what variables have changed
+% persistent old_p_in p_choice p_conf_choice;
+% p_in = reshape(p_in,numel(p_in),1);
+% if ~exist('old_p_in','var') || numel(old_p_in)~=numel(p_in)
+%     old_p_in = nan(size(p_in));
+% end
+% same_p = old_p_in==p_in; % 0 indicates that parameter has changed
+% old_p_in = p_in;
+% diff_param_names = model.parameter_names(~same_p);
+
 % try
 if length(varargin) == 1;
     category_params = varargin{1};
@@ -21,7 +32,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SETUP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 p = parameter_variable_namer(p_in, model.parameter_names, model);
 contrasts = exp(linspace(-5.5,-2,6)); % THIS IS HARD CODED
 %contrasts = exp(-4:.5:-1.5);
@@ -34,7 +44,7 @@ if ~model.d_noise
     d_noise = 0;
     d_noise_big = 0;
 elseif model.d_noise
-    if ~exist('nDNoiseSets')
+    if ~exist('nDNoiseSets','var')
         nDNoiseSets=101;
     end
     nSTDs = 5;
@@ -44,7 +54,7 @@ elseif model.d_noise
     d_noise_draws = linspace(-p.sigma_d*nSTDs, p.sigma_d*nSTDs, nDNoiseSets);
     
     d_noise = repmat(d_noise_draws',1,nContrasts);
-    d_noise_big = repmat(d_noise_draws',1,nTrials);% this is for confidence. too hard to figure out the indexing. going to be too many computations, because there's redundancy in the a,b,k vectors. but the bulk of computation has to be on an individual trial basis anyway.
+    d_noise_big = repmat(d_noise_draws',1,nTrials);% this is for non_overlap. too hard to figure out the indexing. going to be too many computations, because there's redundancy in the a,b,k vectors. but the bulk of computation has to be on an individual trial basis anyway.
 end
 
 if isfield(p,'b_i')
@@ -62,11 +72,9 @@ else
 end
 
 
-contrast_type = 'new';
-switch contrast_type
-    case 'old'
+if isfield(p,'sigma_0') % old contrast parameterization
         unique_sigs = fliplr(sqrt(max(0,p.sigma_0^2 + p.alpha .* contrasts .^ -p.beta))); % low to high sigma. should line up with contrast id
-    case 'new'
+elseif isfield(p,'sigma_c_hi') % new contrast parameterization
         c_low = min(contrasts);
         c_hi = max(contrasts);
         alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
@@ -77,14 +85,18 @@ end
 sq_flag = 0;
 
 if model.ori_dep_noise && ~strcmp(model.family, 'opt')
-    sig = unique_sigs(raw.contrast_id);
-    sig = sig + p.sig_amplitude*abs(sin(raw.s*pi/90));
+    sig = unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
+    sig = sig + p.sig_amplitude*abs(sin(raw.s*pi/90)); % add orientation dependent noise to each sigma.
 else
     sig = unique_sigs;
 end
 
 xSteps = 90;
-xVec = linspace(0,90,xSteps)';
+if ~model.diff_mean_same_std
+    xVec = linspace(0,90,xSteps)';
+else
+    xVec = linspace(-45,45,xSteps)';
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CHOICE PROBABILITY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -142,7 +154,6 @@ elseif strcmp(model.family, 'lin') && ~model.diff_mean_same_std
     k = max(bf(0) + mf(0) * sig, 0);
 elseif strcmp(model.family, 'lin') && model.diff_mean_same_std
     k = bf(0) + mf(0) * sig;
-    
 elseif strcmp(model.family, 'quad') && ~model.diff_mean_same_std
     k = max(bf(0) + mf(0) * sig.^2, 0);
 elseif strcmp(model.family, 'quad') && model.diff_mean_same_std
@@ -167,8 +178,8 @@ elseif strcmp(model.family, 'MAP')
     niter = 4;
     
     if ~model.diff_mean_same_std
-        ksq1 = sqrt(1./(sig.^-2 + sig1^-2));
-        ksq2 = sqrt(1./(sig.^-2 + sig2^-2));
+        ksq1 = sqrt(1./(sig.^-2 + sig1^-2)); % like k1 in trial_generator
+        ksq2 = sqrt(1./(sig.^-2 + sig2^-2)); % like k2 in trial_generator
         for i = 1:len
             cur_sig = sig(i);
             mu1 = xVec*cur_sig^-2 * ksq1(i)^2;
@@ -199,7 +210,7 @@ elseif strcmp(model.family, 'MAP')
     %
     %             k(i) = lininterp1(fine_lookup_table, x_fine, bf(0));
     %         end
-    k = lininterp1_multiple(shat_lookup_table, xVec, bf(0)*ones(1,len));
+    k = lininterp1_multiple(shat_lookup_table, xVec, bf(0)*ones(1,len)); % find the x values corresponding to the MAP criterion, for each contrast level (or, if doing ODN where each trial has a different sigma, for every trial/sigma)
 end
 
 if numel(sig) == nContrasts
@@ -219,9 +230,10 @@ end
 if ~model.diff_mean_same_std
     p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) -repmat(raw.Chat, nDNoiseSets, 1) .* f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1), sq_flag);
 elseif model.diff_mean_same_std
-    p_choice = 0.5 - repmat(-raw.Chat,nDNoiseSets, 1) .* sym_f(-k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1)); % 2/14 put - in front of chat
+    p_choice = 0.5 + repmat(raw.Chat,nDNoiseSets, 1) .* sym_f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1)); % 2/14 put - in front of chat
 end
 p_choice = normalized_weights*p_choice;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CONFIDENCE PROBABILITY %%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -282,9 +294,9 @@ if ~model.choice_only
             bound1=bf((raw.Chat - 1)./2 - raw.Chat .* raw.g);
             bound2=bf((raw.Chat + 1)./2 - raw.Chat .* raw.g);
             
-            %                 a = sqrt(repmat(k1 - bf((raw.Chat - 1)./2 - raw.Chat .* raw.g), nDNoiseSets, 1) + d_noise_big) ./ repmat(sqrt(k2), nDNoiseSets, 1);
+            %  a = sqrt(repmat(k1 - bf((raw.Chat - 1)./2 - raw.Chat .* raw.g), nDNoiseSets, 1) + d_noise_big) ./ repmat(sqrt(k2), nDNoiseSets, 1);
             a = sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), bound1), k2));
-            %                 b = sqrt(repmat(k1 - bf((raw.Chat + 1)./2 - raw.Chat .* raw.g), nDNoiseSets, 1) + d_noise_big) ./ repmat(sqrt(k2), nDNoiseSets, 1);
+            %  b = sqrt(repmat(k1 - bf((raw.Chat + 1)./2 - raw.Chat .* raw.g), nDNoiseSets, 1) + d_noise_big) ./ repmat(sqrt(k2), nDNoiseSets, 1);
             b = sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), bound2), k2));
             
         end
@@ -306,8 +318,6 @@ if ~model.choice_only
         a = raw.Chat .* max(bf(raw.Chat .* (raw.g    )) + sig .* mf(raw.Chat .* (raw.g    )), 0); %Chat multiplier here is to make sure that a is less than b, i think
         b = raw.Chat .* max(bf(raw.Chat .* (raw.g - 1)) + sig .* mf(raw.Chat .* (raw.g - 1)), 0);
     elseif strcmp(model.family, 'lin') && model.diff_mean_same_std
-        %             a = raw.Chat .* bf(raw.Chat .* (raw.g    )) + sig .* mf(raw.Chat .* (raw.g    ));
-        %             b = raw.Chat .* bf(raw.Chat .* (raw.g - 1)) + sig .* mf(raw.Chat .* (raw.g - 1));
         a = bf(raw.Chat .* raw.g - .5*(raw.Chat+1)) + sig .* mf(raw.Chat .* raw.g - .5*(raw.Chat+1));
         b = bf(raw.Chat .* raw.g - .5*(raw.Chat-1)) + sig .* mf(raw.Chat .* raw.g - .5*(raw.Chat-1));
         
@@ -315,8 +325,6 @@ if ~model.choice_only
         a = raw.Chat .* max(bf(raw.Chat .* (raw.g    )) + sig.^2 .* mf(raw.Chat .* (raw.g    )), 0);
         b = raw.Chat .* max(bf(raw.Chat .* (raw.g - 1)) + sig.^2 .* mf(raw.Chat .* (raw.g - 1)), 0);
     elseif strcmp(model.family, 'quad') && model.diff_mean_same_std
-        %             a = raw.Chat .* bf(raw.Chat .* (raw.g    )) + sig.^2 .* mf(raw.Chat .* (raw.g    ));
-        %             b = raw.Chat .* bf(raw.Chat .* (raw.g - 1)) + sig.^2 .* mf(raw.Chat .* (raw.g - 1));
         a = bf(raw.Chat .* raw.g - .5*(raw.Chat+1)) + sig.^2 .* mf(raw.Chat .* raw.g - .5*(raw.Chat+1));
         b = bf(raw.Chat .* raw.g - .5*(raw.Chat-1)) + sig.^2 .* mf(raw.Chat .* raw.g - .5*(raw.Chat-1));
         
@@ -346,9 +354,19 @@ if ~model.choice_only
                     %                     end
                 end
             end
-            x_bounds = [zeros(6,1) flipud(x_bounds) inf(6,1)];
-            a = raw.Chat .* x_bounds((5 + raw.Chat .* raw.g) * nContrasts + 1 - raw.contrast_id);
-            b = raw.Chat .* x_bounds((5 + raw.Chat .* (raw.g - 1)) * nContrasts + 1 - raw.contrast_id);
+            if ~model.diff_mean_same_std
+                x_bounds = [zeros(6,1) flipud(x_bounds) inf(6,1)];
+                a = raw.Chat .* x_bounds((5 + raw.Chat .* raw.g) * nContrasts + 1 - raw.contrast_id);
+                b = raw.Chat .* x_bounds((5 + raw.Chat .* (raw.g - 1)) * nContrasts + 1 - raw.contrast_id);
+                %a = raw.Chat .* x_bounds(sub2ind([nContrasts conf_levels*2+1], nContrasts + 1 - raw.contrast_id, 5 + raw.Chat .* raw.g)); % equivalent, but 3x slower
+                %b = raw.Chat .* x_bounds(sub2ind([nContrasts conf_levels*2+1], nContrasts + 1 - raw.contrast_id, 5 + raw.Chat .* (raw.g - 1)));                
+            else
+                x_bounds = [-inf(6,1) flipud(x_bounds) inf(6,1)]; % -inf instead of zero, because Task A is asymmetric
+                %a = x_bounds((5 + raw.Chat .* (raw.g - 1)) * nContrasts + 1 - raw.contrast_id);
+%                 b = x_bounds((5 + raw.Chat .* raw.g) * nContrasts + 1 - raw.contrast_id);
+                a = x_bounds((5 + raw.Chat .* raw.g - .5*(raw.Chat+1)) * nContrasts + 1 - raw.contrast_id);
+                b = x_bounds((5 + raw.Chat .* raw.g - .5*(raw.Chat-1)) * nContrasts + 1 - raw.contrast_id);
+            end
             
             % The following is cleaner than the above approach, and it matches more with the below ori_dep_noise version, but it's 2x slower:
             %             a = zeros(1,nTrials);
@@ -370,23 +388,15 @@ if ~model.choice_only
     end
     
     if ~model.diff_mean_same_std
-        % if model.d_noise
         fa = f(a, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1), sq_flag);
         fb = f(b, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1), sq_flag);
         p_conf_choice = fa - fb;
         
-        % else
-        %     p_conf_choice = f(a,raw.s,sig,sq_flag) - f(b,raw.s,sig,sq_flag);
-        %%if sum(p_conf_choice<0)~=0
-        %%fprintf('%g trials where f(b)>f(a)\n',sum(p_conf_choice<0))
-        %%end
-        %end
     elseif model.diff_mean_same_std
         %             fb = sym_f(b, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
         %             fa = sym_f(a, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
         %             p_conf_choice = fa - fb; % equivalent to 0.5 * (erf((a + raw.s)./(sqrt(2)*sig)) - erf((b + raw.s)./(sqrt(2)*sig))); % just switched fa and fb
         %p_conf_choice = .5 * (erf((b-raw.s)./(sqrt(2)*sig)) + erf((a - raw.s)./(sqrt(2)*sig)));
-        %                           save nltest
         %
         fa = sym_f(a, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
         fb = sym_f(b, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
@@ -396,7 +406,6 @@ if ~model.choice_only
     
     p_conf_choice = normalized_weights*p_conf_choice;
     %p_conf_choice = max(0,p_conf_choice); % this max is a hack. it covers for non overlap x_bounds being weird.
-    
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -412,19 +421,23 @@ else
     p_full_lapse = p.lambda/(conf_levels*2); % only goes into conf models below
 end
 
-if ~isfield(p, 'lambda_g')
+if ~isfield(p, 'lambda_g') % partial lapse
     p.lambda_g = 0;
 end
 
-if ~model.choice_only
-    p_repeat = [0 diff(raw.resp)==0];
+if ~isfield(p, 'lambda_r') % repeat lapse
+    p.lambda_r = 0;
+    p_repeat = 0;
 else
-    p_repeat = [0 diff(raw.Chat)==0];
+    % small problem with repeat lapse: the way I've dealt with the data puts all trials in one stream. So it could capture repeats between blocks, sections, trials. These are about 2% of trials.
+    if ~model.choice_only
+        p_repeat = [0 diff(raw.resp)==0];
+    else
+        p_repeat = [0 diff(raw.Chat)==0];
+    end
 end
 
-if ~isfield(p, 'lambda_r')
-    p.lambda_r = 0;
-end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % COMPUTE LOG LIKELIHOOD %%%%%%%%%%%%%%%%%%%%%%%%%

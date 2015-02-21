@@ -2,8 +2,8 @@ function compile_cluster_opts(varargin)
 % compile optimizations from the cluster
 %clear all
 
-datadir='/Users/will/Google Drive/Ma lab/output';
-jobid = 'newest';
+datadir='/Users/will/Desktop/v3_B_fmincon_feb21';
+jobid = 'v3_B_';
 hpc = true;
 assignopts(who,varargin)
 
@@ -19,7 +19,6 @@ cd(datadir)
 files = what(datadir);
 mat_files = files.mat;
 job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%s.*\\.mat', jobid))));
-job_files
 
 newjob = zeros(1,length(job_files));
 for j = 1:length(job_files)
@@ -28,7 +27,7 @@ for j = 1:length(job_files)
 end
 [~,sort_idx]=sort(newjob);
 
-job_files = job_files(sort_idx);
+job_files = job_files(sort_idx)
 
 %%
 if strfind(job_files{1},'model') % model recovery
@@ -65,7 +64,82 @@ if strfind(job_files{1},'model') % model recovery
         export_fig('model_recovery_subject_params.png','-m2')
     end
     
+elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates single chain data
+    load(job_files{1}) % to get nDatasets
+    nModels = length(opt_models);
     
+    % initialize empty struct of the right size.
+    model = gen.opt;
+    m_fields = setdiff(fieldnames(model),'extracted')
+    for f = 1:length(m_fields)
+        model.(m_fields{f}) = [];
+    end
+    e_fields = fieldnames(model.extracted);
+    for f = 1:length(e_fields)
+        model.extracted.(e_fields{f}) = [];
+    end
+    e_fields = setdiff(e_fields,'name'); % don't want to append names later
+    for d = 1:nDatasets
+        model(1).extracted(d) = model(1).extracted(1);
+    end
+    for m = 1:nModels
+        model(m) = model(1);
+    end
+    
+    for fid = 1:length(job_files);
+        tmp = load(job_files{fid});
+        m = tmp.active_opt_models;
+        d = tmp.dataset;
+        
+        if isempty(model(m).name) % initialize model details if they are not there
+            for f = 1:length(m_fields)
+                model(m).(m_fields{f}) = tmp.gen.opt(m).(m_fields{f});
+            end
+        end
+        if isempty(model(m).extracted(d).name) % initialize subject details if they are not there
+            model(m).extracted(d) = tmp.gen.opt(m).extracted(d);
+        else % go through and append the different chain data
+            for f = 1:length(e_fields)
+                if strcmp(optimization_method,'mcmc_slice')
+                    if strcmp(e_fields{f},'p')
+                        model(m).extracted(d).(e_fields{f}) = cat(3,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
+                    else
+                        model(m).extracted(d).(e_fields{f}) = cat(2,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
+                    end
+                else
+                    model(m).extracted(d).(e_fields{f}) = cat(2,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
+                end
+
+            end
+        
+        end
+        
+    end
+    if strcmp(optimization_method,'mcmc_slice')
+        datadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA/';
+        st = compile_data('datadir',datadir);
+        for m = 1:length(model)
+            for d = 1:4%length(model(m).extracted);
+                ex = model(m).extracted(d);
+                all_p = reshape(permute(ex.p,[1 3 2]),[],size(ex.p,2),1);
+                mean_params = mean(all_p)';
+                dbar = 2*mean(ex.nll(:));
+                dtbar= 2*nloglik_fcn(mean_params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
+                ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
+                
+                [~,ex.min_idx] = min(ex.nll(:));
+                [~,chain_idx]=ind2sub(size(ex.nll),ex.min_idx);
+                fields = {'min_nll','aic','bic','aicc','best_params'};
+                for f = 1:length(fields)
+                    ex.(fields{f}) = ex.(fields{f})(:,chain_idx);
+                end
+                model(m).extracted(d) = ex;
+                model(m).extracted(d).mean_params = mean_params;
+            end
+        end
+    end
+            
+        
 else %real data
     
     %job_files = mat_files;

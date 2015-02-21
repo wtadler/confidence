@@ -13,9 +13,9 @@ conflevels = 4;
 decb_analysis = false; % set to true if you want to look at choice and confidence at the decision boundary.
     window = 1; % binning window (in degrees) around decision boundary
     decb   = 5.16; % decision boundary (in degrees)
-datadir='/Users/will/Google Drive/Ma lab/repos/qamar confidence/data/v2/';
+datadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA';
 
-crossvalidate           = false;
+crossvalidate = false;
 k = 2; % for k-fold cross-validation
 
 assignopts(who,varargin);
@@ -85,8 +85,6 @@ for subject = 1 : length(names)
                     clear newcontrast;
                 end
                 
-                
-save cdtest.mat                
                 % responses
                 raw.Chat       (start_trial:end_trial) = Test.responses{block}.c(section,:) * 2 - 3;
                 raw.tf         (start_trial:end_trial) = Test.responses{block}.tf(section,:);

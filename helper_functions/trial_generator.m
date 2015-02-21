@@ -147,7 +147,7 @@ if strcmp(model.family,'opt') % for all opt family models
     end
     
 elseif strcmp(model.family, 'MAP')
-    raw.shat = zeros(1,3240);
+    raw.shat = zeros(1,n_samples);
     for i = 1:nContrasts
         sig = sigs(i);
         idx = find(raw.contrast_id==i);
@@ -188,18 +188,21 @@ elseif strcmp(model.family, 'MAP')
 %                 
                 
         end
-    end
-    save tgtest
-    plot(raw.x,raw.shat,'.');
-    
+    end    
     b = p.b_i(5);
-    raw.Chat(abs(raw.shat) <= b) = -1;
-    raw.Chat(abs(raw.shat) >  b) =  1;
+    
+    if strcmp(dist_type, 'same_mean_diff_std')
+        shat_tmp = abs(raw.shat);
+    elseif strcmp(dist_type, 'diff_mean_same_std')
+        shat_tmp = raw.shat;
+    end
+    raw.Chat(shat_tmp <= b) = -1;
+    raw.Chat(shat_tmp >  b) =  1;
     
     if ~model.choice_only
         for g = 1 : conf_levels * 2
-            raw.g( p.b_i(g)   <  abs(raw.shat) ...
-                &  p.b_i(g+1) >= abs(raw.shat)) = confidences(g);
+            raw.g( p.b_i(g)   <  shat_tmp ...
+                &  p.b_i(g+1) >= shat_tmp) = confidences(g);
         end
     end
     
@@ -217,7 +220,6 @@ else % all measurement models
     elseif strcmp(dist_type, 'diff_mean_same_std')
         x_tmp=raw.x;
     end
-        
     raw.Chat(x_tmp <= b)   = -1;
     raw.Chat(x_tmp >  b)   =  1;
 %     if strcmp(dist_type, 'diff_mean_same_std')
@@ -284,7 +286,6 @@ if model.repeat_lapse
 else
     repeat_lapse_rate = 0; % this is in case we come up with another kind of lapsing.
 end
-
 
 if ~model.choice_only
     raw.resp  = raw.g + conf_levels + ... % combine conf and class to give resp on 8 point scale
