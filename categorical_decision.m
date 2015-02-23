@@ -14,6 +14,7 @@ Screen('Preference', 'VisualDebuglevel', 3);
 switch user
     case 'rachel'
         dir = pwd;
+        datadir = [dir '/data'];
         addpath(genpath(dir))
     otherwise
         if strcmp(computer,'MACI64') % Assuming this is running on my MacBook
@@ -142,6 +143,10 @@ elseif strcmp(category_type, 'sym_uniform')
     other_task_letter = 'B';
 elseif strcmp(category_type, 'half_gaussian')
     Test.category_params.sigma_s = 5;
+end
+if attention_manipulation
+    task_letter = 'Attention';
+    other_task_letter = 'Attention';
 end
 Test.category_params.category_type = category_type;
 
@@ -370,9 +375,9 @@ try
     %[nx,ny]=DrawFormattedText(scr.win, ['Important: You are now doing Task ' task_letter '!\n\n'], 'center', 'center', color.wt);
     if strcmp(new_subject_flag,'n')
         if strcmp(task_letter, 'A')
-            midtxt = 'In task A, stimuli from Category 1 tend to\n\nbe left-tilted, and stimuli from Category 2\n\ntend to be right-tilted.\n\nSee Task sheet for more info.'
+            midtxt = 'In task A, stimuli from Category 1 tend to\n\nbe left-tilted, and stimuli from Category 2\n\ntend to be right-tilted.\n\nSee Task sheet for more info.';
         elseif strcmp(task_letter, 'B')
-            midtxt = 'In task B, a flat stimulus is more likely\n\nto be from Category 1, and a strongly tilted\n\nstimulus is more likely\n\nto befrom Category 2.\n\nSee Task sheet for more info.'
+            midtxt = 'In task B, a flat stimulus is more likely\n\nto be from Category 1, and a strongly tilted\n\nstimulus is more likely\n\nto befrom Category 2.\n\nSee Task sheet for more info.';
         else
             midtxt = '';
         end
@@ -485,17 +490,29 @@ try
             [nx,ny] = DrawFormattedText(scr.win,'in ',scr.cx-570,ny,color.wt);
             countx=nx; county=ny;
             [nx,ny] = DrawFormattedText(scr.win,'   seconds, but you may take a\n\n',countx,county,color.wt);
-            [nx,ny] = DrawFormattedText(scr.win,['longer break and leave the room\n\n'...
-                'or walk around.\n\n\n'...
-                'Coming up: Task ' task_letter ' Category Training before\n\n'...
-                'Task ' task_letter ' Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
+            if ~notrain
+                [nx,ny] = DrawFormattedText(scr.win,['longer break and leave the room\n\n'...
+                    'or walk around.\n\n\n'...
+                    'Coming up: Task ' task_letter ' Category Training before\n\n'...
+                    'Task ' task_letter ' Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
+            else
+                [nx,ny] = DrawFormattedText(scr.win,['longer break and leave the room\n\n'...
+                    'or walk around.\n\n\n'...
+                    'Coming up:\n\n'...
+                    'Task ' task_letter ' Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
+            end
             
             countdown
             
             flip_pak_flip(scr,ny,color,'continue','initial_wait',0);
             
-            [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\nTask ' task_letter ' Category Training before\n\n'...
-                'Task ' task_letter ' Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
+            if ~notrain
+                [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\nTask ' task_letter ' Category Training before\n\n'...
+                    'Task ' task_letter ' Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
+            else
+                [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\n'...
+                    'Task ' task_letter ' Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
+            end
             flip_pak_flip(scr,ny,color,'begin');
             
             
