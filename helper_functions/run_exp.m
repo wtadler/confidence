@@ -21,10 +21,6 @@ try
             t0 = Screen('Flip', scr.win);
             %             WaitSecs(t.betwtrials/1000);
             
-            if ~attention_manipulation
-                cval = R.trial_order{blok}(section, trial); %class
-            end
-            
             stim = struct;
             stim(1).ort = R.draws{blok}(section, trial);        %orientation
             stim(1).cur_sigma = R.sigma{blok}(section, trial);  %contrast
@@ -72,6 +68,8 @@ try
                     cval = R2.trial_order{blok}(section, trial);
                 end
                 t_resp_cue = Screen('Flip', scr.win, t_target_off + t.cue_target_isi/1000);
+            else
+                cval = R.trial_order{blok}(section, trial); %class
             end
             
             
