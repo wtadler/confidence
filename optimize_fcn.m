@@ -2,13 +2,13 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'fixed'; % MAP is good for diff_mean_same_std but not task B now??
+opt_models(1).family = 'fixed';
 opt_models(1).multi_lapse = 0;
 opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
 opt_models(1).choice_only = 1;
 opt_models(1).diff_mean_same_std = 1;
-opt_models(1).ori_dep_noise = 0;
+opt_models(1).ori_dep_noise = 1;
 opt_models(1).symmetric = 0;
 opt_models(1).d_noise = 0;
 % 
@@ -227,9 +227,9 @@ for gen_model_id = active_gen_models
         o.Aeq(unfixed_params, unfixed_params) = 0;
         o.beq(unfixed_params) = 0;
         if ~isempty(fixed_params_opt_values)
-            if numel(fixed_params_opt_values) ~= numel(fixed_params_opt);
+            if numel(fixed_params_opt_values) ~= numel(fixed_params_opt) && min(size(fixed_params_opt_values))==1 % if its not a matrix, and isn't the same size
                 error('fixed_params_opt_values is not the same length as fixed_params_opt')
-            else
+            elseif min(size(fixed_params_opt_values))==1
                 o.beq(fixed_params_opt) = fixed_params_opt_values;
             end
         end
@@ -245,6 +245,10 @@ for gen_model_id = active_gen_models
         for dataset = datasets;
             my_print(sprintf('\n\n########### DATASET %i ######################\n\n', dataset));
             data = gen(gen_model_id).data(dataset);
+            
+            if min(size(fixed_params_opt_values))>1 % if it's a matrix, assign the different datasets the different values. this is hacky
+                o.beq(fixed_params_opt) = fixed_params_opt_values(:,dataset);
+            end
             
             ex = struct;
             for trainset = 1:k % this is just 1 if not cross-validating
@@ -295,6 +299,7 @@ for gen_model_id = active_gen_models
                         if exist([savedir 'aborted/aborted_' filename],'file')
                             % RESUME PREVIOUSLY ABORTED SAMPLING
                             load([savedir 'aborted/aborted_' filename])
+                            log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
                             remaining_samples = isnan(ex_nll);
                             nRemSamples = sum(remaining_samples);
                             %remaining_p = isnan(ex_p);
@@ -512,65 +517,16 @@ my_print(sprintf('Total optimization time: %.2f mins.\n',toc(start_t)/60));
 clear ex_p ex_nll ex_logposterior ex_logprior all_nll all_p d varargin;
 if hpc
     for g = active_gen_models
-        gen(g).data = [];
+        for d = datasets
+            gen(g).data(d).raw = [];
+        end
     end
     data = [];
 end
 
 %%
 if ~hpc
-%    gen.opt=model; % this is for after CCO
-    if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
-        % COMPARE TRUE AND FITTED PARAMETERS IN SUBPLOTS
-        figure;
-        % for each parameter, plot all datasets
-        for parameter = 1 : nParams
-            subplot(5,5,parameter);
-            extracted_params = [gen(active_gen_models).opt(active_opt_models).extracted.best_params];
-            plot(gen(active_gen_models).p(parameter,:), extracted_params(parameter,:), '.','markersize',10);
-            hold on
-            xlim([g.lb_gen(parameter) g.ub_gen(parameter)]);
-            ylim([g.lb_gen(parameter) g.ub_gen(parameter)]);
-            
-            %axis square;
-            plot([g.lb(parameter) g.ub(parameter)], [g.lb(parameter) g.ub(parameter)], '--');
-            
-            title(g.parameter_names{parameter});
-        end
-        %         suplabel('true parameter', 'x');
-        %         suplabel('extracted parameter', 'y');
-    elseif strcmp(optimization_method,'mcmc_slice')
-        % DIAGNOSE MCMC
-        % open windows for every model/dataset combo.
-        for gen_model_id = 1:length(gen)
-            g = gen_models(gen_model_id);
-            if strcmp(data_type,'real')
-                g.name = [];
-            end
-            for opt_model = 1:length(gen(gen_model_id).opt) % active_opt_models
-                o = gen(gen_model_id).opt(opt_model);
-                for dataset_id = 1:4%length(o.extracted) % dataset
-                    [samples,logposteriors]=deal(cell(1,nChains));
-                    
-                    extraburn_prop=0; % burn some proportion of the samples
-                    for c = 1:nChains
-                        nSamples = size(o.extracted(dataset_id).p,1);
-                        burn_start = max(1,round(nSamples*extraburn_prop));
-                        samples{c} = o.extracted(dataset_id).p(burn_start:end,:,c);
-                        logposteriors{c} = -o.extracted(dataset_id).nll(burn_start:end,c) + o.extracted(dataset_id).log_prior(burn_start:end,c);
-                    end
-                    
-                    [true_p,true_logposterior]=deal([]);
-                    if strcmp(data_type,'fake') && strcmp(o.name, g.name)
-                        true_p = gen(gen_model_id).p(:,dataset_id);
-                        true_logposterior = gen(gen_model_id).data(dataset_id).true_logposterior;
-                    end
-                    [fh,ah]=mcmcdiagnosis(samples,'logposteriors',logposteriors,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',o.extracted(dataset_id).dic,'gen_model',g);
-                    pause(.5); % to plot
-                end
-            end
-        end
-    end
+diagnosis_plots
 end
 %%
 fh = [];

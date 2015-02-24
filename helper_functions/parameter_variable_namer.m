@@ -13,16 +13,16 @@ end
 % sss='old';
 % switch sss
 %     case 'new'
-%         for t = model.termparams'
-%             p_in(t)=p_in(t-1)+p_in(t);
-%             parameter_names{t} = parameter_names{t}(1:end-4);
-%         end
-%     case 'old'
-        termparams = ~cellfun(@isempty,strfind(parameter_names,'Term'));
-        for t=find(termparams)'
+        for t = model.termparams'
             p_in(t)=p_in(t-1)+p_in(t);
             parameter_names{t} = parameter_names{t}(1:end-4);
         end
+%     case 'old'
+%         termparams = ~cellfun(@isempty,strfind(parameter_names,'Term'));
+%         for t=find(termparams)'
+%             p_in(t)=p_in(t-1)+p_in(t);
+%             parameter_names{t} = parameter_names{t}(1:end-4);
+%         end
 % end
 
 % name all the single variables
