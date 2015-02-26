@@ -6,7 +6,12 @@ function categorical_decision(category_type, initial, new_subject_flag, room_let
 
 % THIS HAS SOME UNTESTED STUFF: flip_wait_for_experimenter_flip stuff.
 
-rng('shuffle','twister')
+try
+    rng('shuffle','twister')
+catch
+    s = RandStream.create('mt19937ar','seed',sum(100*clock));
+    RandStream.setDefaultStream(s);
+end
 
 Screen('Preference', 'SkipSyncTests', 1); % WTA.
 Screen('Preference', 'VisualDebuglevel', 3);
@@ -170,9 +175,15 @@ else
     Training.category_params.test_sigmas = 1;
 end
 
-Test.n.blocks = 3;% WTA from 3
-Test.n.sections = 3; % WTA from 3
-Test.n.trials = 8*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
+if attention_manipulation
+    Test.n.blocks = 5;
+    Test.n.sections = 2;
+    Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
+else
+    Test.n.blocks = 3;% WTA from 3
+    Test.n.sections = 3; % WTA from 3
+    Test.n.trials = 8*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
+end
 
 Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % WTA: 2
@@ -246,11 +257,11 @@ try
             load('calibration/iPadGammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
             Screen('LoadNormalizedGammaTable', scr.win, gammaTable*[1 1 1]);
         case 'Carrasco_L1'
-            load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
-            Screen('LoadNormalizedGammaTable', scr.win, repmat(calib.table,1,3));
+            calib = load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
+            Screen('LoadNormalizedGammaTable', scr.win, repmat(calib.calib.table,1,3));
             % check gamma table
             gammatable = Screen('ReadNormalizedGammaTable', scr.win);
-            if nnz(abs(gammatable-repmat(calib.table,1,3))>0.0001)
+            if nnz(abs(gammatable-repmat(calib.calib.table,1,3))>0.0001)
                 error('Gamma table not loaded correctly! Perhaps set screen res and retry.')
             end
     end
