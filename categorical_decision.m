@@ -84,9 +84,12 @@ switch room_letter
         % This is for keys F1-5, F8-12.
         fontsize = 42;
         fontstyle = 1;
+    case 'Carrasco_L1'
+        screen_width = 40;
+        screen_distance = 56;
         
 end
-if strcmp(room_letter,'home') || strcmp(room_letter,'mbp')
+if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
     [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
         scr.key7, scr.key8, scr.key9, scr.key10] ...
         = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
@@ -238,9 +241,18 @@ try
     %[scr.win, scr.rect] = Screen('OpenWindow', screenid, color.bg, [100 100 1200 1000]);
     
     %LoadIdentityClut(scr.win) % default gamma table
-    if strcmp(room_letter, '1139')
-        load('calibration/iPadGammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
-        Screen('LoadNormalizedGammaTable', scr.win, gammaTable*[1 1 1]);
+    switch room_letter
+        case '1139'
+            load('calibration/iPadGammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
+            Screen('LoadNormalizedGammaTable', scr.win, gammaTable*[1 1 1]);
+        case 'Carrasco_L1'
+            load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
+            Screen('LoadNormalizedGammaTable', scr.win, repmat(calib.table,1,3));
+            % check gamma table
+            gammatable = Screen('ReadNormalizedGammaTable', scr.win);
+            if nnz(abs(gammatable-repmat(calib.table,1,3))>0.0001)
+                error('Gamma table not loaded correctly! Perhaps set screen res and retry.')
+            end
     end
     
     scr.w = scr.rect(3); % screen width in pixels
@@ -259,7 +271,9 @@ try
     
     % screen info
     screen_resolution = [scr.w scr.h];                 % screen resolution ie [1440 900]
-    screen_distance = 50;                      % distance between observer and screen (in cm) NOTE THAT FOR EXP v3 THIS WAS SET TO 50, BUT TRUE DIST WAS ~32
+    if ~exist('screen_distance','var')
+        screen_distance = 50;                      % distance between observer and screen (in cm) NOTE THAT FOR EXP v3 THIS WAS SET TO 50, BUT TRUE DIST WAS ~32
+    end
     screen_angle = 2*(180/pi)*(atan((screen_width/2) / screen_distance)) ; % total visual angle of screen in degrees
     P.pxPerDeg = screen_resolution(1) / screen_angle;  % pixels per degree
     
