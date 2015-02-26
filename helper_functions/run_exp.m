@@ -1,9 +1,10 @@
 function [responses, flag, blockscore] = run_exp(n, R, t, scr, color, P, type, blok, new_subject_flag, task_letter, first_task_letter, varargin)
 
-attention_manipulation = false;
 if length(varargin) == 1
     R2 = varargin{1};
     attention_manipulation = true;
+else
+    attention_manipulation = false;
 end
 
 %%%Run trials (Training or Test)%%%
@@ -119,6 +120,7 @@ try
                 end
             end
             %record 1 if correct, 0 if incorrect
+%             fprintf('cat %d - ACC %d\n', resp, resp==cval) % for debugging
             responses.tf(section, trial) = (resp == cval);
             responses.c(section, trial) = resp;
             if ~strcmp(type, 'Training') % if not in non-conf training

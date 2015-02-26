@@ -134,7 +134,7 @@ elseif strcmp(category_type, 'diff_mean_same_std')
     other_task_letter = 'B';
 elseif strcmp(category_type, 'sym_uniform')
     if attention_manipulation
-        Test.category_params.uniform_range = 5;
+        Test.category_params.uniform_range = 15; % 5
     else
         Test.category_params.uniform_range = 15;
     end
