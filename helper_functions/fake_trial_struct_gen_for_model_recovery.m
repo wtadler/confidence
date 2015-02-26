@@ -54,7 +54,7 @@ for m = 1:length(opt_models)
     for d = 1:nSubjects
         for D = 1:datasetsPerSubject
             gen(m).p(:,datasetsPerSubject*(d-1)+D) = ext.m(m).extracted(d).best_params;
-            gen(m).data(datasetsPerSubject*(d-1)+D).raw = trial_generator(ext.m(m).extracted(d).best_params, ext.m(m), 'n_samples', 2160, 'dist_type', 'same_mean_diff_std', 'contrasts', exp(linspace(-5.5,-2,6)));
+            gen(m).data(datasetsPerSubject*(d-1)+D).raw = trial_generator(ext.m(m).extracted(d).best_params, ext.m(m), 'n_samples', 2160, 'dist_type', 'diff_mean_same_std', 'contrasts', exp(linspace(-5.5,-2,6)));
             gen(m).data(datasetsPerSubject*(d-1)+D).true_nll = nloglik_fcn(ext.m(m).extracted(d).best_params, gen(m).data(datasetsPerSubject*(d-1)+D).raw, ext.m(m), 101, category_params);            
         end
     end

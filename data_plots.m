@@ -8,12 +8,14 @@ cdsandbox
 %set(0,'DefaultLineLineWidth',1)
 set(0,'DefaultLineLineWidth','remove')
 n_bins_model = 15; %45
-n_bins_real = 20; %15
-n_samples = 1e4; % 1e7
+n_bins_real = 10; %15
+n_samples = 1e5; % 1e7
 paramtitle=0;
 
 % model fit
-cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations')
+%cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations')
+cd('/Users/will/Desktop/v3_A_fmincon_feb21')
+
 %load('10_fake_model_x.mat')
 %load('fmincon_fits_x_model.mat', 'extracted')
 %load('fmincon_fits.mat', 'extracted') % d model
@@ -49,9 +51,11 @@ cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations')
 %    model = model([4 1 2 3]);
 %    opt_models = {model.name};
 %    data_type = 'real';
-load('non_overlap_d_noise.mat')
-   opt_models = model;
-   data_type = 'real';
+%load('non_overlap_d_noise.mat')
+%   opt_models = model;
+%   data_type = 'real';
+load('COMBINED_v3_A.mat')
+    dist_type = 'diff_mean_same_std';
 
 % load('newmodels_incl_freecats.mat') 
 %     data_type = 'real';
@@ -59,15 +63,17 @@ load('non_overlap_d_noise.mat')
 %gen_stat = 'Chat';
 gen_stat = 'g';
 
-plot_model = 1% : length(opt_models) % can be one or multiple
+plot_model = 1 : length(opt_models) % can be one or multiple
 show_model = true;
 
 
 s = -20:.1:20;
 sig1 = 3;
 sig2 = 12;
+%contrasts = exp(-4:.5:-1.5);
+contrasts = exp(linspace(-5.5,-2,6));
 
-streal = compile_data('datadir','/Users/will/Google Drive/Ma lab/repos/qamar confidence/data/v2')
+streal = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskA')
 %streal = st; % use this if you've generated fake data in optimize
 
 nDatasets = length(streal.data);%length(model(1).extracted);
@@ -84,7 +90,7 @@ for model_id = plot_model;
         tic
         if show_model
             model(model_id).data(dataset).raw = trial_generator(model(model_id).extracted(dataset).best_params, opt_models(model_id),...
-                'n_samples', n_samples, 'dist_type', 'qamar', 'contrasts', exp(-4:.5:-1.5));%, 'model_fitting_data',streal.data(dataset).raw);
+                'n_samples', n_samples, 'dist_type', dist_type, 'contrasts', contrasts);%, 'model_fitting_data',streal.data(dataset).raw);
             [model(model_id).data(dataset).stats, model(model_id).data(dataset).sorted_raw] = indiv_analysis_fcn(model(model_id).data(dataset).raw, model_bins);
             
             model(model_id).sumstats = sumstats_fcn(model(model_id).data); % big function that generates summary stats across subjects.
@@ -106,9 +112,10 @@ end
 %clear all
 %close all
 
-cd('/Users/will/Google Drive/Will - Confidence/Analysis/model fits/v2/11 bins')
+%cd('/Users/will/Google Drive/Will - Confidence/Analysis/model fits/v2/11 bins')
+cdsandbox
 
-ms = 12;
+ms = 12; %marker size
 
 set(0,'defaultaxesbox','off','defaultaxesfontsize',10,'defaultlinemarkersize',ms,'defaultlinelinewidth',2)
 
@@ -158,8 +165,6 @@ if show_model
     nRows = nRows + 1;
 end
 
-contrasts = exp(-4:.5:-1.5);
-
 % change default plotting colors.
 % analytic expression over stimuli
 % display more info over contrast
@@ -172,12 +177,12 @@ confidence_colors = [sss(round(linspace(55,15,3)),:); 0 .2 0]; % yellow to dark 
 Chat_colors = [0 .4 .8; .8 0 .8];
 
 %fpos = [91 -899 1395 1705; 1486 -899 1395 1705];
-figure
-for model_id = 1%plot_model
+
+for model_id = plot_model
 %for mmm = 1:3;
 %    model_id = plot_model(mmm)
     %cd(paths{model_id})
-figure
+figure(model_id)
     for type = 1 %: length(trial_types)
         switch data_type
             case 'fake'
@@ -212,96 +217,32 @@ figure
                             title(sprintf('true params:\n%s', p.t_str));
                         end
                         subplot(nRows, nDatasets, nDatasets + dataset); % put contrast plot on next line
-                        contrast_fit_plot(p.alpha, p.beta, p.sigma_0) % regular plot with true params
+                        contrast_fit_plot(p.sigma_c_low, p.sigma_c_hi, p.beta) % regular plot with true params
                         
-                        p.alpha_extracted = model(model_id).extracted(dataset).best_params(1);
-                        beta_extracted = model(model_id).extracted(dataset).best_params(2);
-                        sigma_0_extracted = model(model_id).extracted(dataset).best_params(3);
+                        sigma_c_low_extracted = model(model_id).extracted(dataset).best_params(1);
+                        sigma_c_hi_extracted = model(model_id).extracted(dataset).best_params(2);
+                        beta_extracted = model(model_id).extracted(dataset).best_params(3);
                         
-                        contrast_fit_plot(p.alpha_extracted, beta_extracted, sigma_0_extracted,'color','r') % red stars to indicate extracted params
+                        contrast_fit_plot(p.sigma_c_low_extracted, sigma_c_hi_extracted, beta_extracted,'color','r') % red stars to indicate extracted params
                         ylabel('contrast fitting (blue is true, red is extracted)');
                     case 'real'
-                        contrast_fit_plot(p.alpha, p.beta, p.sigma_0,'yl',[0 110])
+                        contrast_fit_plot(p.sigma_c_low, p.sigma_c_hi, p.beta,'yl',[0 110])
                         if paramtitle
                             title(sprintf('%s\n%s', upper(streal.data(dataset).name), p.t_str));
                         end
                 end
                 
-                sig = sqrt(p.sigma_0^2 + p.alpha * fliplr(contrasts) .^ -p.beta); % i've messed this up for fake data, I think
+                % old style contrast
+                %sig = sqrt(p.sigma_0^2 + p.alpha * fliplr(contrasts) .^ -p.beta); % i've messed this up for fake data, I think
+                % new style contrast
+                c_low = min(contrasts);
+                c_hi = max(contrasts);
+                alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
+                sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta); % low to high sigma. should line up with contrast id
 
             end
             
-            
-            % analytical stuff
-            
-            %f = @(y) (normcdf(y,s,sig(sigma)) - normcdf(-y,s,sig(sigma)));
-            %analytical_model.g_mean = zeros(6,length(s));
-
-            % analytical p(Chat = 1 | s)
-%             switch models{model_id}
-%                 case 'd'
-%                     k1 = .5*log( (sig.^2 + sig2^2) ./ (sig.^2 + sig1^2)) + log(prior/(1-prior));
-%                     k2 = (sig2^2 - sig1^2) ./ (2 .* (sig.^2 + sig1^2) .* (sig.^2 + sig2^2));
-%                     k=sqrt(k1./k2);
-%                     k2x2 = k2' * s.^2;
-%                     d = repmat(k1',1,size(k2x2,2)) - k2x2;
-%                     
-%                     kminuss = repmat(k',1,size(s,2)) - repmat(s,length(k),1); % = k - s
-%                     kpluss = repmat(k',1,size(s,2)) + repmat(s,length(k),1); % = k + s
-%                     analytical_model.Chat1_prop =  lambda/2 + (1 - lambda) * .5 * (erf(kminuss./(sqrt(2)*repmat(sig',1,size(kminuss,2)))) + erf(kpluss./(sqrt(2)*repmat(sig',1,size(kpluss,2)))));
-%                     
-%                 case 'x'
-%                     analytical_model.Chat1_prop = lambda/2 + (1 - lambda) * .5 * (erf((b_i(5) - repmat(s,length(sig),1)) ./ (sqrt(2)*repmat(sig',1,length(s)))) + erf((b_i(5) + repmat(s,length(sig),1)) ./ (sqrt(2)*repmat(sig',1,length(s)))));
-%                     
-%             end
-            % analytical percent correct??
-            % analytical <g> not working for d yet.
-%             if strcmp(gen_stat,'g')
-%                 switch models{model_id}
-%                     case 'd'
-%                         % this g_mean stuff isn't quite working yet.
-%                         for sigma = 1:6
-%                             for i = 1:4
-%                                 a1 = (k1(sigma) - b_i(i+1)) / k2(sigma);
-%                                 b1 = (k1(sigma) - b_i(i  )) / k2(sigma);
-%                                 a2 = (k1(sigma) + b_i(i+1)) / k2(sigma);
-%                                 b2 = (k1(sigma) + b_i(i  )) / k2(sigma);
-%                                 if a1 > 0 && b1 > 0
-%                                     '1'
-%                                     sum1 = f(sqrt(b1)) + f(-sqrt(a1));
-%                                 elseif a1 <= 0 && b1 > 0
-%                                     '2'
-%                                     sum1 = f(sqrt(b1));
-%                                 elseif a1 < 0 && b1 < 0
-%                                     '3'
-%                                     sum1 = zeros(1,length(s));
-%                                 end
-%                                 
-%                                 if a2 > 0 && b2 > 0
-%                                     '1b'
-%                                     sum2 = f(sqrt(a2)) + f(-sqrt(b2));
-%                                 elseif b2 <= 0 && a2 > 0
-%                                     '2b'
-%                                     sum2 = f(sqrt(a2));
-%                                 elseif b2 < 0 && a2 < 0
-%                                     '3b'
-%                                     sum2 = zeros(1,length(s));
-%                                 end
-%                                 p_nolapse = sum2+sum1;
-%                                 analytical_model.g_mean(sigma,:) = analytical_model.g_mean(sigma,:) + i * (lambda_g/4 + (1 - lambda_g) * p_nolapse);
-%                             end
-%                         end
-%                     case 'x'
-%                         for sigma = 1:6
-%                             for i = 1:4
-%                                 p_nolapse = f(b_i(i+5)) + f(-b_i(-i+5)) + f(b_i(-i+6)) + f(-b_i(i+4));
-%                                 analytical_model.g_mean(sigma,:) = analytical_model.g_mean(sigma,:) + i * (lambda_g/4 + (1 - lambda_g) * p_nolapse);
-%                             end
-%                         end
-%                 end
-%             end
-            
-            
+        
             for stat = 1 : length(stats_over_s)
                 switch data_type
                     case 'fake'
@@ -386,15 +327,15 @@ figure
 
                 
                 ylim(ylims(stat,:));
-                xlim([.013 .3]);
+                xlim([c_low-.001 c_hi+.03]); % THIS MIGHT BE A PROBLEM?
                 set(gca, 'xtick', contrasts);
                 set(gca, 'xticklabel', round(contrasts*1000)/10);
                 xlabel('contrast (%)');
             end
             
         end
-        %[~,t]=suplabel(sprintf('%s\n%s', trial_type_names{type}, strrep(opt_models{model_id},'_',' ')),'t');
-        set(t, 'interpreter', 'latex', 'fontsize', 15);
+        [~,t]=suplabel(sprintf('%s\n%s', trial_type_names{type}, opt_models(model_id).name),'t');
+        %set(t, 'interpreter', 'latex', 'fontsize', 15);
         
         %export_fig(sprintf('%s.pdf',file_names{type}),'-transparent')
         %close(gcf)
@@ -403,6 +344,7 @@ figure
    % export_fig(sprintf('%s.pdf',opt_models{model_id}),'-transparent')
     
 end
+return
 
 %% single subject/summary data
 close all

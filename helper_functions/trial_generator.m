@@ -47,6 +47,7 @@ end
 if isempty(model_fitting_data)
     raw.C         = randsample([-1 1], n_samples, 'true');
     raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
+    save tgtest
     raw.s(raw.C == -1) = stimulus_orientations(category_params, dist_type, 1, 1, sum(raw.C ==-1));
     raw.s(raw.C ==  1) = stimulus_orientations(category_params, dist_type, 2, 1, sum(raw.C == 1));
 
