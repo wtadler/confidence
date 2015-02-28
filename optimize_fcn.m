@@ -2,26 +2,33 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'fixed';
-opt_models(1).multi_lapse = 0;
-opt_models(1).partial_lapse = 0;
-opt_models(1).repeat_lapse = 0;
-opt_models(1).choice_only = 1;
-opt_models(1).diff_mean_same_std = 1;
+opt_models(1).family = 'lin';
+opt_models(1).multi_lapse = 1;
+opt_models(1).partial_lapse = 1;
+opt_models(1).repeat_lapse = 1;
+opt_models(1).choice_only = 0;
+opt_models(1).diff_mean_same_std = 0;
 opt_models(1).ori_dep_noise = 1;
 opt_models(1).symmetric = 0;
-opt_models(1).d_noise = 0;
-% 
-% opt_models(2) = opt_models(1);
-% opt_models(2).family = 'lin';
-% 
-% opt_models(3) = opt_models(1);
-% opt_models(3).family = 'quad';
-% 
-% opt_models(4) = opt_models(1);
-% opt_models(4).family = 'fixed';
+opt_models(1).joint_task_fit = 1;
+
+opt_models(2) = opt_models(1);
+opt_models(2).family = 'fixed';
+
+opt_models(3) = opt_models(1);
+opt_models(3).family = 'opt';
+opt_models(3).d_noise = 1;
+opt_models(3).symmetric = 0;
+
+opt_models(4) = opt_models(3);
+opt_models(4).symmetric = 1;
+
+opt_models(5) = opt_models(4);
+opt_models(5).joint_d = 1;
 
 opt_models = parameter_constraints(opt_models);
+
+
 %%
 hpc = false;
 assignopts(who,varargin);
@@ -31,7 +38,7 @@ active_opt_models = 1:length(opt_models);
 nRegOptimizations = 40;
 nDNoiseOptimizations = 8;
 nMAPOriDepNoiseOptimizations = 4;
-RaiseOptsToParams = false;
+RaiseOptsToParams = false; % take this line out
 nDNoiseSets = 101;
 maxWorkers = Inf; % set this to 0 to turn parfor loops into for loops
 
@@ -84,8 +91,10 @@ nll_tolerance = 1e-3; % this is for determining what "good" parameters are.
 
 if hpc
     datadir='/home/wta215/data/v3/taskA';
+    datadirB='/home/wta215/data/v3/taskB';
 else
     datadir = '/Users/will/Google Drive/Will - Confidence/Data/v3/taskA';
+    datadirB = '/Users/will/Google Drive/Will - Confidence/Data/v3/taskB';
 end
 
 assignopts(who,varargin);
@@ -96,6 +105,9 @@ end
 
 if strcmp(data_type, 'real')
     gen = compile_data('datadir', datadir, 'crossvalidate', crossvalidate, 'k', k);
+    if ~isempty(datadirB)
+        genB = compile_data('datadir', datadirB, 'crossvalidate', crossvalidate, 'k', k);
+    end
     nDatasets = length(gen.data);
     datasets = 1 : nDatasets;
     gen_models = struct; % to make it length 1, to execute big optimization loop just once.
@@ -208,11 +220,7 @@ for gen_model_id = active_gen_models
         else
             nOptimizations = nRegOptimizations;
         end
-        
-        if RaiseOptsToParams % raise number of optimizations to the power of the number of dimensions in the model
-            nOptimizations = nOptimizations^nParams;
-        end
-        
+                
         if strcmp(optimization_method,'mcmc_slice')
             nSamples = nOptimizations; % real samples to run
             burnin = 0;%round(nSamples/2);
@@ -221,6 +229,36 @@ for gen_model_id = active_gen_models
             nOptimizations = nChains;
         end
         
+        if o.joint_task_fit % prepare the two submodels. not doing all fields, just the ones needed by nloglikfcn
+            
+                        sm=prepare_submodels(o);
+%                         sm.model_A = o;
+%                         sm.model_A.name = '';
+%                         sm.model_A.joint_task_fit = 0;
+%                         sm.model_A.joint_d = 0;
+%                         sm.model_A.diff_mean_same_std = 1;
+%                         
+%                         sm.model_B = o;
+%                         sm.model_B.name = '';
+%                         sm.model_B.joint_task_fit = 0;
+%                         sm.model_B.joint_d = 0;
+%                         sm.model_B.diff_mean_same_std = 0;
+%                         
+%                         if ~o.joint_d
+%                             sm.nonbound_param_idx = ~cellfun(@isempty, regexp(o.parameter_names,'^((?!(b_|m_)).)*$'));
+%                             sm.A_bound_param_idx = ~cellfun(@isempty, regexp(o.parameter_names,'^(b_|m_).*TaskA'));
+%                             sm.B_bound_param_idx = ~cellfun(@isempty, regexp(o.parameter_names,'^(b_|m_)(?!.*TaskA)'));
+%                             
+%                             sm.A_param_idx = logical(sm.nonbound_param_idx + sm.A_bound_param_idx);
+%                             sm.B_param_idx = logical(sm.nonbound_param_idx + sm.B_bound_param_idx);
+%                             
+%                             sm.model_A = parameter_constraints(sm.model_A);
+%                             sm.model_B = parameter_constraints(sm.model_B);
+%                         end
+%                         
+%                         sm.joint_d = o.joint_d;
+
+        end
         
         unfixed_params = setdiff(1:nParams, fixed_params_opt);
         o.Aeq = eye(nParams);
@@ -255,10 +293,7 @@ for gen_model_id = active_gen_models
                 %% OPTIMIZE PARAMETERS
                 % random starting points x0 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 x0 = random_param_generator(nOptimizations, o, 'generating_flag', x0_reasonable, 'fixed_params', fixed_params_opt); % try turning on generating_flag.
-                %                 if ~isempty(fixed_params_opt_values);
-                %                     fixed_params_opt_values
-                %                 x0(fixed_params_opt,:) = repmat(fixed_params_opt_values,1,size(x0,2));
-                
+
                 if crossvalidate
                     d = data.train(trainset);
                     d_test = data.test(trainset);
@@ -267,7 +302,16 @@ for gen_model_id = active_gen_models
                 end
                 
                 % use anon objective function to fix data parameter.
-                f = @(p) nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
+                if ~o.joint_task_fit
+                    loglik_wrapper = @(p) -nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
+                elseif o.joint_task_fit
+                    dA = d;
+                    dB = genB(gen_model_id).data(dataset).raw;
+
+                    loglik_wrapper = @(p) two_task_ll_wrapper(p, dA, dB, sm, nDNoiseSets, category_params);
+                end
+                
+                nloglik_wrapper = @(p) -loglik_wrapper(p);
                 
                 % possible outputs
                 % fmincon only
@@ -289,7 +333,6 @@ for gen_model_id = active_gen_models
                     ex_logprior = nan(1,nOptimizations);
                 end
                 
-                loglik_wrapper = @(p) -nloglik_fcn(p, d, o, nDNoiseSets, category_params);
                 logprior_wrapper = @log_prior;
                 
                 switch optimization_method
@@ -393,16 +436,16 @@ for gen_model_id = active_gen_models
                                 if rand < 1 / progress_report_interval % every so often, print est. time remaining.
                                     my_print(sprintf('Dataset: %.0f\nElapsed: %.1f mins\n\n', dataset, toc(start_t)/60));
                                 end
-                                [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}, ex_lambda{optimization}, ex_grad(:,optimization), ex_hessian(:,:,optimization)] = fmincon(f, x0(:,optimization), [], [], o.Aeq, o.beq, o.lb, o.ub, [], fmincon_opts);
+                                [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}, ex_lambda{optimization}, ex_grad(:,optimization), ex_hessian(:,:,optimization)] = fmincon(nloglik_wrapper, x0(:,optimization), [], [], o.Aeq, o.beq, o.lb, o.ub, [], fmincon_opts);
                             end
                         else
                             fclose(log_fid);
                             parfor (optimization = 1 : nOptimizations, maxWorkers)
-                                log_fid = fopen(sprintf('%s.txt',job_id),'a'); % reopen log for parfor
+                                log_fid = fopen(sprintf('%s.txt',job_id),'a') % reopen log for parfor
                                 if rand < 1 / progress_report_interval % every so often, print est. time remaining.
                                     my_print(sprintf('Dataset: %.0f\nElapsed: %.1f mins\n\n', dataset, toc(start_t)/60));
                                 end
-                                [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}, ex_lambda{optimization}, ex_grad(:,optimization), ex_hessian(:,:,optimization)] = fmincon(f, x0(:,optimization), [], [], o.Aeq, o.beq, o.lb, o.ub, [], fmincon_opts);
+                                [ex_p(:, optimization), ex_nll(optimization), ex_exitflag(optimization), ex_output{optimization}, ex_lambda{optimization}, ex_grad(:,optimization), ex_hessian(:,:,optimization)] = fmincon(nloglik_wrapper, x0(:,optimization), [], [], o.Aeq, o.beq, o.lb, o.ub, [], fmincon_opts);
                                 fclose(log_fid);
                             end
                             log_fid=fopen([job_id '.txt'],'a');
@@ -470,9 +513,9 @@ for gen_model_id = active_gen_models
                     ex.best_params = all_p(ex.min_idx,:)';
                     ex.mean_params = mean(all_p);
                     dbar = 2*mean(all_nll);
-                    f = @(p) nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
+                    nloglik_wrapper = @(p) nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
                     
-                    dtbar= 2*f(ex.mean_params); % f is nll
+                    dtbar= 2*nloglik_wrapper(ex.mean_params); % f is nll
                     ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
                     
                     ex.best_hessian = [];

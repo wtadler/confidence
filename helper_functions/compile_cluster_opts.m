@@ -2,8 +2,11 @@ function compile_cluster_opts(varargin)
 % compile optimizations from the cluster
 %clear all
 
-datadir='/Users/will/Desktop/v3_A_feb23';%A_model_recovery';
-jobid = 'v3';
+datadir='/Users/will/Google Drive/Ma lab/output/v3_joint_feb28';
+rawdatadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA/'; % for computing DIC
+rawdatadirB='/Users/will/Google Drive/Will - Confidence/Data/v3/taskB/'; % for computing DIC
+
+jobid = 'ab';
 hpc = true;
 assignopts(who,varargin)
 
@@ -32,10 +35,7 @@ job_files = job_files(sort_idx)
 load(job_files{1}) % load first file to get nDatasets
 
 
-if any(strfind(job_files{1},'model')) && any(regexp(job_files{1},'m[0-9]*.'))% model recovery
-
-    %assumes nGenModels == nOptModels
-    nModels = length(opt_models);
+if any(strfind(job_files{1},'model')) && any(regexp(job_files{1},'m[0-9]*.'))% new model recovery
     
     for fid = 2:length(job_files);
         tmp = load(job_files{fid});
@@ -49,7 +49,7 @@ if any(strfind(job_files{1},'model')) && any(regexp(job_files{1},'m[0-9]*.'))% m
         end
     end
     
-elseif strfind(job_files{1},'model')
+elseif strfind(job_files{1},'model') % old model recovery
     
         if isempty(model(m).extracted(d).name) % initialize subject details if they are not there
             model(m).extracted(d) = tmp.gen.opt(m).extracted(d);
@@ -87,7 +87,7 @@ elseif strfind(job_files{1},'model')
             end
             heatmap(:, gen_model) = heatmap(:, gen_model) - min(heatmap(:, gen_model));
         end
-        model_names = {'Bayes','Bayes Sym','Fixed','Lin','Quad','MAP_s'};
+        model_names = {'Bayes','Fixed','Lin','Quad','MAP_s'};
         im=imagesc(-heatmap);
         colormap(bone(256));
         caxis([-50 0]);
@@ -103,30 +103,50 @@ elseif strfind(job_files{1},'model')
         export_fig('model_recovery_subject_params.png','-m2')
     end
     
-elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates single chain data
-    load(job_files{1}) % to get nDatasets
-    nModels = length(opt_models);
+elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates single chain real data
+    tmp=load(job_files{1}); % to get nDatasets
+    
+%     if exist('ex_p','var') % indicates aborted file
+%         end_early_routine
+%     end
+    
+    nModels = length(tmp.opt_models);
     
     % initialize empty struct of the right size.
-    model = gen.opt;
-    m_fields = setdiff(fieldnames(model),'extracted')
+    model = tmp.gen.opt;
+    m_fields = setdiff(fieldnames(model),'extracted');
     for f = 1:length(m_fields)
-        model(active_opt_models).(m_fields{f}) = [];
+        model(tmp.active_opt_models).(m_fields{f}) = [];
     end
-    e_fields = fieldnames(model(active_opt_models).extracted);
-    for f = 1:length(e_fields)
-        model(active_opt_models).extracted.(e_fields{f}) = [];
+    
+    if isfield(tmp, 'ex_p') % if file is an aborted file
+        tmp = end_early_routine(tmp);
+        e_fields = fieldnames(tmp.gen.opt(tmp.active_opt_models).extracted(tmp.dataset));
+    else
+        e_fields = fieldnames(model(active_opt_models).extracted);
+    end
+    
+    for d = 1:nDatasets
+        for f = 1:length(e_fields)
+            model(active_opt_models).extracted(d).(e_fields{f}) = [];
+        end
     end
     e_fields = setdiff(e_fields,'name'); % don't want to append names later
     for d = 1:nDatasets
-        model(active_opt_models).extracted(d) = model(active_opt_models).extracted(1);
+        model(tmp.active_opt_models).extracted(d) = model(tmp.active_opt_models).extracted(1);
     end
     for m = 1:nModels
-        model(m) = model(active_opt_models);
+        model(m) = model(tmp.active_opt_models);
     end
     
+    
     for fid = 1:length(job_files);
+        fid
         tmp = load(job_files{fid});
+        if isfield(tmp,'ex_p')
+            tmp = end_early_routine(tmp);
+            %e_fields = fieldnames(tmp.gen.opt(tmp.active_opt_models).extracted(tmp.dataset));
+        end
         m = tmp.active_opt_models;
         d = tmp.dataset;
         
@@ -135,53 +155,113 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                 model(m).(m_fields{f}) = tmp.gen.opt(m).(m_fields{f});
             end
         end
+        
         if isempty(model(m).extracted(d).name) % initialize subject details if they are not there
-            model(m).extracted(d) = tmp.gen.opt(m).extracted(d);
+            %             model(m).extracted(d).dic = [];
+            %             model(m).extracted(d) = tmp.gen.opt(m).extracted(d);
+            model(m).extracted(d).name = tmp.gen.opt(m).extracted(d).name;
+            for f = 1:length(e_fields)
+                model(m).extracted(d).(e_fields{f}) = {tmp.gen.opt(m).extracted(d).(e_fields{f})};
+            end
         else % go through and append the different chain data
             for f = 1:length(e_fields)
-                if strcmp(optimization_method,'mcmc_slice')
-                    if strcmp(e_fields{f},'p')
-                        model(m).extracted(d).(e_fields{f}) = cat(3,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
-                    else
-                        model(m).extracted(d).(e_fields{f}) = cat(2,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
-                    end
-                else
-                    model(m).extracted(d).(e_fields{f}) = cat(2,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
-                end
-
+                model(m).extracted(d).(e_fields{f}) = cat(2,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
             end
-        
+            
         end
         
     end
+    
     if strcmp(optimization_method,'mcmc_slice')
-        datadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA/';
-        st = compile_data('datadir',datadir);
+        st = compile_data('datadir',rawdatadir);
+        stB = compile_data('datadir',rawdatadirB);
         for m = 1:length(model)
             for d = 1:length(model(m).extracted);
                 ex = model(m).extracted(d);
                 if ~isempty(ex.p) % if there's data here
-                    all_p = reshape(permute(ex.p,[1 3 2]),[],size(ex.p,2),1);
-                    mean_params = mean(all_p)';
-                    dbar = 2*mean(ex.nll(:));
-                    dtbar= 2*nloglik_fcn(mean_params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
+                    nChains = length(ex.nll);
+                    %extraburn_prop = 0;
+                    for c = 1:nChains
+                        %nSamples = length(ex.nll{c});
+                        %burn_start = max(1,round(nSamples*extraburn_prop));
+                        %ex.p{c} = ex.p{c}(burn_start:end,:);
+                        %ex.nll{c} = ex.nll{c}(burn_start:end,:);
+                        ex.logposteriors{c} = -ex.nll{c} + ex.log_prior{c};
+                        %logposteriors{c} = -o.extracted(d).nll(burn_start:end,c) + o.extracted(d).log_prior(burn_start:end,c);
+                    end
+                    
+                    toss_bad_samples = true;
+                    all_samples = [];
+                    all_nll = [];
+
+                    threshold = 40;
+                    max_logpost = max(cellfun(@max, ex.logposteriors));
+                    for c = 1:nChains
+                        if toss_bad_samples
+                            keepers = ex.logposteriors{c} > max_logpost-threshold;
+                            ex.p{c} = ex.p{c}(keepers,:);
+                            ex.nll{c} = ex.nll{c}(keepers);
+                            ex.logposteriors{c} = ex.logposteriors{c}(keepers);
+                        end
+                        all_samples = cat(1,all_samples,ex.p{c});
+                        all_nll = cat(1,all_nll,ex.nll{c});
+                    end
+                    
+                    ex.mean_params = mean(all_samples)';
+                    dbar = 2*mean(all_nll);
+                    if ~model(m).joint_task_fit
+                        dtbar= 2*nloglik_fcn(ex.mean_params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
+                    elseif model(m).joint_task_fit
+                        
+                        sm=prepare_submodels(model(m));
+%                         sm.model_A = o;
+%                         sm.model_A.name = '';
+%                         sm.model_A.joint_task_fit = 0;
+%                         sm.model_A.joint_d = 0;
+%                         sm.model_A.diff_mean_same_std = 1;
+%                         
+%                         sm.model_B = o;
+%                         sm.model_B.name = '';
+%                         sm.model_B.joint_task_fit = 0;
+%                         sm.model_B.joint_d = 0;
+%                         sm.model_B.diff_mean_same_std = 0;
+%                         
+%                         if ~o.joint_d
+%                             sm.nonbound_param_idx = ~cellfun(@isempty, regexp(o.parameter_names,'^((?!(b_|m_)).)*$'));
+%                             sm.A_bound_param_idx = ~cellfun(@isempty, regexp(o.parameter_names,'^(b_|m_).*TaskA'));
+%                             sm.B_bound_param_idx = ~cellfun(@isempty, regexp(o.parameter_names,'^(b_|m_)(?!.*TaskA)'));
+%                             
+%                             sm.A_param_idx = logical(sm.nonbound_param_idx + sm.A_bound_param_idx);
+%                             sm.B_param_idx = logical(sm.nonbound_param_idx + sm.B_bound_param_idx);
+%                             
+%                             sm.model_A = parameter_constraints(sm.model_A);
+%                             sm.model_B = parameter_constraints(sm.model_B);
+%                         end
+%                         
+%                         sm.joint_d = o.joint_d;
+                        dtbar=-2*two_task_ll_wrapper(ex.mean_params, st.data(d).raw, stB.data(d).raw, sm, nDNoiseSets, category_params, true);
+
+                    end
+                    
                     ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
                     
-                    [~,ex.min_idx] = min(ex.nll(:));
-                    [~,chain_idx]=ind2sub(size(ex.nll),ex.min_idx);
+                    [~,chain_idx] = min([ex.min_nll{:}]);
                     fields = {'min_nll','aic','bic','aicc','best_params'};
                     for f = 1:length(fields)
-                        ex.(fields{f}) = ex.(fields{f})(:,chain_idx);
+                        ex.(fields{f}) = ex.(fields{f}){chain_idx};
                     end
-                    model(m).extracted(d) = ex;
-                    model(m).extracted(d).mean_params = mean_params;
+                    
+                    fields = fieldnames(ex);
+                    for f = 1:length(fields)
+                        model(m).extracted(d).(fields{f}) = ex.(fields{f});
+                    end
                 end
             end
         end
     end
     
         
-else %real data
+else %real data, old style
     
     %job_files = mat_files;
     load(job_files{1}) % load first file to get nDatasets

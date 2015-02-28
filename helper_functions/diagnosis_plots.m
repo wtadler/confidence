@@ -26,28 +26,18 @@ elseif strcmp(optimization_method,'mcmc_slice')
         if strcmp(data_type,'real')
             g.name = [];
         end
-        for opt_model = 1:length(gen(gen_model_id).opt) % active_opt_models
-            o = gen(gen_model_id).opt(opt_model);
+        for opt_model_id = 1:length(gen(gen_model_id).opt) % active_opt_models
+            o = gen(gen_model_id).opt(opt_model_id);
             for dataset_id = 1:length(o.extracted) % dataset
-                if ~isempty(o.extracted(dataset_id).p) % if there's data here
-                    nChains = size(o.extracted(dataset_id).p,3);
-                    [samples,logposteriors]=deal(cell(1,nChains));
-                    
-                    extraburn_prop=0; % burn some proportion of the samples
-                    for c = 1:nChains
-                        nSamples = size(o.extracted(dataset_id).p,1);
-                        burn_start = max(1,round(nSamples*extraburn_prop));
-                        samples{c} = o.extracted(dataset_id).p(burn_start:end,:,c);
-                        logposteriors{c} = -o.extracted(dataset_id).nll(burn_start:end,c) + o.extracted(dataset_id).log_prior(burn_start:end,c);
-                    end
-                    
+                ex = o.extracted(dataset_id);
+                if ~isempty(ex.p) % if there's data here                    
                     [true_p,true_logposterior]=deal([]);
                     if strcmp(data_type,'fake') && strcmp(o.name, g.name)
                         true_p = gen(gen_model_id).p(:,dataset_id);
                         true_logposterior = gen(gen_model_id).data(dataset_id).true_logposterior;
                     end
-                    [fh,ah]=mcmcdiagnosis(samples,'logposteriors',logposteriors,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',o.extracted(dataset_id).dic,'gen_model',g);
-                    pause(.5); % to plot
+                    [fh,ah]=mcmcdiagnosis(ex.p,'logposteriors',ex.logposteriors,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',ex.dic,'gen_model',g);
+                    pause(.00001); % to plot
                 end
             end
         end

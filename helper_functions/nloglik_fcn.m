@@ -230,7 +230,7 @@ end
 if ~model.diff_mean_same_std
     p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) -repmat(raw.Chat, nDNoiseSets, 1) .* f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1), sq_flag);
 elseif model.diff_mean_same_std
-    p_choice = 0.5 + repmat(raw.Chat,nDNoiseSets, 1) .* sym_f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1)); % 2/14 put - in front of chat
+    p_choice = 0.5 + repmat(raw.Chat,nDNoiseSets, 1) .* sym_f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
 end
 p_choice = normalized_weights*p_choice;
 
@@ -464,6 +464,7 @@ nloglik = - sum(loglik_vec);
 if ~isreal(nloglik)
     % this is a big problem for truncated cats.
     warning('imaginary nloglik')
+    
     nloglik = real(nloglik) + 1e3; % is this an okay way to avoid "undefined at initial point" errors? it's a hack.
 end
 

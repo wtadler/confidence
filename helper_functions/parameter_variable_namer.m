@@ -9,21 +9,10 @@ for l = find(logparams)'
     parameter_names{l} = parameter_names{l}(4:end);
 end
 
-% add terms
-% sss='old';
-% switch sss
-%     case 'new'
-        for t = model.termparams'
-            p_in(t)=p_in(t-1)+p_in(t);
-            parameter_names{t} = parameter_names{t}(1:end-4);
-        end
-%     case 'old'
-%         termparams = ~cellfun(@isempty,strfind(parameter_names,'Term'));
-%         for t=find(termparams)'
-%             p_in(t)=p_in(t-1)+p_in(t);
-%             parameter_names{t} = parameter_names{t}(1:end-4);
-%         end
-% end
+for t = model.termparams'
+    p_in(t)=p_in(t-1)+p_in(t);
+    parameter_names{t} = parameter_names{t}(1:end-4);
+end
 
 % name all the single variables
 for i = 1 : length(parameter_names)
@@ -75,7 +64,7 @@ end
 
 % ... and multi-lapse.
 if model.multi_lapse
-    p.lambda_i = linspace(p.lambda_1, p.lambda_4, 4);
+    p.lambda_i = [p.lambda_1 p.lambda_1+(p.lambda_4-p.lambda_1)/3 p.lambda_1+2*(p.lambda_4-p.lambda_1)/3 p.lambda_4];% 8 times faster than: linspace(p.lambda_1, p.lambda_4, 4);
 end
 
 
