@@ -128,7 +128,7 @@ try
             end
             responses.rt(section,trial) = secs - startsecs;
             
-            if strcmp(type, 'Training') || strcmp(type,'Confidence Training') %to add random feedback during test: || rand > .9 %mod(sum(sum(tfresponses)) ,10)==9
+            if strcmp(type, 'Training') || strcmp(type,'Confidence Training') || strcmp(type,'Attention Training') %to add random feedback during test: || rand > .9 %mod(sum(sum(tfresponses)) ,10)==9
                 %feedback
                 WaitSecs(t.pause/1000);
                 if resp == cval
@@ -139,11 +139,15 @@ try
                     stat_col = color.red;
                 end
                 
-                if strcmp(type,'Training')
-                    [~,ny]=DrawFormattedText(scr.win,['You said: Category ' num2str(resp)],'center',scr.cy-50,color.wt);
-                    [~,ny]=DrawFormattedText(scr.win,['\n' status],'center',ny+10,stat_col);
-                else % as in confidence training
-                    [~,ny]=DrawFormattedText(scr.win,['You said: Category ' num2str(resp) ' with ' confstr ' confidence.'],'center',scr.cy-50,color.wt);
+                switch type
+                    case 'Training'
+                        [~,ny]=DrawFormattedText(scr.win,['You said: Category ' num2str(resp)],'center',scr.cy-50,color.wt);
+                        [~,ny]=DrawFormattedText(scr.win,['\n' status],'center',ny+10,stat_col);
+                    case 'Confidence Training'
+                        [~,ny]=DrawFormattedText(scr.win,['You said: Category ' num2str(resp) ' with ' confstr ' confidence.'],'center',scr.cy-50,color.wt);
+                    case 'Attention Training'
+                        [~,ny]=DrawFormattedText(scr.win,['You said: Category ' num2str(resp) ' with ' confstr ' confidence.'],'center',scr.cy-50,color.wt);
+                        [~,ny]=DrawFormattedText(scr.win,['\n' status],'center',ny+10,stat_col);
                 end
                 
                 Screen('Flip',scr.win);
@@ -185,7 +189,12 @@ try
         str = 'continue';
     elseif strcmp(type,'Confidence Training')
         hitxt = ['Great job! You have just finished Confidence Training.\n\n'...
-            'Coming up: Task ' task_letter ' Testing Block 1 of 3']; % number of blocks is hard coded here!!! BAD!!!
+            'Coming up: Task ' task_letter ' Testing']; % have just removed hard-coded block number for now
+%             'Coming up: Task ' task_letter ' Testing Block 1 of 3']; % number of blocks is hard coded here!!! BAD!!!
+        str = 'begin';
+    elseif strcmp(type,'Attention Training')
+        hitxt = ['Great job! You have just finished Attention Training.\n\n'...
+            'Coming up: Task ' task_letter ' Testing'];
         str = 'begin';
     elseif strcmp(type,'Training')
         hitxt = ['Nice work! You just got ' scorereport ...
@@ -202,7 +211,7 @@ try
         %         Screen('Flip', scr.win);
         %         WaitSecs(2);
         %         KbWait;
-        flip_wait_for_experimenter_flip(scr.keyenter);
+        flip_wait_for_experimenter_flip(scr.keyenter, scr);
         %         Screen('Flip', scr.win);
     else % print the directions if the experimenter isn't supposed to come in.
         flip_pak_flip(scr,ny,color,str)

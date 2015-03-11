@@ -1,10 +1,10 @@
-% run_categorical_decision
+function run_categorical_decision(initial)
 
-initial = 'rd_p1_run02_notrain'; % 'rdshortnotrain'
+% initial = 'rd_p1_run02_notrain'; % 'rdshortnotrain'
 user = 'rachel';
 
-new_subject_flag = 'n';
-room_letter = 'Carrasco_L1'; % 'mbp'
+new_subject_flag = 'y';
+room_letter = 'mbp'; % 'mbp','Carrasco_L1'
 
 category_type = 'same_mean_diff_std'; % 'same_mean_diff_std','sym_uniform'
 attention_manipulation = true;

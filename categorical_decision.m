@@ -195,6 +195,12 @@ Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 1; %changed from '2' on 10/14
 Training.n.trials = 48; % WTA: 48
 
+if attention_manipulation
+    Training.attention.n.blocks = 1;
+    Training.attention.n.sections = 2;
+    Training.attention.n.trials = 36;
+end
+
 Demo.t.pres = 250;
 Demo.t.betwtrials = 200;
 
@@ -371,6 +377,11 @@ try
     
     Training.confidence.R = setup_exp_order(Training.confidence.n, Test.category_params, category_type);
     
+    if attention_manipulation
+        Training.attention.R = setup_exp_order(Training.attention.n, Test.category_params, category_type);
+        Training.attention.R2 = setup_exp_order(Training.attention.n, Test.category_params, category_type, 1, cue_validity);
+    end
+    
     start_t = tic;
     %% DEMO
     
@@ -390,7 +401,7 @@ try
     end
     
     if strcmp(new_subject_flag,'y')
-        flip_wait_for_experimenter_flip(scr.keyenter);
+        flip_wait_for_experimenter_flip(scr.keyenter, scr);
     elseif strcmp(new_subject_flag,'n')
         flip_pak_flip(scr,ny,color,'continue');
     end
@@ -470,7 +481,15 @@ try
                 
                 [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag, task_letter, first_task_letter);
                 if flag==1,break;end
+            end
+            
+            if k == 1 && attention_manipulation % && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
+                [~,ny]=DrawFormattedText(scr.win,['Let''s practice the attention task.\n\n'...
+                    'Coming up: Task ' task_letter ' Training'],'center',ny,color.wt);
+                flip_pak_flip(scr,ny,color,'begin')
                 
+                [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject_flag, task_letter, first_task_letter, Training.attention.R2);
+                if flag==1,break;end
             end
         end
         
@@ -548,7 +567,7 @@ try
                 'Please go get the experimenter from the other room!'],'center',ny,color.wt);
             %             Screen('Flip',scr.win);
             %WaitSecs(5);
-            flip_wait_for_experimenter_flip(scr.keyenter);
+            flip_wait_for_experimenter_flip(scr.keyenter, scr);
             %             KbWait;
             %             Screen('Flip',scr.win);
             
