@@ -6,7 +6,12 @@ function categorical_decision(category_type, initial, new_subject_flag, room_let
 
 % THIS HAS SOME UNTESTED STUFF: flip_wait_for_experimenter_flip stuff.
 
-rng('shuffle','twister')
+try
+    rng('shuffle','twister')
+catch
+    s = RandStream.create('mt19937ar','seed',sum(100*clock));
+    RandStream.setDefaultStream(s);
+end
 
 Screen('Preference', 'SkipSyncTests', 1); % WTA.
 Screen('Preference', 'VisualDebuglevel', 3);
@@ -84,9 +89,12 @@ switch room_letter
         % This is for keys F1-5, F8-12.
         fontsize = 42;
         fontstyle = 1;
+    case 'Carrasco_L1'
+        screen_width = 40;
+        screen_distance = 56;
         
 end
-if strcmp(room_letter,'home') || strcmp(room_letter,'mbp')
+if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
     [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
         scr.key7, scr.key8, scr.key9, scr.key10] ...
         = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
@@ -134,7 +142,7 @@ elseif strcmp(category_type, 'diff_mean_same_std')
     other_task_letter = 'B';
 elseif strcmp(category_type, 'sym_uniform')
     if attention_manipulation
-        Test.category_params.uniform_range = 5;
+        Test.category_params.uniform_range = 15; % 5
     else
         Test.category_params.uniform_range = 15;
     end
@@ -167,9 +175,15 @@ else
     Training.category_params.test_sigmas = 1;
 end
 
-Test.n.blocks = 3;% WTA from 3
-Test.n.sections = 3; % WTA from 3
-Test.n.trials = 8*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
+if attention_manipulation
+    Test.n.blocks = 5;
+    Test.n.sections = 2;
+    Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
+else
+    Test.n.blocks = 3;% WTA from 3
+    Test.n.sections = 3; % WTA from 3
+    Test.n.trials = 8*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
+end
 
 Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % WTA: 2
@@ -180,6 +194,12 @@ Training.confidence.n.trials = 24; % WTA: 16
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 1; %changed from '2' on 10/14
 Training.n.trials = 48; % WTA: 48
+
+if attention_manipulation
+    Training.attention.n.blocks = 1;
+    Training.attention.n.sections = 2;
+    Training.attention.n.trials = 36;
+end
 
 Demo.t.pres = 250;
 Demo.t.betwtrials = 200;
@@ -238,9 +258,18 @@ try
     %[scr.win, scr.rect] = Screen('OpenWindow', screenid, color.bg, [100 100 1200 1000]);
     
     %LoadIdentityClut(scr.win) % default gamma table
-    if strcmp(room_letter, '1139')
-        load('calibration/iPadGammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
-        Screen('LoadNormalizedGammaTable', scr.win, gammaTable*[1 1 1]);
+    switch room_letter
+        case '1139'
+            load('calibration/iPadGammaTable') % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
+            Screen('LoadNormalizedGammaTable', scr.win, gammaTable*[1 1 1]);
+        case 'Carrasco_L1'
+            calib = load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
+            Screen('LoadNormalizedGammaTable', scr.win, repmat(calib.calib.table,1,3));
+            % check gamma table
+            gammatable = Screen('ReadNormalizedGammaTable', scr.win);
+            if nnz(abs(gammatable-repmat(calib.calib.table,1,3))>0.0001)
+                error('Gamma table not loaded correctly! Perhaps set screen res and retry.')
+            end
     end
     
     scr.w = scr.rect(3); % screen width in pixels
@@ -259,7 +288,9 @@ try
     
     % screen info
     screen_resolution = [scr.w scr.h];                 % screen resolution ie [1440 900]
-    screen_distance = 50;                      % distance between observer and screen (in cm) NOTE THAT FOR EXP v3 THIS WAS SET TO 50, BUT TRUE DIST WAS ~32
+    if ~exist('screen_distance','var')
+        screen_distance = 50;                      % distance between observer and screen (in cm) NOTE THAT FOR EXP v3 THIS WAS SET TO 50, BUT TRUE DIST WAS ~32
+    end
     screen_angle = 2*(180/pi)*(atan((screen_width/2) / screen_distance)) ; % total visual angle of screen in degrees
     P.pxPerDeg = screen_resolution(1) / screen_angle;  % pixels per degree
     
@@ -346,6 +377,11 @@ try
     
     Training.confidence.R = setup_exp_order(Training.confidence.n, Test.category_params, category_type);
     
+    if attention_manipulation
+        Training.attention.R = setup_exp_order(Training.attention.n, Test.category_params, category_type);
+        Training.attention.R2 = setup_exp_order(Training.attention.n, Test.category_params, category_type, 1, cue_validity);
+    end
+    
     start_t = tic;
     %% DEMO
     
@@ -365,7 +401,7 @@ try
     end
     
     if strcmp(new_subject_flag,'y')
-        flip_wait_for_experimenter_flip(scr.keyenter);
+        flip_wait_for_experimenter_flip(scr.keyenter, scr);
     elseif strcmp(new_subject_flag,'n')
         flip_pak_flip(scr,ny,color,'continue');
     end
@@ -445,7 +481,15 @@ try
                 
                 [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag, task_letter, first_task_letter);
                 if flag==1,break;end
+            end
+            
+            if k == 1 && attention_manipulation % && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
+                [~,ny]=DrawFormattedText(scr.win,['Let''s practice the attention task.\n\n'...
+                    'Coming up: Task ' task_letter ' Training'],'center',ny,color.wt);
+                flip_pak_flip(scr,ny,color,'begin')
                 
+                [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject_flag, task_letter, first_task_letter, Training.attention.R2);
+                if flag==1,break;end
             end
         end
         
@@ -523,7 +567,7 @@ try
                 'Please go get the experimenter from the other room!'],'center',ny,color.wt);
             %             Screen('Flip',scr.win);
             %WaitSecs(5);
-            flip_wait_for_experimenter_flip(scr.keyenter);
+            flip_wait_for_experimenter_flip(scr.keyenter, scr);
             %             KbWait;
             %             Screen('Flip',scr.win);
             
