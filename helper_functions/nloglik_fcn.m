@@ -10,7 +10,6 @@ function [nloglik, loglik_vec] = nloglik_fcn(p_in, raw, model, nDNoiseSets, vara
 % old_p_in = p_in;
 % diff_param_names = model.parameter_names(~same_p);
 
-% try
 if length(varargin) == 1;
     category_params = varargin{1};
 end

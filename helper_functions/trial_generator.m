@@ -1,7 +1,7 @@
 function raw = trial_generator(p_in, model, varargin)
 
 % define defaults
-n_samples = 3240;
+n_samples = 2160;
 dist_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 % contrasts  = exp(-4:.5:-1.5);%[.125 .25 .5 1 2 4];
 contrasts = exp(linspace(-5.5,-2,6));
@@ -39,22 +39,23 @@ end
 % category_params.mu_1 = mu_1;
 % category_params.mu_2 = mu_2;
 
-[raw.C, raw.s, raw.sig, raw.Chat] = deal(zeros(1, n_samples));
-if ~model.choice_only
-    raw.g = zeros(1, n_samples);
-end
 
 if isempty(model_fitting_data)
     raw.C         = randsample([-1 1], n_samples, 'true');
     raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
-    save tgtest
     raw.s(raw.C == -1) = stimulus_orientations(category_params, dist_type, 1, 1, sum(raw.C ==-1));
     raw.s(raw.C ==  1) = stimulus_orientations(category_params, dist_type, 2, 1, sum(raw.C == 1));
 
-% else % take real data
-%     raw.C           = model_fitting_data.C;
-%     raw.contrast    = model_fitting_data.contrast;
-%     raw.s           = model_fitting_data.s;
+else % take real data
+    raw.C           = model_fitting_data.C;
+    raw.contrast    = model_fitting_data.contrast;
+    raw.s           = model_fitting_data.s;
+end
+n_samples = length(raw.C);
+
+[raw.sig, raw.Chat] = deal(zeros(1, n_samples));
+if ~model.choice_only
+    raw.g = zeros(1, n_samples);
 end
 
 [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);

@@ -8,19 +8,30 @@ function [bounds, axis, bins] = bin_generator(bins,varargin)
 
 
 binstyle = 'quantile'; % 'quantile', or some other stuff, or 'rt'
+task = 'B';
 o_boundary = 25;
 o_axis = [-6.16 -5.16 -4.16 4.16 5.16 6.16]; % to look at decision boundary
 assignopts(who,varargin);
 
-s1 = 3;
-s2 = 12;
+cp.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
+cp.a = 0; % overlap for sym_uniform
+cp.mu_1 = -4; % mean for 'diff_mean_same_std'
+cp.mu_2 = 4;
+cp.uniform_range = 1;
+cp.sigma_1 = 3;
+cp.sigma_2 = 12;
+
 q = 1 / bins;
 bounds = zeros(1, bins - 1);
 axis = zeros(1, bins - 1);
 
 if strcmp(binstyle, 'quantile')
-    f  = @(b, q) .25*(2+erf(b/(s1*sqrt(2))) + erf(b/(s2*sqrt(2)))) - q; % see quantile_bin_generator.pages for explanation of the equation.
-
+    if strcmp(task,'B') % see quantile_bin_generator.pages for explanation of the equation.
+        f  = @(b, q) .25*(2+erf(b/(cp.sigma_1*sqrt(2))) + erf(b/(cp.sigma_2*sqrt(2)))) - q;
+    elseif strcmp(task,'A')
+        f = @(b, q) .25 * (2-erf((cp.mu_1-b)/(cp.sigma_s*sqrt(2)))-erf((-cp.mu_1-b)/(cp.sigma_s*sqrt(2)))) - q;
+    end
+    
     for i = 1:bins-1;
         bounds(i)  = fzero(@(b) f(b, i*q), 0);
     end

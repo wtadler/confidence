@@ -4,7 +4,11 @@ function compile_cluster_opts(varargin)
 
 datadir='/Users/will/Google Drive/Ma lab/output/v3_joint_feb28';
 rawdatadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA/'; % for computing DIC
+st = compile_data('datadir',rawdatadir);
 rawdatadirB='/Users/will/Google Drive/Will - Confidence/Data/v3/taskB/'; % for computing DIC
+stB = compile_data('datadir',rawdatadirB);
+
+toss_bad_samples = false;
 
 jobid = 'ab';
 hpc = true;
@@ -173,8 +177,6 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
     end
     
     if strcmp(optimization_method,'mcmc_slice')
-        st = compile_data('datadir',rawdatadir);
-        stB = compile_data('datadir',rawdatadirB);
         for m = 1:length(model)
             for d = 1:length(model(m).extracted);
                 ex = model(m).extracted(d);
@@ -190,7 +192,6 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                         %logposteriors{c} = -o.extracted(d).nll(burn_start:end,c) + o.extracted(d).log_prior(burn_start:end,c);
                     end
                     
-                    toss_bad_samples = true;
                     all_samples = [];
                     all_nll = [];
 
@@ -212,7 +213,7 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                     if ~model(m).joint_task_fit
                         dtbar= 2*nloglik_fcn(ex.mean_params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
                     elseif model(m).joint_task_fit
-                        
+
                         sm=prepare_submodels(model(m));
 %                         sm.model_A = o;
 %                         sm.model_A.name = '';

@@ -1,167 +1,427 @@
-close all
 clear all
+tstart=tic;
 tic
 
 cdsandbox
 %cd('~/Ma lab/Confidence theory/analysis plots/')
 
-%set(0,'DefaultLineLineWidth',1)
-set(0,'DefaultLineLineWidth','remove')
-n_bins_model = 15; %45
-n_bins_real = 10; %15
-n_samples = 1e5; % 1e7
-paramtitle=0;
 
-% model fit
-%cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations')
-cd('/Users/will/Desktop/v3_A_fmincon_feb21')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% LOAD MODEL FIT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+show_fit = true;
+if show_fit
+    % model fit
+%     cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations')
+    %cd('/Users/will/Desktop/v3_A_fmincon_feb21')
+%     cd('/Users/will/Google Drive/Ma lab/output/v3_joint_feb28')
+        cd('/Users/will/Google Drive/Will - Confidence/Presentations/cosyne')
+    load('combined_and_cleaned_POSTER_TIME.mat')
 
-%load('10_fake_model_x.mat')
-%load('fmincon_fits_x_model.mat', 'extracted')
-%load('fmincon_fits.mat', 'extracted') % d model
-%load('parameter_recovery_x_Chat.mat') % 9 fake datasets
-
-%load('4datasets.mat')
-%load('opt_g.mat')
-%load('opt_hpc_dgnoise_2000opts_1000sets.mat');
-%opt_models = {'optP_d_noise_conf'} % rename the model to its currently used name
-%load('opt_hpc_d_x_g_partial_lapse_and_no'); % 4 confidence models
-%load('1000opts_hpc_real_all_except_d_noise')
-%load('1000opts_real_hpc_lin_quad_conf')
-%load('1000opts_asym_partial_lapse_and_no_partial_lapse')
-%load('1000opts asym bounds d noise conf')
-%load('2000opts_fixed')
-%load('1stlin2test')
-%load('lin2test2')
-%load('lin2maybe.mat')
-%load('2000opts_quad2_conf')
-%load('20000opts_hpc_good_models_conf_no_d_noise')
-%load('750opts_hpc_good_models_conf_d_noise')
-%load('20000opts_lin_quad_fixed_repeat')
-%load('200opts_opt_asym_optP_d_noise_repeat')
-%load('v2_no_noise.mat')
-%load('v2_noise.mat')
-%load('v2_5models')
-%    model = m([2 3 5]);
-%    opt_models = {model.name};
-%    data_type = 'real';
-%load('v3nonoise.mat')
+    %load('v2_5models')
+    %    model = m([2 3 5]);
+    %    opt_models = {model.name};
+    %    data_type = 'real';
+    %load('v3nonoise.mat')
     %model = gen.opt;
-% load('v2_small.mat')
-%    model = model([4 1 2 3]);
-%    opt_models = {model.name};
-%    data_type = 'real';
-%load('non_overlap_d_noise.mat')
-%   opt_models = model;
-%   data_type = 'real';
-load('COMBINED_v3_A.mat')
-    dist_type = 'diff_mean_same_std';
-
-% load('newmodels_incl_freecats.mat') 
-%     data_type = 'real';
+%     load('v2_small.mat')
+%     model = model([4 1 2 3]);
+%     opt_models = {model.name};
+    %load('non_overlap_d_noise.mat')
+    %   opt_models = model;
+    %   data_type = 'real';
+    % load('COMBINED_v3_A.mat')
+    %     dist_type = 'diff_mean_same_std';
     
-%gen_stat = 'Chat';
-gen_stat = 'g';
+    % load('newmodels_incl_freecats.mat')
+    %     data_type = 'real';
+%     load('aborted_and_finished.mat')
 
-plot_model = 1 : length(opt_models) % can be one or multiple
-show_model = true;
+    plot_model = 1 : length(opt_models); % can make figs for each model or just one
+else
+    plot_model = 1;
+end
 
-
-s = -20:.1:20;
-sig1 = 3;
-sig2 = 12;
 %contrasts = exp(-4:.5:-1.5);
 contrasts = exp(linspace(-5.5,-2,6));
 
-streal = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskA')
-%streal = st; % use this if you've generated fake data in optimize
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%% PLOTTING PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%set(0,'DefaultLineLineWidth',1)
+set(0,'DefaultLineLineWidth','remove')
 
-nDatasets = length(streal.data);%length(model(1).extracted);
-%nDatasets = 1;
+nBins = 37; %15
+[bins, axis] = bin_generator(nBins);
+% [real_bins_rt, real_axis_rt] = bin_generator(n_bins_real,'binstyle','rt');
 
-[model_bins, model_axis] = bin_generator(n_bins_model);
-[real_bins, real_axis] = bin_generator(n_bins_real);
-[real_bins_rt, real_axis_rt] = bin_generator(n_bins_real,'binstyle','rt');
-
-% generate fake trials based on extracted params, bin/analyze
-for model_id = plot_model;
-    for dataset = 1 : nDatasets;
-        dataset
-        tic
-        if show_model
-            model(model_id).data(dataset).raw = trial_generator(model(model_id).extracted(dataset).best_params, opt_models(model_id),...
-                'n_samples', n_samples, 'dist_type', dist_type, 'contrasts', contrasts);%, 'model_fitting_data',streal.data(dataset).raw);
-            [model(model_id).data(dataset).stats, model(model_id).data(dataset).sorted_raw] = indiv_analysis_fcn(model(model_id).data(dataset).raw, model_bins);
-            
-            model(model_id).sumstats = sumstats_fcn(model(model_id).data); % big function that generates summary stats across subjects.
-        end
-        
-        [streal.data(dataset).stats, streal.data(dataset).sorted_raw]   = indiv_analysis_fcn(streal.data(dataset).raw, real_bins);
-        toc
-    end
-    
-    % SUMMARY STATS
-    streal.sumstats = sumstats_fcn(streal.data); % big function that generates summary stats across subjects.
-    
-end
+ori_labels = [-16 -8 -4 -2 -1 0 1 2 4 8 16]; % make sure that this isn't larger than real_axis...
+ori_label_bin_value = interp1(axis, 1:length(axis), ori_labels);
+% o_bound = [1 nBins]; % does this make any sense?????
+o_bound = [-20 20];
 
 
+show_fit = true;
+n_samples = 2160; % 1e7
+% n_bins_model = nBins; %45
+% [model_bins, model_axis] = bin_generator(n_bins_model);
 
-%%
+nPlotSamples = 30; % for MCMC fits. number of parameter values to generate datasets from. 100 might be enough.
 
-%clear all
-%close all
-
-%cd('/Users/will/Google Drive/Will - Confidence/Analysis/model fits/v2/11 bins')
-cdsandbox
+nHyperPlots = 1000; % number of times to take a random dataset from each subject. has only small effect on computation time.
+% 
+%gen_stat = 'Chat'; % plot choice and % correct
+% gen_stat = 'g'; % plot conf and % correct
+gen_stat = 'resp'; % plot choice/confidence response and % correct
 
 ms = 12; %marker size
 
+
 set(0,'defaultaxesbox','off','defaultaxesfontsize',10,'defaultlinemarkersize',ms,'defaultlinelinewidth',2)
 
+cdsandbox
 
-if ~exist('nDatasets')
-    nDatasets = length(model(1).extracted)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% LOAD REAL DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+streal.A = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskA')
+streal.B = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskB')
+%streal = st; % use this if you've generated fake data in optimize
+
+if length(streal.A.data)==length(streal.B.data) % sanity check, not foolproof.
+    nDatasets = length(streal.A.data);
+else
+    error('uh oh')
+end
+tasks = {'A','B'};
+
+hyperPlotID = [];
+for dataset = 1:nDatasets
+    hyperPlotID = [hyperPlotID randsample(nPlotSamples,nHyperPlots,'true')];
+end
+    
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% GENERATE FAKE DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% generate fake trials based on extracted params, bin/analyze
+for model_id = plot_model;
+    for dataset = 1 : nDatasets;
+        ex = model(model_id).extracted(dataset);
+        % BIN/ANALYZE REAL DATA
+        if opt_models(model_id).joint_task_fit
+            for task = 1:length(tasks)
+                [streal.(tasks{task}).data(dataset).stats, streal.(tasks{task}).data(dataset).sorted_raw] = indiv_analysis_fcn(streal.(tasks{task}).data(dataset).raw, bins);
+            end
+        else
+            [streal.data(dataset).stats, streal.data(dataset).sorted_raw]   = indiv_analysis_fcn(streal.data(dataset).raw, bins);
+        end
+
+        tic
+        if show_fit
+%             if strcmp(optimization_method,'mcmc_slice') && opt_models(model_id).joint_task_fit
+                dists = {'diff_mean_same_std','same_mean_diff_std'};
+                models = {'model_A','model_B'};
+                param_idx = {'A_param_idx','B_param_idx'};
+
+                all_p = [];
+                for c = 1:length(ex.p)
+                    all_p = cat(1,all_p,ex.p{c});
+                end
+                sample_ids = randsample(size(all_p,1),nPlotSamples); % pick random parameter samples
+
+                submodels(model_id) = prepare_submodels(opt_models(model_id));
+                for task = 1:length(tasks)
+                    for s = 1:nPlotSamples
+                        task_id=tasks{task};
+                        model(model_id).(task_id).data(dataset).sample(s).p = all_p(sample_ids(s),submodels(model_id).(param_idx{task}))';
+                        model(model_id).(task_id).data(dataset).sample(s).raw = trial_generator(model(model_id).(task_id).data(dataset).sample(s).p, submodels(model_id).(models{task}),...
+                            'n_samples', n_samples, 'dist_type', dists{task}, 'contrasts', contrasts, 'model_fitting_data',streal.(task_id).data(dataset).raw);
+                        % BIN/ANALYZE FAKE DATA
+                        [model(model_id).(task_id).data(dataset).sample(s).stats, model(model_id).(task_id).data(dataset).sample(s).sorted_raw] = indiv_analysis_fcn(model(model_id).(task_id).data(dataset).sample(s).raw, bins);
+                       % model(model_id).(task_id).data(dataset).sample(s).raw = [];
+                    end
+                end
+%             else
+%                 % GENERATE FAKE DATA
+%                 model(model_id).data(dataset).raw = trial_generator(ex.best_params, opt_models(model_id),...
+%                     'n_samples', n_samples, 'dist_type', dist_type, 'contrasts', contrasts);%, 'model_fitting_data',streal.data(dataset).raw);
+%                 % BIN/ANALYZE FAKE DATA
+%                 [model(model_id).data(dataset).stats, model(model_id).data(dataset).sorted_raw] = indiv_analysis_fcn(model(model_id).data(dataset).raw, model_bins);
+%             end
+        end
+        toc
+        (5*(model_id-1)+dataset)/25
+    end
+    
+    if strcmp(optimization_method,'mcmc_slice') && opt_models(model_id).joint_task_fit
+        for task = 1:length(tasks)
+            task_id=tasks{task};
+
+            % SUMMARIZE REAL DATA ACROSS SUBJECTS
+            streal.(task_id).sumstats = sumstats_fcn(streal.(task_id).data);
+            if show_fit
+                % SUMMARIZE DATA ACROSS SAMPLES
+                for dataset = 1:nDatasets % not using this?
+                    model(model_id).(task_id).data(dataset).sumstats = sumstats_fcn(model(model_id).(task_id).data(dataset).sample); 
+                end
+                
+                fields = {'tf','resp','g','Chat'};
+                for f = 1:length(fields)
+                    model(model_id).(task_id).hyperplot.md.(fields{f}) = [];
+                end
+                 % initialize hyperplots
+                for h = 1:nHyperPlots % load up many hyperplots of averages of combinations of fake datasets
+                    for dataset = 1:nDatasets
+                        model(model_id).(task_id).hyperplotdata(dataset) = model(model_id).(task_id).data(dataset).sample(hyperPlotID(h,dataset));
+                    end
+                    sumstats = sumstats_fcn(model(model_id).(task_id).hyperplotdata); % don't keep everything.
+                    for f = 1:length(fields)
+                        model(model_id).(task_id).hyperplot.md.(fields{f}) = cat(3,model(model_id).(task_id).hyperplot.md.(fields{f}),sumstats.all.mean.(fields{f}));
+                    end
+                end
+                % mean and std hyperplot
+                for f = 1:length(fields)
+                    model(model_id).(task_id).hyperplot.mean.(fields{f}) = mean(model(model_id).(task_id).hyperplot.md.(fields{f}),3);
+                    model(model_id).(task_id).hyperplot.std.(fields{f}) = std(model(model_id).(task_id).hyperplot.md.(fields{f}),0,3);
+                end
+            end
+        end
+    else
+        % SUMMARIZE REAL DATA ACROSS SUBJECTS
+        streal.sumstats = sumstats_fcn(streal.data);
+        if show_fit
+            % SUMMARIZE DATA ACROSS FITTED DATASETS. hyperplot
+            model(model_id).sumstats = sumstats_fcn(model(model_id).data);
+        end
+    end
+    
+end
+% %%
+% tasks = {'A','B'};
+% outputs = {'tf','resp','g','Chat'};
+% yl = [0 1;1 8;1 4;0 1];
+% 
+% for o = 1:length(outputs)
+%     figure(o);
+%     clf
+%     for m = 1:5
+%         for t = 1:2
+%             tight_subplot(2,5,t,m);
+%             hyperplot = model(m).(tasks{t}).hyperplot;
+%             for c=1:6
+%                 errorbar(1:nBins, hyperplot.mean.(outputs{o})(c,:), hyperplot.std.(outputs{o})(c,:));
+%                 set(gca,'xtick', ori_label_bin_value,'xticklabel',ori_labels,'ylim',yl(o,:),'xlim',[0 nBins+1])
+%                 hold on
+%             end
+%         end
+%     end
+% end
+return
+%%
+
+cd('/Users/will/Google Drive/Will - Confidence/Presentations/cosyne')
+load cosyne_poster_hyperplots
+
+%% MODEL FITS FOR ALL SUBJECTS
+
+set(0,'defaultaxesfontsize',12,'defaultaxesfontname','Helvetica Neue')
+hhh = hot;
+%contrast_colors = hhh([6 30 40],:)%hhh(round(linspace(5,40,3)),:); % black to orange indicate high to low contrast
+contrast_colors = [[[20 45 5]];...
+    [[120 180 90]-12];...
+    [[217 232 217]-60]]/256;
+yl = [0 1;1 8;1 4;0 1];
+outputs = {'tf','resp','g','Chat'};
+x = [1:nBins fliplr(1:nBins)];
+alpha = .5;
+models = [5 4 3 1 2];
+model_names = {'Linear','Fixed','Bayes_{Free}','Bayes_{Sym}','Bayes_{Sym,Joint}'};
+
+figure(5)
+clf
+active_contrasts = [6];
+
+for o = 2
+    for m = 1:5
+        model_id = models(m);
+        for t = 1:2
+            task_id = tasks{t};
+            hyperplot = model(model_id).(tasks{t}).hyperplot;
+
+            tight_subplot(3,6,t+1,1+m,[.042 .016]);
+            loopvar = 0;
+            for c=active_contrasts
+                loopvar = loopvar+1;
+                errorbar(1:nBins, streal.(task_id).sumstats.all.mean.(outputs{o})(c,:), streal.A.sumstats.all.edgar_sem.(outputs{o})(c,:), 'color',contrast_colors(loopvar,:),'linewidth',1.5);
+                hold on
+                
+                y = [hyperplot.mean.(outputs{o})(c,:)        + hyperplot.std.(outputs{o})(c,:), ...
+                    fliplr(hyperplot.mean.(outputs{o})(c,:)) - hyperplot.std.(outputs{o})(c,:)];
+                f = fill(x,y,contrast_colors(loopvar,:));
+                set(f,'edgecolor','none','facealpha',alpha);
+                    
+                                
+            end
+            set(gca,'xtick', ori_label_bin_value,'xticklabel',ori_labels,'ylim',yl(o,:),'xlim',[0 nBins+1],'box','off','tickdir','out','ticklength',[.025 .2],'yticklabel','')
+% 
+%             % model fits as fill
+            if t==1
+% %                 title(model_names{model_id})
+                set(gca,'xticklabel','')
+% %                 set(gca,'yticklabel','')
+% 
+%             elseif t==2
+% %                 xlabel('stimulus orientation')
+%                 if m ==1
+% %                     ylabel('category and confidence response, Task B')
+%                 else
+%                     set(gca,'yticklabel','')
+%                 end
+% 
+            end
+        end
+    end
+end
+set(gcf,'position',[870 34 1656 783]);
+%% model comparison square grid
+
+%close all
+figure(1)
+clf
+% set(gcf,'position',[440 322 402 476])
+set(0,'defaultaxesfontsize',12,'defaulttextinterpreter','none','defaultaxesfontname','Helvetica Neue')
+
+nModels = length(model);
+nDatasets = length(model(1).extracted);
+dic = nan(nDatasets,nModels);
+for m = 1:nModels
+    for d = 1:nDatasets
+        dic(d,m) = model(m).extracted(d).dic;
+    end
+end
+models = [5 4 3 1 2];
+model_names = {'Linear','Fixed','Bayes_{Free}','Bayes_{Sym}','Bayes_{Sym,Joint}'}; % these correspond with model(1:5)
+[~,sort_idx] = sort(mean(dic,2)); % sort by best overall fit subject
+dic = dic(sort_idx,models);
+
+i=imagesc(dic);
+for m = 1:nModels
+    for d = 1:nDatasets
+        t=text(m+.475,d+.45,num2str(dic(d,m),'%.0f'),'fontsize',13,'horizontalalignment','right');
+        if d>=2, set(t,'color','white'), end
+    end
+end
+pbaspect([nModels nDatasets 1])
+set(gca,'box','on','xaxislocation','top','xtick',1:5,'xticklabel',{model_names{models}},'ticklength',[0 0],'linewidth',1,'ytick',1:nDatasets)
+ylabel('Subject','interpreter','none')
+
+c=colorbar;
+colorsteps = 256;
+colormap(flipud(gray(colorsteps)));
+ticks=11000:2000:15000;
+set(c,'ydir','reverse','box','on','ticklength',.035,'linewidth',1,'ticks',ticks,'ticklabels',{'11000','13000','15000'});
+
+
+% mark best and worse with checks and crosses
+rrr = [1 0 0];
+ggg = [0 1 .1];
+greenredmap = [linspace(ggg(1),rrr(1),colorsteps)' linspace(ggg(2),rrr(2),colorsteps)' linspace(ggg(3),rrr(3),colorsteps)'];
+[~,best_idx]=min(dic');
+[~,worst_idx]=max(dic');
+
+divisor = 60; % set size of crosses/checks
+xpatchx=[15 5 11 21 31 37 27 37 31 21 11 5]/divisor;
+margin = (1-max(xpatchx)+min(xpatchx))/2;
+shift = margin-min(xpatchx);
+xpatchx=xpatchx+shift;
+xpatchy=[21 11 5 15 5 11 21 31 37 27 37 31]/divisor+shift;
+
+vpatchx=[16 3 9 16 32 39]/divisor;
+margin= (1-max(vpatchx)+min(vpatchx))/2;
+shift = margin-min(vpatchx);
+vpatchx=vpatchx+shift;
+vpatchy=[39 26 20 26 10 17]/divisor;
+margin= (1-max(vpatchy)+min(vpatchy))/2;
+shift = margin-min(vpatchy);
+vpatchy=vpatchy+shift;
+
+crosses = zeros(1,nDatasets);
+checks = zeros(1,nDatasets);
+for subject = 1:nDatasets
+    crosses(subject) = patch(worst_idx(subject)-.5+xpatchx, subject-.5+xpatchy,'k');
+    checks(subject)  = patch(best_idx(subject)-.5 +vpatchx, subject-.5+vpatchy,'k');
+end
+set(crosses,'facecolor',[.6 0 0],'edgecolor','w','linewidth',1)
+set(checks,'facecolor',[0 .6 0],'edgecolor','w','linewidth',1)
+
+
+
+%% model comparison bar plot
+
+cd('/Users/will/Google Drive/Will - Confidence/Presentations/cosyne')
+load('combined_and_cleaned_POSTER_TIME.mat')
+
+best
+dic_delta = dic_sorted-repmat(min(dic_sorted,[],2),1,5);
+%%
+bar(-dic_delta','barwidth',.75)
+nModels = 5;
+nSubjects = 5;
+inter_group_gutter=.2;
+intra_group_gutter= 0.02;
+barwidth = (1 - inter_group_gutter - (nDatasets-1)*intra_group_gutter)/nDatasets;
+figure(2)
+clf
+for i = 1:20
+    p=plot([.5 5.5],[-i*100 -i*100],'color',[.8 .8 .8],'linewidth',.8)
+    uistack(p,'top')
+    hold on
 end
 
-% big plot loop! %%%%%%%%
+for m = 1:nModels
+    for d = 1:nDatasets
+        start = m-.5*(1-inter_group_gutter) + (barwidth+intra_group_gutter)*(d-1);
+        f=fill([start start+barwidth start+barwidth start], [0 0 -dic_delta(d,m) -dic_delta(d,m)],'black','EdgeColor','none');
+        hold on
+    end
+end
+        
+set(gca,'ticklength',[0 0],'box','off','xtick',1:nModels,'xticklabel',{'Bayes_{Sym, Joint}','Bayes_{Sym}','Bayes_{Free}','Linear','Fixed'},...
+    'xaxislocation','top','fontweight','bold','fontname','Helvetica Neue','ytick',-2000:500:0,'ylim',[-2000 0])
+set(gcf,'position',[1693 345 645 392])
 
+
+
+%% big monster plot loop
 trial_types = fieldnames(streal.data(1).stats);
 trial_type_names = {'all trials','correct trials','incorrect trials','$\hat{C}=-1$ trials', '$\hat{C}=1$ trials', '$C=-1$ trials', '$C=1$ trials', 'trials after $\hat{C}=-1$', 'trials after $\hat{C}=1$'};
 file_names = {'all','correct','incorrect','Chat_-1','Chat_1','C_-1','C_1','after_Chat_-1','after_Chat_1'};
 
 switch gen_stat
+    case 'resp'
+        stats_over_s = {'Chat1_prop'; 'percent_correct'; 'resp_mean'};
+        stats_over_c = {'Chat1_prop_over_c_and_g'; 'percent_correct_over_c_and_g'; 'resp_mean_over_c_and_Chat'};
+        ylabels = {'Prop. $\hat{C}=-1$'; 'percent correct'; '$\langle\gamma\rangle$'};
+        ylims = [0 1; 0 1; 1 8];
+        
     case 'g'
         stats_over_s = {'Chat1_prop'; 'percent_correct'; 'g_mean'};
         stats_over_c = {'Chat1_prop_over_c_and_g'; 'percent_correct_over_c_and_g'; 'g_mean_over_c_and_Chat'};
         ylabels = {'Prop. $\hat{C}=-1$'; 'percent correct'; '$\langle\gamma\rangle$'};
-        ylabel_y = [-.6; -.7; -.3]; % not necessary
         ylims = [0 1; 0 1; 1 4];
-        switch data_type
-            case 'real'
-                paths = {'/Users/will/Google Drive/Will - Confidence/Analysis/model fits/v2/opt', '/Users/will/Google Drive/Will - Confidence/Analysis/model fits/v2/fixed','/Users/will/Google Drive/Will - Confidence/Analysis/model fits/v2/lin','/Users/will/Google Drive/Will - Confidence/Analysis/model fits/v2/quad'};
-                nRows = 6;
-            case 'fake'
-                paths = {'/Users/will/Google Drive/Will - Confidence/Analysis/model fits/model g fits fake data D MODEL', '/Users/will/Google Drive/Will - Confidence/Analysis/model fits/model g fits fake data X MODEL'};
-                nRows = 7;
-        end
         
     case 'Chat'
         stats_over_s = {'Chat1_prop'; 'percent_correct'};
         stats_over_c = {'Chat1_prop_over_c'; 'percent_correct_over_c'};
         ylabels = {'Prop. $\hat{C}=-1$'; 'percent correct'};
-        ylabel_y = [-.55; -.65]; % not necessary
         ylims = [0 1; 0.5 1];
-        switch data_type
-            case 'real'
-                paths = {'/Users/will/Google Drive/Will - Confidence/Analysis/model fits/model Chat fits real data D MODEL', '/Users/will/Google Drive/Will - Confidence/Analysis/model fits/model Chat fits real data X MODEL'};
-                nRows = 4;
-            case 'fake'
-                paths = {'/Users/will/Google Drive/Will - Confidence/Analysis/model fits/model Chat fits fake data D MODEL', '/Users/will/Google Drive/Will - Confidence/Analysis/model fits/model Chat fits fake data X MODEL'};
-                nRows = 5;
-        end
 end
-if show_model
+
+nRows = 2*length(stats_over_s);
+if show_fit
     nRows = nRows + 1;
 end
 
@@ -176,99 +436,34 @@ sss = summer;
 confidence_colors = [sss(round(linspace(55,15,3)),:); 0 .2 0]; % yellow to dark green indicate low to high confidence
 Chat_colors = [0 .4 .8; .8 0 .8];
 
-%fpos = [91 -899 1395 1705; 1486 -899 1395 1705];
-
 for model_id = plot_model
-%for mmm = 1:3;
-%    model_id = plot_model(mmm)
     %cd(paths{model_id})
-figure(model_id)
+    figure(model_id)
     for type = 1 %: length(trial_types)
-        switch data_type
-            case 'fake'
-                set(gcf, 'position', [76 -899 1402 1705]) % this also opens a new fig
-            case 'real'
-                
                 set(gcf,'position',[78 1 350*nDatasets 1705]) % [ULx ULy w h]
-        end
-
-        for dataset = 1 : nDatasets
-            switch data_type
-                case 'real'
-                    if show_model
-                        p_title = model(model_id).extracted(dataset).best_params;
-                    end
-                case 'fake'
-                    p_title = p(:,dataset); % true p
-            end
-            if show_model
-                p = parameter_variable_namer(p_title, opt_models(model_id).parameter_names, opt_models(model_id));
-               % subplot(nRows,length(plot_model),mmm)
-               subplot(nRows,nDatasets,dataset) 
-               
-                switch data_type
-                    case 'fake'
-                        bar([p(:,dataset) model(model_id).extracted(dataset).best_params] ./ repmat(p(:,dataset),1,2), 'grouped')% normalize to true parameter
-                        if dataset == 1
-                            ylabel('norm. parameter extraction (red)')
-                        end
-                        %lhbar = legend('true (normalized)','extracted (normalized)')
-                        if paramtitle
-                            title(sprintf('true params:\n%s', p.t_str));
-                        end
-                        subplot(nRows, nDatasets, nDatasets + dataset); % put contrast plot on next line
-                        contrast_fit_plot(p.sigma_c_low, p.sigma_c_hi, p.beta) % regular plot with true params
-                        
-                        sigma_c_low_extracted = model(model_id).extracted(dataset).best_params(1);
-                        sigma_c_hi_extracted = model(model_id).extracted(dataset).best_params(2);
-                        beta_extracted = model(model_id).extracted(dataset).best_params(3);
-                        
-                        contrast_fit_plot(p.sigma_c_low_extracted, sigma_c_hi_extracted, beta_extracted,'color','r') % red stars to indicate extracted params
-                        ylabel('contrast fitting (blue is true, red is extracted)');
-                    case 'real'
-                        contrast_fit_plot(p.sigma_c_low, p.sigma_c_hi, p.beta,'yl',[0 110])
-                        if paramtitle
-                            title(sprintf('%s\n%s', upper(streal.data(dataset).name), p.t_str));
-                        end
-                end
-                
-                % old style contrast
-                %sig = sqrt(p.sigma_0^2 + p.alpha * fliplr(contrasts) .^ -p.beta); % i've messed this up for fake data, I think
-                % new style contrast
-                c_low = min(contrasts);
-                c_hi = max(contrasts);
-                alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
-                sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta); % low to high sigma. should line up with contrast id
-
-            end
-            
         
+        for dataset = 1 : nDatasets            
             for stat = 1 : length(stats_over_s)
-                switch data_type
-                    case 'fake'
-                        subplot(nRows,nDatasets, nDatasets * 2 + (stat-1) * nDatasets * 2 + dataset) % do somethingg with show_model here?
-                    case 'real'
-                        %subplot(nRows,length(plot_model), show_model*length(plot_model) + (stat-1) * length(plot_model) * 2 + mmm)
-                        subplot(nRows,nDatasets,show_model*nDatasets + (stat - 1) * nDatasets * 2 + dataset)
-                end
+                subplot(nRows,nDatasets,show_fit*nDatasets + (stat - 1) * nDatasets * 2 + dataset)
                 
                 set(0,'DefaultAxesColorOrder', contrast_colors)
                 
-                if show_model
-                    plot(model_axis, model(model_id).data(dataset).stats.(trial_types{type}).(stats_over_s{stat}))
+                if show_fit
+                    plot(1:n_bins_model, model(model_id).data(dataset).stats.(trial_types{type}).(stats_over_s{stat}))
                     hold on
-                    plot(real_axis, streal.data(dataset).stats.(trial_types{type}).(stats_over_s{stat}), '.')
+                    plot(1:n_bins_real, streal.data(dataset).stats.(trial_types{type}).(stats_over_s{stat}), '.')
                 else
-                    plot(real_axis, streal.data(dataset).stats.(trial_types{type}).(stats_over_s{stat}), '-')
+                    plot(1:n_bins_real, streal.data(dataset).stats.(trial_types{type}).(stats_over_s{stat}), '-')
                     hold on
                 end
+                set(gca,'xtick', ori_label_bin_value,'xticklabel',ori_labels)
                 
                 if stat == 2 % plot chance line for % correct plots
-                    plot([s(1) s(end)], [.5 .5], 'b--')
+                    plot(o_bound, [.5 .5], 'b--')
                 end
                 
                 ylim(ylims(stat,:))
-                xlim([-20 20])
+                xlim(o_bound)
                 xlabel('stimulus (°)')
                 if dataset == 1
                     %text(-.3, ylabel_y(stat), ylabels{stat},'units','normalized','rotation',90,'interpreter','latex','fontsize',17)
@@ -282,25 +477,18 @@ figure(model_id)
                     lh=legend(legarray); % this works best if you plot model data first, so that it shows the lines rather than the dots in the legend. also, have to position the figure before you do this.
                     pp=get(lh,'position');
                     set(lh,'position',pp+[pp(3)+.01 0 0 0]); % move x position by width plus a little bit
-
+                    
                 end
                 
                 
-                switch data_type
-                    case 'fake'
-                        subplot(nRows, nDatasets, nDatasets * 3 + (stat - 1) * nDatasets * 2 + dataset); % do something with show_model here?
-
-                    case 'real'
-                        %subplot(nRows, length(plot_model), length(plot_model) * (show_model+1) + (stat - 1) * length(plot_model) * 2 + mmm);
-                        subplot(nRows, nDatasets, nDatasets * (show_model + 1) + (stat - 1) * nDatasets * 2 + dataset);
-                end
+                subplot(nRows, nDatasets, nDatasets * (show_fit + 1) + (stat - 1) * nDatasets * 2 + dataset);
                 
                 set(0,'DefaultAxesColorOrder', confidence_colors);
                 if stat == 3
                     set(0, 'DefaultAxesColorOrder', Chat_colors);
                 end
                 
-                if show_model
+                if show_fit
                     semilogx(contrasts, model(model_id).data(dataset).stats.(trial_types{type}).(stats_over_c{stat}));
                     hold on
                     h=semilogx(contrasts, streal.data(dataset).stats.(trial_types{type}).(stats_over_c{stat}), '.');
@@ -308,7 +496,7 @@ figure(model_id)
                     h=semilogx(contrasts, streal.data(dataset).stats.(trial_types{type}).(stats_over_c{stat}), '-');
                     hold on
                 end
-
+                
                 if dataset == nDatasets
                     if stat == 3
                         lh = legend('$\hat{C}=-1$', '$\hat{C}=1$');
@@ -324,24 +512,22 @@ figure(model_id)
                     curxlim = get(gca,'xlim');
                     plot(curxlim, [.5 .5], 'b--');
                 end
-
+                
                 
                 ylim(ylims(stat,:));
-                xlim([c_low-.001 c_hi+.03]); % THIS MIGHT BE A PROBLEM?
+                xlim([min(contrasts)-.001 max(contrasts)+.03]); % THIS MIGHT BE A PROBLEM?
                 set(gca, 'xtick', contrasts);
                 set(gca, 'xticklabel', round(contrasts*1000)/10);
                 xlabel('contrast (%)');
             end
             
         end
-        [~,t]=suplabel(sprintf('%s\n%s', trial_type_names{type}, opt_models(model_id).name),'t');
-        %set(t, 'interpreter', 'latex', 'fontsize', 15);
         
         %export_fig(sprintf('%s.pdf',file_names{type}),'-transparent')
         %close(gcf)
     end
     %cd(paths{model_id})
-   % export_fig(sprintf('%s.pdf',opt_models{model_id}),'-transparent')
+    % export_fig(sprintf('%s.pdf',opt_models{model_id}),'-transparent')
     
 end
 return
@@ -352,10 +538,10 @@ figure
 set(gcf,'position',[88 334 1218 472])
 
 summary = 1;
-    plot_contrasts = [1 2 3 6];
-    stat_mean = {'Chat1_prop_mean', 'g_mean'};
-    stat_sem = {'Chat1_prop_sem','g_sem'};
-    alpha = .5;
+plot_contrasts = [1 2 3 6];
+stat_mean = {'Chat1_prop_mean', 'g_mean'};
+stat_sem = {'Chat1_prop_sem','g_sem'};
+alpha = .5;
 dataset=1;
 
 hhh=hot;
@@ -456,29 +642,29 @@ for subject = 1:11
         lnp(:,conf,subject) = lognfit(rt(g==conf));
         means(subject,conf) = mean(rt(g==conf));
         %vars(subject,conf) = var(rt(g==conf));
-    end        
+    end
     for r=1:8
         means_r(subject,r) = mean(rt(resp==r));
     end
-%     [x,idx]=sort(streal.data(subject).raw.g);
-%     y=streal.data(subject).raw.rt(idx);
-%     plot(x,y,'.','markersize',2)
-%     xlim([0 5])
-%     set(gca,'xtick',1:4,axes_defaults)
-%     [p,s,mu]=polyfit(x,y,1);
-%     yfit = polyval(p,x);
+    %     [x,idx]=sort(streal.data(subject).raw.g);
+    %     y=streal.data(subject).raw.rt(idx);
+    %     plot(x,y,'.','markersize',2)
+    %     xlim([0 5])
+    %     set(gca,'xtick',1:4,axes_defaults)
+    %     [p,s,mu]=polyfit(x,y,1);
+    %     yfit = polyval(p,x);
     % yresid = y - yfit;
     % SSresid = sum(yresid.^2);
     % SStotal = (length(y)-1) * var(y);
     % rsq = 1 - SSresid/SStotal
     %[p,table,stats]=anova1(y,x);
-%     hold on
-%     plot(x,yfit,'k-')
+    %     hold on
+    %     plot(x,yfit,'k-')
     %mdl = fitlm(g,rt);
     %plot(mdl)
-%     ylim([0 8]);
-%     xlabel('confidence rating')
-%     ylabel('rt (s)')
+    %     ylim([0 8]);
+    %     xlabel('confidence rating')
+    %     ylabel('rt (s)')
 end
 
 % gam_a = nanmean(gamp(1,:,:),3);
@@ -592,9 +778,9 @@ for c = 1:6
             raw=streal.data(3).sorted_raw.all{c};
             idx = find(raw.Chat == Chat & raw.g == g);
             plot(raw.s(idx), ones(1,length(idx))*contrasts(7-c)+contrasts(7-c)*.07*randn(1,length(idx)), '.', 'color',colors(Chat*g+5 - Chat/2 - 0.5,:),'markersize',6);
-%             for i = 1:length(idx)
-%                 patch((sin(t)+raw.s(idx(i))),(cos(t)+contrasts(7-c)),colors(Chat*g+5-Chat/2-0.5),'edgecolor','none')
-%             end
+            %             for i = 1:length(idx)
+            %                 patch((sin(t)+raw.s(idx(i))),(cos(t)+contrasts(7-c)),colors(Chat*g+5-Chat/2-0.5),'edgecolor','none')
+            %             end
         end
     end
 end
@@ -616,7 +802,7 @@ for dataset = 1:nDatasets
     h1{dataset}=hist(streal.data(dataset).raw.resp,1:8);
     %ylim([0 1200])
 end
-    
+
 h2=cell(nDatasets,1);
 for dataset = 1 : nDatasets
     for r = 1 : resp_levels;
@@ -651,7 +837,7 @@ for dataset = 1 : nDatasets
     d = conv(sum(h2{dataset},2), [1 1 1]);
     d = d(2:end-1);
     three_neighbors = three_neighbors./d;
-
+    
     
     two_neighbors = [0;diag(h2{dataset},1)]+[diag(h2{dataset},-1);0]
     d = conv(sum(h2{dataset},2), [1 0 1]);
@@ -664,7 +850,7 @@ for dataset = 1 : nDatasets
         dsame(r) = sum(sum(h2{dataset}(setdiff(1:4,r),:)));
         rsame(r+4)=sum(h2{dataset}(setdiff(5:8,r+4),r+4));
         dsame(r+4)=sum(sum(h2{dataset}(setdiff(5:8,r+4),:)));
-    
+        
         rdiff(r) = sum(h2{dataset}(5:8,r));
         ddiff(r) = sum(sum(h2{dataset}(5:8,:)));
         rdiff(r+4)=sum(h2{dataset}(1:4,r+4));
@@ -677,7 +863,7 @@ for dataset = 1 : nDatasets
     %tmp1 = h2{dataset}(1:4,5:8);
     %tmp2 = h2{dataset}(5:8,1:4);
     %diff_c = [sum(tmp1)/sum(sum(tmp1)) sum(tmp2)/sum(sum(tmp2))];
-
+    
     
     plot(1:resp_levels, same_c_diff_g, 'r-o')
     plot(1:resp_levels, diff_c, 'g-o')
@@ -689,10 +875,10 @@ for dataset = 1 : nDatasets
         lh=legend('$p(r_i=r)$','$p(r_i=r|r_{i-1}=r)$','$p(r_i=r|\hat{C}_{i-1}=\hat{C}_i,\gamma_{i-1}\neq\gamma_i)$','$p(r_i=r|\hat{C}_{i-1}\neq\hat{C}_i)$','$p(r_i=r|r_{i-1}\in\{r-1,r,r+1\}$','$p(r_i=r|r_{i-1}\in\{r-1,r+1\}$')
         p = get(lh,'position')
         set(lh,'interpreter','latex','location','south')%'position',[p(1)+p(3) p(2) p(3) p(4)])
-    legend('boxoff')
+        legend('boxoff')
     end
 end
-    
+
 %% connection lines
 %close all
 figure
@@ -716,7 +902,7 @@ for dataset = 1:nDatasets
                 l=ylabel('r_i');
                 set(gca,'yaxislocation','right','ytick',1:8);
             end
-            axis square
+%             axis square
         end
     end
 end
@@ -784,7 +970,7 @@ for dataset = 1 : nDatasets
     if dataset == 1
         ylabel('mean confidence');
     end
-
+    
 end
 %% just look at % correct vs contrast, to see if the contrast/eccentricity levels are good. can run this cell alone
 clear all
@@ -794,7 +980,7 @@ st(1) = compile_data('datadir', '/Users/will/Ma lab/repos/qamar confidence/data/
 training(1).tf = [.71 .75 .73 .69]; % calculated manually
 st(2) = compile_data('datadir', '/Users/will/Ma lab/repos/qamar confidence/data/');
 training(2).tf = [.75 .68 .77]; % calculated manually
-nRows = length(st); 
+nRows = length(st);
 
 for row = 1 : nRows
     contrasts = fliplr(st(row).data(1).raw.contrast_values);
@@ -854,7 +1040,7 @@ for model_id = 1 : length(models);
     ylim([0 1])
     ylabel('$p(\hat{C}=-1|s)$','interpreter','latex')
     xlabel('$s$', 'interpreter', 'latex')
-
+    
     title(sprintf('model %s', models{model_id}))
 end
 lh=legend(h,legarray,'interpreter','latex');
@@ -904,7 +1090,7 @@ for model_id = 1 : nOptModels;
         else
             xlabel('orientation $s$ ($^\circ$)','interpreter','latex')
         end
-            
+        
         if model_id~=1
             set(gca,'yticklabel','')
         end
@@ -936,8 +1122,8 @@ set(gcf,'position',[95 921 727 461]);
 %set(lobjs([2:2:8]), 'facealpha', alpha)
 %set(gcf, 'position', [1160 1361 908 337])
 %export_fig('sumstats_g.svg','-transparent','-m2')
-        
-        
+
+
 %% compare sigma-c fit for fake and extracted p
 % f1=figure(1);
 % set(f1,'position',[1441 1 1390 805]);
@@ -1143,3 +1329,77 @@ plot(x,y,'linewidth',2)
 xlabel('Miss rate')
 ylabel('Hit rate')
 
+
+%%
+set(0,'defaultaxesfontsize',12,'defaulttextinterpreter','none','defaultaxesfontname','Helvetica Neue')
+
+%mean of responses at contrast/orientation bins
+% datadirs={'/Users/will/Google Drive/Will - Confidence/Data/v3/taskA/','/Users/will/Google Drive/Will - Confidence/Data/v3/taskB/'};
+tasks = {'A','B'};
+% bins = 13;
+im = cell(2,1);
+sort_idx = [4 1 2 5 3]; % sorted from best to worst fit.
+for t = 1:2
+%     st = compile_data('datadir',datadirs{t});
+%     st.data = st.data(sort_idx);
+%     [real_bins, real_axis] = bin_generator(bins,'task',tasks{t});
+%     real_bins = [-Inf real_bins Inf];
+%             im{t} = zeros(6,bins,5);
+
+    for d = 1:5
+        
+%         raw = st.data(d).raw;
+%         for c = 1:6
+%             c_idx = raw.contrast_id==c;
+%             for b = 1:bins
+%                 idx = raw.s > real_bins(b) & raw.s < real_bins(b+1);
+%                 joint_idx = idx & c_idx;
+%                 n=hist(raw.resp(joint_idx),8);
+%                 im{t}(c,b,d)=mean(raw.resp(joint_idx));
+%             end
+%         end
+%         imagesc(flipud(im{t}(:,:,d)));
+        tight_subplot(4,7,1+t,1+d,[.026 .0085])       
+        matrix = model(d).(tasks{t}).hyperplot.mean.resp;%(:,3:end-2);
+        if t==1
+            matrix(:,[1:2 end-1:end])=4.5;
+        end
+        imagesc(flipud(matrix)) % models instead of datasets
+        
+        load('MyColorMaps')
+        colormap(confchoicemap)
+        caxis([1 8 ])
+        set(gca,'xticklabel',round(real_axis(1:2:end)),'xtick',1:2:bins,'ytick',[1 6],'yticklabel',{'low','high'},'box','off','tickdir','out','ticklength',[.02 .02])
+        set(gca,'xtick',1:4:nBins)
+        if t==1
+%             title(sprintf('subject %i',d))
+            set(gca,'xticklabel','')
+            if d==1
+%                 ylabel('contrast')
+            else
+                set(gca,'yticklabel','')
+            end
+        else
+            set(gca,'xticklabel','')
+            if d==1
+%                 ylabel('contrast')
+            else
+                set(gca,'yticklabel','')
+            end
+        end
+        set(gca,'yticklabel','')
+        set(gca,'linewidth',1)
+        pause(.1)
+    end
+%     tight_subplot(4,7,1+t,7,[.026 .0085]) % for average subject
+%     imagesc(flipud(mean(im{t},3))); % for average subject
+    
+%     load('MyColorMaps')
+%     colormap(confchoicemap)
+%     caxis([1 8 ])
+%         set(gca,'xticklabel','','xtick',1:2:bins,'ytick',[1 6],'yticklabel','','box','off','tickdir','out','ticklength',[.02 .02])
+%         set(gcf,'position',[1329,288,1520,701])
+
+end
+
+%% mean parameter values

@@ -22,6 +22,15 @@ if ~m.joint_d
     
     submodel_struct.model_A = parameter_constraints(submodel_struct.model_A);
     submodel_struct.model_B = parameter_constraints(submodel_struct.model_B);
+else
+    [submodel_struct.nonbound_param_idx, submodel_struct.A_bound_param_idx, submodel_struct.B_bound_param_idx] = deal(nan); % not necessary for joint model
+    
+    if ~all(size(submodel_struct.model_A.parameter_names)==size(submodel_struct.model_B.parameter_names))
+        error ('uh oh, we have a problem') % sanity check
+    end
+    
+    [submodel_struct.A_param_idx, submodel_struct.B_param_idx] = deal(true(size(submodel_struct.model_A.parameter_names)));
+    
 end
 
 submodel_struct.joint_d = m.joint_d;
