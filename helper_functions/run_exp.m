@@ -1,4 +1,4 @@
-function [responses, flag, blockscore] = run_exp(n, R, t, scr, color, P, type, blok, new_subject_flag, task_letter, first_task_letter, varargin)
+function [responses, flag, blockscore] = run_exp(n, R, t, scr, color, P, type, blok, new_subject_flag, task_str, final_task, varargin)    
 
 if length(varargin) == 1
     R2 = varargin{1};
@@ -18,16 +18,18 @@ try
     
     for section = 1:n.sections
         for trial = 1:n.trials
-            Screen('DrawTexture', scr.win, scr.cross);
-            t0 = Screen('Flip', scr.win);
-            %             WaitSecs(t.betwtrials/1000);
             
             stim = struct;
             stim(1).ort = R.draws{blok}(section, trial);        %orientation
             stim(1).cur_sigma = R.sigma{blok}(section, trial);  %contrast
             stim(1).phase = R.phase{blok}(section, trial);      %phase (not needed by ellipse)
-            
-            if attention_manipulation
+
+            Screen('DrawTexture', scr.win, scr.cross);
+            t0 = Screen('Flip', scr.win);
+
+            if ~attention_manipulation
+                WaitSecs(t.betwtrials/1000);
+            elseif attention_manipulation 
                 stim(2).ort = R2.draws{blok}(section, trial);
                 stim(2).cur_sigma = R2.sigma{blok}(section, trial);
                 stim(2).phase = R2.phase{blok}(section, trial);
@@ -39,7 +41,6 @@ try
                     Screen('DrawTexture', scr.win, scr.cueR);
                 end
                 t_cue = Screen('Flip', scr.win, t0 + t.betwtrials/1000);
-                %                 WaitSecs(t.attention_cue/1000);
                 Screen('DrawTexture', scr.win, scr.cross);
                 t_cue_off = Screen('Flip', scr.win, t_cue + t.cue_dur/1000);
                 
@@ -162,14 +163,14 @@ try
         if section ~= n.sections
             [~,scorereport]=calcscore(responses,n.trials);
             if strcmp('Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
-                midtxt = sprintf('Very good! You got %s\n\nYou have completed\n\n%s of Task %s Category Training.',scorereport,fractionizer(section,n.sections), task_letter);
+                midtxt = sprintf('Very good! You got %s\n\nYou have completed\n\n%s of %sCategory Training.',scorereport,fractionizer(section,n.sections), task_str);
                 str = 'continue';
             elseif strcmp('Training', type) % this isn't happening right now;
                 midtxt = ['Coming up: Testing Block ' num2str(section+1) '\n\n'...
                     'Training Block ' num2str(blok) '\n\n\n\n'];
                 str = 'begin';
             else
-                midtxt = sprintf('You have completed\n\n%s of Task %s Testing Block %i of %i.',fractionizer(section,n.sections),task_letter,blok,n.blocks);
+                midtxt = sprintf('You have completed\n\n%s of %sTesting Block %i of %i.',fractionizer(section,n.sections),task_str,blok,n.blocks);
                 str = 'continue';
             end
             
@@ -181,39 +182,42 @@ try
         
     end
     [blockscore,scorereport]= calcscore(responses,n.sections*n.trials);
-    if strcmp(type, 'Training') && blok == 1 && strcmp(new_subject_flag,'y') && strcmp(first_task_letter, task_letter);
-        hitxt = ['Great job! You just got ' scorereport '\n\n\n'...
-            'Please go get the experimenter from the other room!'];
-    elseif strcmp(type, 'Training') && blok ==1
-        hitxt = ['Great job! You just got ' scorereport '\n\n\n'];
-        str = 'continue';
-    elseif strcmp(type,'Confidence Training')
-        hitxt = ['Great job! You have just finished Confidence Training.\n\n'...
-            'Coming up: Task ' task_letter ' Testing']; % have just removed hard-coded block number for now
-%             'Coming up: Task ' task_letter ' Testing Block 1 of 3']; % number of blocks is hard coded here!!! BAD!!!
-        str = 'begin';
-    elseif strcmp(type,'Attention Training')
-        hitxt = ['Great job! You have just finished Attention Training.\n\n'...
-            'Coming up: Task ' task_letter ' Testing'];
-        str = 'begin';
-    elseif strcmp(type,'Training')
-        hitxt = ['Nice work! You just got ' scorereport ...
-            '\n\nComing up: Task ' task_letter ' Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
-        str = 'begin';
-    elseif strcmp(type, 'Test')
-        hitxt = ['Great! You''ve just finished Task ' task_letter ' Testing Block ' num2str(blok) ' with\n\n' scorereport];
-        str = 'continue';
+    experimenter_needed = false;
+    switch type
+        case 'Training'
+            if blok > 1
+                hitxt = ['Nice work! You just got ' scorereport ...
+                    '\n\nComing up: ' task_str 'Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
+                str = 'begin';
+            else % first block
+                if strcmp(new_subject_flag,'n') || (~strcmp(task_str,'') && nExperiments > 1) % because they will have seen this already
+                    hitxt = ['Great job! You just got ' scorereport '\n\n\n'];
+                    str = 'continue';
+                else
+                    hitxt = ['Great job! You just got ' scorereport '\n\n\n'...
+                        'Please go get the experimenter from the other room!'];
+                    experimenter_needed = true;
+                end
+            end
+        case 'Confidence Training'
+            hitxt = ['Great job! You have just finished Confidence Training.\n\n'...
+                'Coming up: ' task_str 'Testing']; % have just removed hard-coded block number for now
+            %             'Coming up: Task ' task_letter ' Testing Block 1 of 3']; % number of blocks is hard coded here!!! BAD!!!
+            str = 'begin';
+        case 'Attention Training'
+            hitxt = ['Great job! You have just finished Attention Training.\n\n'...
+                'Coming up: ' task_str 'Testing'];
+            str = 'begin';
+        case 'Test'
+            hitxt = ['Great! You''ve just finished ' task_str 'Testing Block ' num2str(blok) ' with\n\n' scorereport];
+            str = 'continue';
     end
     
     [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
     
-    if strcmp(type,'Training') && blok == 1 && strcmp(new_subject_flag,'y') % this is the situation when the experimenter comes in.
-        %         Screen('Flip', scr.win);
-        %         WaitSecs(2);
-        %         KbWait;
+    if experimenter_needed
         flip_wait_for_experimenter_flip(scr.keyenter, scr);
-        %         Screen('Flip', scr.win);
-    else % print the directions if the experimenter isn't supposed to come in.
+    else
         flip_pak_flip(scr,ny,color,str)
     end
     

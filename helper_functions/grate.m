@@ -23,7 +23,6 @@ startTime = GetSecs;
 lastTime = 0;
 
 while (lastTime - startTime)*1000 < t.pres;
-    WaitSecs('UntilTime', startTime + frame*P.grateDt);
     frame = frame+1;
 
     for i = 1:nStim
@@ -32,7 +31,7 @@ while (lastTime - startTime)*1000 < t.pres;
             Screen('DrawTexture', scr.win, scr.cross); % display fixation cross when there are multiple stimuli.
         end
     end
-    lastTime = Screen('Flip',scr.win);
+    lastTime = Screen('Flip',scr.win, startTime + frame*P.grateDt);
 end
 
 for i = 1:nStim
