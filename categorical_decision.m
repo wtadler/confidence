@@ -4,7 +4,6 @@ function categorical_decision(category_type, initial, new_subject_flag, room_let
 % Will Adler
 % Ma Lab, New York University
 
-% THIS HAS SOME UNTESTED STUFF: flip_wait_for_experimenter_flip stuff.
 
 if ~exist('exp_number','var') || ~exist('nExperiments','var')
     exp_number = 1;
@@ -57,8 +56,8 @@ datetimestamp = datetimefcn; % establishes a timestamp for when the experiment w
 
 % map keys with 'WaitSecs(0.2); [~, keyCode] = KbWait;find(keyCode==1)' and
 % then press a key.
-fontsize = 28; % unless the hires_rig below
-fontstyle = 0; % unless the hires_rig below
+fontsize = 28; % unless the hires rig below
+fontstyle = 0; % unless the hires rig below
 
 switch room_letter
     case 'home'
@@ -453,6 +452,8 @@ try
     flip_pak_flip(scr,ny,color,'begin');
     
     for k = 1:Test.n.blocks
+        
+        % Training
         if ~notrain
             if k == 1
                 Training.initial.n.blocks = Training.n.blocks;
@@ -464,23 +465,23 @@ try
             [Training.responses{k}, flag] = run_exp(numbers, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag, task_str, final_task);
             if flag ==1,  break;  end
             
-            if k == 1% && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
-                [~,ny]=DrawFormattedText(scr.win,['Let''s get some quick practice with confidence ratings.\n\n'...
-                    'Coming up: ' task_str 'Confidence Training'],'center',ny,color.wt);
-                flip_pak_flip(scr,ny,color,'begin')
-                
-                [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag, task_str, final_task);
-                if flag==1,break;end
-            end
+            %             if k == 1 % first block
+            %                 [~,ny]=DrawFormattedText(scr.win,['Let''s get some quick practice with confidence ratings.\n\n'...
+            %                     'Coming up: ' task_str 'Confidence Training'],'center',ny,color.wt);
+            %                 flip_pak_flip(scr,ny,color,'begin')
             
-            if k == 1 && attention_manipulation % && strcmp(new_subject_flag,'y') % if we are on block 1, and subject is new
-                [~,ny]=DrawFormattedText(scr.win,['Let''s practice the attention task.\n\n'...
-                    'Coming up: ' task_str 'Training'],'center',ny,color.wt);
-                flip_pak_flip(scr,ny,color,'begin')
+            [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag, task_str, final_task);
+            if flag==1,break;end
+            
+            if attention_manipulation
+                %                     [~,ny]=DrawFormattedText(scr.win,['Let''s practice the attention task.\n\n'...
+                %                         'Coming up: ' task_str 'Training'],'center',ny,color.wt);
+                %                     flip_pak_flip(scr,ny,color,'begin')
                 
                 [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject_flag, task_str, final_task, Training.attention.R2);
                 if flag==1,break;end
             end
+            %             end
         end
         
         if attention_manipulation
@@ -510,6 +511,7 @@ try
         if ~any(strfind(initial,'test'))
             save top_ten top_ten;
         end
+        
         elapsed_mins = toc(start_t)/60;
         save(strrep([datadir '/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins','category_type') % block by block backup. strrep makes the file separator system-dependent.
         

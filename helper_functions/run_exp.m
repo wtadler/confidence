@@ -7,7 +7,6 @@ else
     attention_manipulation = false;
 end
 
-%%%Run trials (Training or Test)%%%
 try
     flag = 0;
     %binary matrix of correct/incorrect responses
@@ -16,6 +15,28 @@ try
     responses.conf = zeros(n.sections, n.trials);
     responses.rt = zeros(n.sections, n.trials);
     
+    
+    % text before trials
+    if k == 1
+        switch type
+            case 'Confidence Training'
+                [~,ny]=DrawFormattedText(scr.win,['Let''s get some quick practice with confidence ratings.\n\n'...
+                    'Coming up: ' task_str 'Confidence Training'],'center','center',color.wt);
+                flip_pak_flip(scr,ny,color,'begin')
+            case 'Attention Training'
+                [~,ny]=DrawFormattedText(scr.win,['Let''s practice the attention task.\n\n'...
+                    'Coming up: ' task_str 'Training'],'center','center',color.wt);
+                flip_pak_flip(scr,ny,color,'begin')
+        end
+    end
+
+
+    
+    
+    
+    
+    %%%Run trials %%%
+
     for section = 1:n.sections
         for trial = 1:n.trials
             
@@ -75,14 +96,13 @@ try
             end
             
             
-            %Screen('Flip', scr.win); % unnecessary flip here?
             clc;
             fprintf('blok %g, section %g, trial %g\n\n',blok,section,trial)
             %subject input
-            startsecs = GetSecs;
+            t0 = GetSecs;
             resp = 0;
             while resp == 0;
-                [~, secs, keyCode] = KbCheck;
+                [~, tResp, keyCode] = KbCheck;
                 
                 %To quit script, press x,z ONLY simultaneously
                 %if keyCode(scr.keyx) && keyCode(scr.keyz) && sum(keyCode)==2
@@ -120,6 +140,7 @@ try
                     end
                 end
             end
+            
             %record 1 if correct, 0 if incorrect
 %             fprintf('cat %d - ACC %d\n', resp, resp==cval) % for debugging
             responses.tf(section, trial) = (resp == cval);
@@ -127,11 +148,10 @@ try
             if ~strcmp(type, 'Training') % if not in non-conf training
                 responses.conf(section, trial) = conf;
             end
-            responses.rt(section,trial) = secs - startsecs;
+            responses.rt(section,trial) = tResp - t0;
             
             if strcmp(type, 'Training') || strcmp(type,'Confidence Training') || strcmp(type,'Attention Training') %to add random feedback during test: || rand > .9 %mod(sum(sum(tfresponses)) ,10)==9
                 %feedback
-                WaitSecs(t.pause/1000);
                 if resp == cval
                     status = 'Correct!';
                     stat_col = color.grn;
@@ -151,7 +171,7 @@ try
                         [~,ny]=DrawFormattedText(scr.win,['\n' status],'center',ny+10,stat_col);
                 end
                 
-                Screen('Flip',scr.win);
+                Screen('Flip',scr.win, tResp+t.pause/1000);
                 
                 WaitSecs(t.feedback/1000);
                 
