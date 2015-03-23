@@ -1,28 +1,18 @@
-function R = setup_exp_order(n, category_params, category_type, varargin)
+function R = setup_exp_order(n, category_params, varargin)
 %%%Set up order of class, sigma, and orientation for entire scheme%%%
 
 R = [];
 
-if length(varargin)==0
-    attention_manipulation = 0;
+if isempty(varargin)
+    attention_manipulation = false;
 elseif length(varargin)==1
-    attention_manipulation = varargin{1};
-elseif length(varargin)==2
-    attention_manipulation = varargin{1};
-    cue_validity = varargin{2};
+    attention_manipulation = true;
+    cue_validity = varargin{1};
 end
 
 
 for k = 1:n.blocks
-%     for m = 1:n.sections
-%         %Indexing: R.property{block}(section, trial)
-%         
-%         R.trial_order{k}(m,:) = randsample(2,n.trials,true); % full random classes
-%         R.sigma{k}(m,:) = randsample(sigma.int,n.trials,true); % full random sigmas
-%         
-%     end
-    
-
+    R.category_type = category_params.category_type;
     R.trial_order{k} = reshape(randsample(2,n.trials*n.sections,true),n.sections,n.trials);
     R.sigma{k} = reshape(randsample(category_params.test_sigmas, n.trials*n.sections,true),n.sections,n.trials);
     
@@ -31,8 +21,8 @@ for k = 1:n.blocks
     classtwos = (R.trial_order{k} == 2); % index of class 2 trials
     R.phase{k} = 360*rand(n.sections,n.trials); % random phase draws
     
-    R.draws{k}= stimulus_orientations(category_params, category_type, 1, n.sections, n.trials);
-    R.draws{k}(classtwos) = stimulus_orientations(category_params, category_type, 2, nnz(classtwos), 1);
+    R.draws{k}= reshape(stimulus_orientations(category_params, 1, n.sections*n.trials), n.sections, n.trials);
+    R.draws{k}(classtwos) = stimulus_orientations(category_params, 2, nnz(classtwos));
     
     if attention_manipulation
         R.probe{k} = reshape(randsample(2,n.trials*n.sections,true), n.sections, n.trials);

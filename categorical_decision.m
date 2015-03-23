@@ -1,4 +1,4 @@
-function categorical_decision(category_type, initial, new_subject, room_letter, attention_manipulation, exp_number, nExperiments)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, attention_manipulation, exp_number, nExperiments)
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
 % Will Adler
@@ -39,7 +39,7 @@ Screen('Preference', 'VisualDebuglevel', 3);
 
 cd(dir)
 
-%initial = input('Please enter your initials.\n> ', 's'); % 's' returns entered text as a string
+%subject_name = input('Please enter your initials.\n> ', 's'); % 's' returns entered text as a string
 
 %new_subject_flag = input('\nAre you new to this experiment? Please enter y or n.\n> ', 's');
 %while ~strcmp(new_subject_flag,'y') && ~strcmp(new_subject_flag,'n')
@@ -48,7 +48,7 @@ cd(dir)
 
 %room_letter = input('\nPlease enter the room name [mbp] or [home] or [1139].\n> ', 's');
 
-%initial = 'test';
+%subject_name = 'test';
 %new = 'y'
 %room_letter = 'mbp';
 
@@ -172,10 +172,9 @@ else
 end
 
 if attention_manipulation
-    Test.n.blocks = 5;
-    Test.n.sections = 2;
+    Test.n.blocks = 4;
+    Test.n.sections = 4;
     Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
-    attention_training_category_type = 'sym_uniform'; % maybe make this the same as the mixture of Qamar Gaussians?
 else
     Test.n.blocks = 3;% WTA from 3
     Test.n.sections = 3; % WTA from 3
@@ -194,8 +193,10 @@ Training.n.trials = 48; % WTA: 48
 
 if attention_manipulation
     Training.attention.n.blocks = 1;
-    Training.attention.n.sections = 2;
+    Training.attention.n.sections = 1;
     Training.attention.n.trials = 36;
+    Training.attention.category_params = Test.category_params;
+    Training.attention.category_params.category_type = 'sym_uniform';
 end
 
 Demo.t.pres = 250;
@@ -217,20 +218,21 @@ Training.t.cue_target_isi = 150;
 
 scr.countdown_time = 30;
 
-if strfind(initial,'fast') > 0 % if 'fast' is in the initials, the exp will be super fast (for debugging)
-    [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,Training.t.feedback,Training.t.betwtrials,
-        n_time, Demo.t.pres, Demo.t.betwtrials]...
+if strfind(subject_name,'fast') > 0 % if 'fast' is in the initials, the exp will be super fast (for debugging)
+    [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,...
+        Training.t.feedback,Training.t.betwtrials,scr.countdown_time, Demo.t.pres, Demo.t.betwtrials,...
+        Training.t.cue_dur, Training.t.cue_target_isi, Test.t.cur_dur, Test.t.cue_target_isi]...
         = deal(1);
 end
 
-if strfind(initial,'short') > 0 % if 'short' is in the initials, the exp will be short (for debugging)
-    [Test.n.trials,Training.initial.n.trials,Training.confidence.n.trials,Training.n.trials]...
-        = deal(numel(Test.category_params.test_sigmas)*2, 4, 4, 4);
+if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp will be short (for debugging)
+    [Test.n.trials,Training.initial.n.trials,Training.confidence.n.trials,Training.n.trials, Training.attention.n.trials]...
+        = deal(6);
     nDemoTrials = 5;
     scr.countdown_time = 2;
 end
 
-if strfind(initial,'notrain') > 0 % if 'notrain' is in the initials, the exp will not include training (for debugging)
+if strfind(subject_name,'notrain') > 0 % if 'notrain' is in the initials, the exp will not include training (for debugging)
     notrain = 1;
 else
     notrain = 0;
@@ -274,7 +276,7 @@ try
     scr.cx = mean(scr.rect([1 3])); % screen center x
     scr.cy = mean(scr.rect([2 4])); % screen center y
     
-    if ~strfind(initial,'test')
+    if ~strfind(subject_name,'test')
         HideCursor;
         SetMouse(0,0);
     end
@@ -292,13 +294,8 @@ try
     P.pxPerDeg = screen_resolution(1) / screen_angle;  % pixels per degree
     
     %set up fixation cross
-%     if attention_manipulation
     f_c_size = 30; % length and width. must be even.
     fw = 1; % line thickness = 2+2*fw pixels
-%     else
-%         f_c_size = 18; % length and width, must be even
-%         fw = 0; % line thickness = 2+2*fw pixels
-%     end
     f_c = bg*ones(f_c_size);
     f_c(f_c_size/2 - fw: f_c_size/2 + 1 + fw,:) = darkgray;
     f_c(:,f_c_size/2 - fw: f_c_size/2 + 1 + fw) = darkgray;
@@ -337,10 +334,10 @@ try
     %%%Setup routine. this is some complicated stuff to deal with the
     %%%two-part training thing
     
-    InitialTrainingpreR = setup_exp_order(Training.initial.n, Training.category_params, category_type);
+    InitialTrainingpreR = setup_exp_order(Training.initial.n, Training.category_params);
     
     Training.n.blocks = Training.n.blocks - 1;
-    TrainingpreR = setup_exp_order(Training.n, Training.category_params, category_type);
+    TrainingpreR = setup_exp_order(Training.n, Training.category_params);
     
     Training.n.blocks = Training.n.blocks + 1; % undo previous line
     
@@ -355,17 +352,17 @@ try
         Training.R.phase{spec} = TrainingpreR.phase{spec-1};
     end
     
-    Test.R = setup_exp_order(Test.n, Test.category_params, category_type);
+    Test.R = setup_exp_order(Test.n, Test.category_params);
     
     if attention_manipulation
-        Test.R2 = setup_exp_order(Test.n, Test.category_params, category_type, 1, cue_validity); % second set of stimuli. This also contains the probe/cue info.
+        Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
     end
     
-    Training.confidence.R = setup_exp_order(Training.confidence.n, Test.category_params, category_type);
+    Training.confidence.R = setup_exp_order(Training.confidence.n, Test.category_params);
     
     if attention_manipulation
-        Training.attention.R = setup_exp_order(Training.attention.n, Test.category_params, attention_training_category_type);
-        Training.attention.R2 = setup_exp_order(Training.attention.n, Test.category_params, attention_training_category_type, 1, cue_validity);
+        Training.attention.R = setup_exp_order(Training.attention.n, Training.attention.category_params);
+        Training.attention.R2 = setup_exp_order(Training.attention.n, Training.attention.category_params, cue_validity);
     end
     
     start_t = tic;
@@ -388,13 +385,7 @@ try
     
  
     flip_key_flip(scr, 'continue', ny, color, new_subject)
-    
-%     if strcmp(new_subject_flag,'y')
-%         flip_wait_for_experimenter_flip(scr.keyenter, scr);
-%     elseif strcmp(new_subject_flag,'n')
-%         flip_pak_flip(scr,ny,color,'continue');
-%     end
-    
+        
     if nExperiments > 1
         hitxt=sprintf('Important: You are now doing Task %s!\n\n',task_letter);
         
@@ -411,47 +402,7 @@ try
         end
         [nx,ny]=DrawFormattedText(scr.win, [hitxt midtxt], 'center', 'center', color.wt);
         flip_key_flip(scr,'continue',ny,color,new_subject);
-%         if new_subject
-%             flip_wait_for_experimenter_flip(scr.keyenter, scr);
-%         else
-%             flip_pak_flip(scr,ny,color,'continue');
-%         end
-
     end
-    
-    for category = 1 : 2
-        DrawFormattedText(scr.win, sprintf('Examples of Category %i stimuli:', category), 'center', scr.cy-60, color.wt);
-        Screen('Flip', scr.win);
-        WaitSecs(2.5);
-        
-        for i = 1:nDemoTrials
-            
-            Screen('DrawTexture', scr.win, scr.cross);
-            Screen('Flip', scr.win);
-            WaitSecs(Demo.t.betwtrials/1000);
-            
-            stim.ort = stimulus_orientations(Test.category_params, category_type, category, 1, 1);
-            
-            if strcmp(P.stim_type, 'gabor')
-                r_gabor(P, scr, Demo.t, stim); % haven't yet added phase info to this function
-            elseif strcmp(P.stim_type, 'grate')
-                stim.phase = 360*rand;
-                grate(P, scr, Demo.t, stim);
-            elseif strcmp(P.stim_type, 'ellipse')
-                ellipse(P, scr, Demo.t, stim);
-            end
-        end
-
-        flip_key_flip(scr,'continue',ny,color,new_subject);
-
-%         if strcmp(new_subject,'y')
-%             flip_wait_for_experimenter_flip(scr.keyenter, scr);
-%         elseif strcmp(new_subject,'n')
-%             flip_pak_flip(scr,ny,color,'continue');
-%         end
-
-    end
-    
     
     %% RUN TRIALS
 
@@ -461,19 +412,21 @@ try
         if ~notrain
             if k == 1
                 if attention_manipulation                
-                    [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, Training.attention.R2);
+                    [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, subject_name, Training.attention.R2);
                     if flag==1,break;end
                 end
                 
+                category_demo
+                
                 Training.initial.n.blocks = Training.n.blocks;
-                [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task);
+                [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
 
-                [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task);
-                if flag ==1,  break;  end
+%                 [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
+%                 if flag ==1,  break;  end
                 
             else
-                [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task);
+                [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
 
             end
@@ -481,33 +434,30 @@ try
         
         % Testing
         if attention_manipulation
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, Test.R2);
+            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name, Test.R2);
         else
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task);
+            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name);
         end
         if flag ==1,  break;  end
         
         elapsed_mins = toc(start_t)/60;
-        save(strrep([datadir '/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins','category_type') % block by block backup. strrep makes the file separator system-dependent.
+        save(strrep([datadir '/backup/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins') % block by block backup. strrep makes the file separator system-dependent.
             
         if flag == 1 % when run_exp errors
-            initial = [initial '_flaggedinrunexp'];
+            subject_name = [subject_name '_flaggedinrunexp'];
         end
-    
-        elapsed_mins = toc(start_t)/60;
-        save(strrep([datadir '/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P', 'category_type', 'elapsed_mins') % save complete session
-        recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
-        delete([datadir '/backup/' initial '_' datetimestamp '.mat']) % delete the block by block backup
-        
-        Screen('CloseAll');
     end
+    
+    save(strrep([datadir '/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P', 'category_type', 'elapsed_mins') % save complete session
+    recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
+    delete([datadir '/backup/' subject_name '_' datetimestamp '.mat']) % delete the block by block backup
+    
+    Screen('CloseAll');
     
 catch %if error or script is cancelled
     Screen('CloseAll');
     
-    %file_name = ['backup/' initial '_recovered'];
-    %savedatafcn(file_name, datetimestamp, Training, Test, P); %save what we have
-    save(strrep([datadir '/backup/' initial '_recovered_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','category_type', 'elapsed_mins')
+    save(strrep([datadir '/backup/' subject_name '_recovered_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','category_type', 'elapsed_mins')
     
     psychrethrow(psychlasterror);
 end

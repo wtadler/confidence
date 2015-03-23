@@ -1,27 +1,33 @@
 function flip_key_flip(scr, string, y, color, experimenter_needed, varargin)
+% flips what's drawn on screen.
+% if experimenter_needed is true, waits for a specific keypress (enter by
+% default), and then clears screen
+% if experimenter_needed is false, tells subject to press any key. clears
+% screen when subject presses a key.
 
 initial_wait=2;
-key='enter';
+key='keyenter';
 assignopts(who,varargin);
 
 Screen('Flip',scr.win,[],1);
 
-
 if experimenter_needed
     while true
-        [~,~,keyCode] = KbWait;
+        [~,keyCode] = KbWait;
+        save fkftest
         if keyCode(scr.(key))
-            return
+            break
         end
     end
 else
     WaitSecs(initial_wait);
-    DrawFormattedText(scr.win,['\n\n\nPress any key to ' str '.\n\n'],'center',ny,color.wt);
+    DrawFormattedText(scr.win,['\n\n\nPress any key to ' string '.\n\n'],'center',y,color.wt);
     Screen('Flip',scr.win);
-    WaitSecs(.2);
+    WaitSecs(.15);
     KbWait;
-    Screen('Flip',scr.win);
 end
+
+Screen('Flip',scr.win);
 
 WaitSecs(.5);
 

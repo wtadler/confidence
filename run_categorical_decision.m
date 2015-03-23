@@ -2,6 +2,7 @@ function run_categorical_decision(initial)
 cd C:\GitHub\Confidence-Theory
 
 % initial = 'rd_p1_run02_notrain'; % 'rdshortnotrain'
+% initial = 'testfast';
 
 new_subject = true;
 room_letter = '1139'; % 'mbp','Carrasco_L1'

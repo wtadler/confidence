@@ -1,4 +1,4 @@
-function [responses, flag, blockscore] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, varargin)    
+function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, varargin)    
 
 if length(varargin) == 1
     R2 = varargin{1};
@@ -7,7 +7,7 @@ else
     attention_manipulation = false;
 end
 
-try
+% try
     flag = 0;
     %binary matrix of correct/incorrect responses
     responses.tf = zeros(n.sections, n.trials);
@@ -17,7 +17,7 @@ try
     
     
     % text before trials
-    if k == 1
+    if blok == 1
         switch type
             case 'Training'
                 str='Coming up: Category Training';
@@ -25,8 +25,7 @@ try
                 str=['Let''s get some quick practice with confidence ratings.\n\n'...
                     'Coming up: ' task_str 'Confidence Training'];
             case 'Attention Training'
-                str=['Let''s practice the attention task.\n\n'... % more instructions here?
-                    'Coming up: ' task_str 'Training']
+                str='Let''s practice the attention task.\n\n'; % more instructions here?
             case 'Test'
                 str='Coming up: Testing';
         end
@@ -34,20 +33,7 @@ try
         flip_key_flip(scr,'begin',ny,color, false);
     end
 
-%             if ~notrain
-%                 [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\n' task_str ' Category Training before\n\n'...
-%                     task_str 'Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
-%             else
-%                 [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\n'...
-%                     task_str 'Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
-%             end
-%             flip_pak_flip(scr,ny,color,'begin');
-%             
 
-    
-    
-    
-    
     %%%Run trials %%%
 
     for section = 1:n.sections
@@ -117,8 +103,6 @@ try
             while resp == 0;
                 [~, tResp, keyCode] = KbCheck;
                 
-                %To quit script, press x,z ONLY simultaneously
-                %if keyCode(scr.keyx) && keyCode(scr.keyz) && sum(keyCode)==2
                 %To quit script, press insert and enter ONLY
                 %simultaneously
                 if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
@@ -180,7 +164,8 @@ try
                     case 'Confidence Training'
                         [~,ny]=DrawFormattedText(scr.win,['You said: Category ' num2str(resp) ' with ' confstr ' confidence.'],'center',scr.cy-50,color.wt);
                     case 'Attention Training'
-                        [~,ny]=DrawFormattedText(scr.win,['You said: Category ' num2str(resp) ' with ' confstr ' confidence.'],'center',scr.cy-50,color.wt);
+                        if resp == 1; str = 'LEFT'; else; str = 'RIGHT'; end
+                        [~,ny]=DrawFormattedText(scr.win,['You said: ' str ' with ' confstr ' confidence.'],'center',scr.cy-50,color.wt);
                         [~,ny]=DrawFormattedText(scr.win,['\n' status],'center',ny+10,stat_col);
                 end
                 
@@ -244,7 +229,7 @@ try
 
         case 'Attention Training'
             hitxt = ['Great job! You have just finished Attention Training.\n\n'...
-                'Coming up: ' task_str 'Testing'];
+                'Coming up: ' task_str 'Category Training'];
             str = 'begin';
             [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
 
@@ -260,31 +245,31 @@ try
     if strcmp(type, 'Test')
         %load top scores
         load top_ten
-        ranking = 11 - sum(blockscore>=top_ten.(category_type).scores); % calculate current ranking
+        ranking = 11 - sum(blockscore>=top_ten.(R.category_type).scores); % calculate current ranking
  
         if ranking < 11
-            top_ten.(category_type).scores = [top_ten.(category_type).scores(1:(ranking-1));  blockscore;  top_ten.(category_type).scores(ranking:9)];
+            top_ten.(R.category_type).scores = [top_ten.(R.category_type).scores(1:(ranking-1));  blockscore;  top_ten.(R.category_type).scores(ranking:9)];
             for m = 10:-1:ranking+1
-                top_ten.(category_type).initial{m} = top_ten.(category_type).initial{m-1};
+                top_ten.(R.category_type).initial{m} = top_ten.(R.category_type).initial{m-1};
             end
-            top_ten.(category_type).initial{ranking} = initial;
+            top_ten.(R.category_type).initial{ranking} = subject_name;
             hitxt=['\n\nCongratulations! You made the ' task_str 'Top Ten!\n\n'];
         else
             hitxt='\n\n\n\n';
         end
 
-        if ~any(strfind(initial,'test'))
+        if ~any(strfind(subject_name,'test'))
             save top_ten top_ten;
         end
 
-        [nx,ny] = DrawFormattedText(scr.win,[hitxt 'Your score for Testing Block ' num2str(k) ': ' num2str(blockscore,'%.1f') '%\n\n'...
+        [nx,ny] = DrawFormattedText(scr.win,[hitxt 'Your score for Testing Block ' num2str(blok) ': ' num2str(blockscore,'%.1f') '%\n\n'...
             task_str 'Top Ten:\n\n'],'center',-90,color.wt);
         for j = 1:10
-            [nx,ny] = DrawFormattedText(scr.win,[num2str(j) ') ' num2str(top_ten.(category_type).scores(j),'%.1f') '%    ' top_ten.(category_type).initial{j} '\n'],scr.cx*.8 - (j==10)*20,ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,[num2str(j) ') ' num2str(top_ten.(R.category_type).scores(j),'%.1f') '%    ' top_ten.(R.category_type).initial{j} '\n'],scr.cx*.8 - (j==10)*20,ny,color.wt);
         end
 
         
-        if k ~= Test.n.blocks % if didn't just finish final testing block
+        if blok ~= n.blocks % if didn't just finish final testing block
             [nx,ny] = DrawFormattedText(scr.win,'\nPlease take a short break.\n\n\nYou may begin the next Training Block\n\n','center',ny,color.wt);
             [nx,ny] = DrawFormattedText(scr.win,'in ',scr.cx-570,ny,color.wt);
             countx=nx; county=ny;
@@ -293,7 +278,7 @@ try
                 'or walk around.'],'center',ny,color.wt,50);
             
             %  'Coming up:\n\n'...
-%                     task_str 'Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
+%                     task_str 'Testing Block ' num2str(blok+1)],'center',ny,color.wt,50);
             countdown(scr,color,countx,county)
 
             flip_key_flip(scr,'continue',ny,color,false);
@@ -303,12 +288,6 @@ try
                 if new_subject
                     [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with ' task_str '\n\n\n'...
                         'Please go get the experimenter from the other room!'],'center',ny,color.wt);
-%                     experimenter_needed = true;
-                    %             Screen('Flip',scr.win);
-                    %WaitSecs(5);
-%                     flip_wait_for_experimenter_flip(scr.keyenter, scr);
-                    %             KbWait;
-                    %             Screen('Flip',scr.win);
                     
                 elseif ~new_subject% if just finished experiment one, and there's another experiment coming up.
                     [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with ' task_str '\n\n\n'],'center',ny,color.wt);
@@ -320,8 +299,6 @@ try
                         'Coming up: Task ' other_task_letter],'center',ny,color.wt,50);
                     
                     countdown(scr,color,countx,county);
-                    
-%                     flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
                     
                 end
                 
@@ -336,31 +313,23 @@ try
             
             WaitSecs(1);
         end
-        
-
-%     flip_key_flip(scr,str,ny,color,experimenter_needed);
-%     if experimenter_needed
-%         flip_wait_for_experimenter_flip(scr.keyenter, scr);
-%     else
-%         flip_pak_flip(scr,ny,color,str)
-%     end
-    
+            
     end
     
     
-catch
-    % I think these lines just indicate where an error occurred when you look back at the data.
-    responses.tf(section, trial) = -1;
-    responses.c(section, trial) = -1;
-    responses.conf(section, trial) = -1;
-    responses.rt(section, trial) = -1;
-    
-    
-    psychrethrow(psychlasterror)
-    save responses
-    flag = 1;
-    
-end
+% catch
+%     % I think these lines just indicate where an error occurred when you look back at the data.
+%     responses.tf(section, trial) = -1;
+%     responses.c(section, trial) = -1;
+%     responses.conf(section, trial) = -1;
+%     responses.rt(section, trial) = -1;
+%     
+%     
+%     psychrethrow(psychlasterror)
+%     save responses
+%     flag = 1;
+%     
+% end
 end
 
 function str = fractionizer(numerator,denominator)
