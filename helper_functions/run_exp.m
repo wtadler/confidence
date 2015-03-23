@@ -19,15 +19,19 @@ try
     % text before trials
     if k == 1
         switch type
+            case 'Training'
+                str='Coming up: Category Training';
             case 'Confidence Training'
-                [~,ny]=DrawFormattedText(scr.win,['Let''s get some quick practice with confidence ratings.\n\n'...
-                    'Coming up: ' task_str 'Confidence Training'],'center','center',color.wt);
-                flip_pak_flip(scr,ny,color,'begin')
+                str=['Let''s get some quick practice with confidence ratings.\n\n'...
+                    'Coming up: ' task_str 'Confidence Training'];
             case 'Attention Training'
-                [~,ny]=DrawFormattedText(scr.win,['Let''s practice the attention task.\n\n'...
-                    'Coming up: ' task_str 'Training'],'center','center',color.wt);
-                flip_pak_flip(scr,ny,color,'begin')
+                str=['Let''s practice the attention task.\n\n'... % more instructions here?
+                    'Coming up: ' task_str 'Training']
+            case 'Test'
+                str='Coming up: Testing';
         end
+        [~,ny]=DrawFormattedText(scr.win,str,'center','center',color.wt);
+        flip_pak_flip(scr,ny,color,'begin')
     end
 
 
@@ -231,9 +235,15 @@ try
         case 'Test'
             hitxt = ['Great! You''ve just finished ' task_str 'Testing Block ' num2str(blok) ' with\n\n' scorereport];
             str = 'continue';
+            
+            
     end
     
     [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
+    
+    % move all the scoring stuff out of categorical_decision and put it here??
+    
+    
     
     if experimenter_needed
         flip_wait_for_experimenter_flip(scr.keyenter, scr);

@@ -132,13 +132,15 @@ switch category_type
         Test.category_params.sigma_s = 5;
 end
 
-final_task = true;
 if nExperiments == 1
     task_letter = '';
     task_str = '';
+    final_task = true;
 elseif nExperiments > 1
     if exp_number ~= nExperiments
         final_task = false;
+    else
+        final_task = true;
     end
     switch category_type
         case 'same_mean_diff_std'
@@ -174,6 +176,7 @@ if attention_manipulation
     Test.n.blocks = 5;
     Test.n.sections = 2;
     Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
+    attention_training_category_type = 'sym_uniform'; % maybe make this the same as the mixture of Qamar Gaussians?
 else
     Test.n.blocks = 3;% WTA from 3
     Test.n.sections = 3; % WTA from 3
@@ -359,8 +362,8 @@ try
     Training.confidence.R = setup_exp_order(Training.confidence.n, Test.category_params, category_type);
     
     if attention_manipulation
-        Training.attention.R = setup_exp_order(Training.attention.n, Test.category_params, category_type);
-        Training.attention.R2 = setup_exp_order(Training.attention.n, Test.category_params, category_type, 1, cue_validity);
+        Training.attention.R = setup_exp_order(Training.attention.n, Test.category_params, attention_training_category_type);
+        Training.attention.R2 = setup_exp_order(Training.attention.n, Test.category_params, attention_training_category_type, 1, cue_validity);
     end
     
     start_t = tic;
@@ -443,54 +446,38 @@ try
     
     
     %% START TRIALS
-    if ~notrain
-        [~,ny]=DrawFormattedText(scr.win,'Coming up: Category Training','center','center',color.wt)
-    else
-        [~,ny]=DrawFormattedText(scr.win,'Here comes the experiment','center','center',color.wt)
-    end
-    
-    flip_pak_flip(scr,ny,color,'begin');
-    
+
     for k = 1:Test.n.blocks
         
         % Training
         if ~notrain
             if k == 1
-                Training.initial.n.blocks = Training.n.blocks;
-                numbers = Training.initial.n;
-            else
-                numbers = Training.n;
-            end
-            
-            [Training.responses{k}, flag] = run_exp(numbers, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag, task_str, final_task);
-            if flag ==1,  break;  end
-            
-            %             if k == 1 % first block
-            %                 [~,ny]=DrawFormattedText(scr.win,['Let''s get some quick practice with confidence ratings.\n\n'...
-            %                     'Coming up: ' task_str 'Confidence Training'],'center',ny,color.wt);
-            %                 flip_pak_flip(scr,ny,color,'begin')
-            
-            [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag, task_str, final_task);
-            if flag==1,break;end
-            
-            if attention_manipulation
-                %                     [~,ny]=DrawFormattedText(scr.win,['Let''s practice the attention task.\n\n'...
-                %                         'Coming up: ' task_str 'Training'],'center',ny,color.wt);
-                %                     flip_pak_flip(scr,ny,color,'begin')
+                if attention_manipulation                
+                    [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject_flag, task_str, final_task, Training.attention.R2);
+                    if flag==1,break;end
+                end
                 
-                [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject_flag, task_str, final_task, Training.attention.R2);
-                if flag==1,break;end
+                Training.initial.n.blocks = Training.n.blocks;
+                [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag, task_str, final_task);
+                if flag ==1,  break;  end
+
+                [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag, task_str, final_task);
+                if flag ==1,  break;  end
+                
+            else
+                [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag, task_str, final_task);
+                if flag ==1,  break;  end
+
             end
-            %             end
         end
         
+        % Testing
         if attention_manipulation
             [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, task_str, final_task, Test.R2);
         else
             [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, task_str, final_task);
         end
         if flag ==1,  break;  end
-        
         
         %load top scores
         load top_ten
