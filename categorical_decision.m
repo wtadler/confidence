@@ -1,4 +1,4 @@
-function categorical_decision(category_type, initial, new_subject_flag, room_letter, attention_manipulation, exp_number, nExperiments)
+function categorical_decision(category_type, initial, new_subject, room_letter, attention_manipulation, exp_number, nExperiments)
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
 % Will Adler
@@ -56,8 +56,8 @@ datetimestamp = datetimefcn; % establishes a timestamp for when the experiment w
 
 % map keys with 'WaitSecs(0.2); [~, keyCode] = KbWait;find(keyCode==1)' and
 % then press a key.
-fontsize = 28; % unless the hires rig below
-fontstyle = 0; % unless the hires rig below
+scr.fontsize = 28; % unless the hires rig below
+scr.fontstyle = 0; % unless the hires rig below
 
 switch room_letter
     case 'home'
@@ -72,13 +72,14 @@ switch room_letter
             scr.key7, scr.key8, scr.key9, scr.key10] ...
             = deal(112, 113, 114, 115, 116, 119, 120, 121, 122, 123);
         % This is for keys F1-5, F8-12.
-        fontsize = 42;
-        fontstyle = 1;
+        scr.fontsize = 42;
+        scr.fontstyle = 1;
     case 'Carrasco_L1'
         screen_width = 40;
         screen_distance = 56;
         
 end
+
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
     [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
         scr.key7, scr.key8, scr.key9, scr.key10] ...
@@ -110,8 +111,6 @@ darkgray = 10;
 color.bk = [0 0 0];
 color.red = [100 0  0];
 color.grn = [0 100 0];
-
-countdown_time = 30; % countdown between blocks
 
 switch category_type
     case 'same_mean_diff_std'
@@ -216,8 +215,11 @@ Training.t.betwtrials = 1000; %1000
 Training.t.cue_dur = 150;
 Training.t.cue_target_isi = 150;
 
+scr.countdown_time = 30;
+
 if strfind(initial,'fast') > 0 % if 'fast' is in the initials, the exp will be super fast (for debugging)
-    [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,Training.t.feedback,Training.t.betwtrials,countdown_time, Demo.t.pres, Demo.t.betwtrials]...
+    [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,Training.t.feedback,Training.t.betwtrials,
+        n_time, Demo.t.pres, Demo.t.betwtrials]...
         = deal(1);
 end
 
@@ -225,7 +227,7 @@ if strfind(initial,'short') > 0 % if 'short' is in the initials, the exp will be
     [Test.n.trials,Training.initial.n.trials,Training.confidence.n.trials,Training.n.trials]...
         = deal(numel(Test.category_params.test_sigmas)*2, 4, 4, 4);
     nDemoTrials = 5;
-    countdown_time = 2;
+    scr.countdown_time = 2;
 end
 
 if strfind(initial,'notrain') > 0 % if 'notrain' is in the initials, the exp will not include training (for debugging)
@@ -277,8 +279,8 @@ try
         SetMouse(0,0);
     end
     
-    Screen('TextSize', scr.win,fontsize); % Set default text size for this window, ie 28
-    Screen('TextStyle', scr.win, fontstyle); % Set default text style for this window. 0 means normal, not bold/condensed/etc
+    Screen('TextSize', scr.win, scr.fontsize); % Set default text size for this window, ie 28
+    Screen('TextStyle', scr.win, scr.fontstyle); % Set default text style for this window. 0 means normal, not bold/condensed/etc
     Screen('Preference', 'TextAlphaBlending', 0);
     
     % screen info
@@ -384,16 +386,19 @@ try
         ny = ny+max_ellipse_d;
     end
     
-    if strcmp(new_subject_flag,'y')
-        flip_wait_for_experimenter_flip(scr.keyenter, scr);
-    elseif strcmp(new_subject_flag,'n')
-        flip_pak_flip(scr,ny,color,'continue');
-    end
+ 
+    flip_key_flip(scr, 'continue', ny, color, new_subject)
+    
+%     if strcmp(new_subject_flag,'y')
+%         flip_wait_for_experimenter_flip(scr.keyenter, scr);
+%     elseif strcmp(new_subject_flag,'n')
+%         flip_pak_flip(scr,ny,color,'continue');
+%     end
     
     if nExperiments > 1
         hitxt=sprintf('Important: You are now doing Task %s!\n\n',task_letter);
         
-        if strcmp(new_subject_flag,'n')
+        if ~new_subject
             if strcmp(task_letter, 'A')
                 midtxt = 'In Task A, stimuli from Category 1 tend to\n\nbe left-tilted, and stimuli from Category 2\n\ntend to be right-tilted.\n\nSee Task sheet for more info.';
             elseif strcmp(task_letter, 'B')
@@ -405,11 +410,12 @@ try
             midtxt = '';
         end
         [nx,ny]=DrawFormattedText(scr.win, [hitxt midtxt], 'center', 'center', color.wt);
-        if strcmp(new_subject_flag,'y')
-            flip_wait_for_experimenter_flip(scr.keyenter, scr);
-        elseif strcmp(new_subject_flag,'n')
-            flip_pak_flip(scr,ny,color,'continue');
-        end
+        flip_key_flip(scr,'continue',ny,color,new_subject);
+%         if new_subject
+%             flip_wait_for_experimenter_flip(scr.keyenter, scr);
+%         else
+%             flip_pak_flip(scr,ny,color,'continue');
+%         end
 
     end
     
@@ -435,17 +441,19 @@ try
                 ellipse(P, scr, Demo.t, stim);
             end
         end
-        
-        if strcmp(new_subject_flag,'y')
-            flip_wait_for_experimenter_flip(scr.keyenter, scr);
-        elseif strcmp(new_subject_flag,'n')
-            flip_pak_flip(scr,ny,color,'continue');
-        end
+
+        flip_key_flip(scr,'continue',ny,color,new_subject);
+
+%         if strcmp(new_subject,'y')
+%             flip_wait_for_experimenter_flip(scr.keyenter, scr);
+%         elseif strcmp(new_subject,'n')
+%             flip_pak_flip(scr,ny,color,'continue');
+%         end
 
     end
     
     
-    %% START TRIALS
+    %% RUN TRIALS
 
     for k = 1:Test.n.blocks
         
@@ -453,19 +461,19 @@ try
         if ~notrain
             if k == 1
                 if attention_manipulation                
-                    [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject_flag, task_str, final_task, Training.attention.R2);
+                    [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, Training.attention.R2);
                     if flag==1,break;end
                 end
                 
                 Training.initial.n.blocks = Training.n.blocks;
-                [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag, task_str, final_task);
+                [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task);
                 if flag ==1,  break;  end
 
-                [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject_flag, task_str, final_task);
+                [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task);
                 if flag ==1,  break;  end
                 
             else
-                [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject_flag, task_str, final_task);
+                [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task);
                 if flag ==1,  break;  end
 
             end
@@ -473,116 +481,19 @@ try
         
         % Testing
         if attention_manipulation
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, task_str, final_task, Test.R2);
+            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, Test.R2);
         else
-            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject_flag, task_str, final_task);
+            [Test.responses{k}, flag, blockscore] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task);
         end
         if flag ==1,  break;  end
         
-        %load top scores
-        load top_ten
-        
-        ranking = 11 - sum(blockscore>=top_ten.(category_type).scores); % calculate current ranking
-        
-        if ranking < 11
-            top_ten.(category_type).scores = [top_ten.(category_type).scores(1:(ranking-1));  blockscore;  top_ten.(category_type).scores(ranking:9)];
-            for m = 10:-1:ranking+1
-                top_ten.(category_type).initial{m} = top_ten.(category_type).initial{m-1};
-            end
-            top_ten.(category_type).initial{ranking} = initial;
-            hitxt=['\n\nCongratulations! You made the ' task_str 'Top Ten!\n\n'];
-        else
-            hitxt='\n\n\n\n';
-        end
-        
-        if ~any(strfind(initial,'test'))
-            save top_ten top_ten;
-        end
-        
         elapsed_mins = toc(start_t)/60;
         save(strrep([datadir '/backup/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins','category_type') % block by block backup. strrep makes the file separator system-dependent.
-        
-        [nx,ny] = DrawFormattedText(scr.win,[hitxt 'Your score for Testing Block ' num2str(k) ': ' num2str(blockscore,'%.1f') '%\n\n'...
-            task_str 'Top Ten:\n\n'],'center',-90,color.wt);
-        for j = 1:10
-            [nx,ny] = DrawFormattedText(scr.win,[num2str(j) ') ' num2str(top_ten.(category_type).scores(j),'%.1f') '%    ' top_ten.(category_type).initial{j} '\n'],scr.cx*.8 - (j==10)*20,ny,color.wt);
-        end
-        
-        if k ~= Test.n.blocks % if didn't just finish final testing block
-            [nx,ny] = DrawFormattedText(scr.win,'\nPlease take a short break.\n\n\nYou may begin the next Training Block\n\n','center',ny,color.wt);
-            [nx,ny] = DrawFormattedText(scr.win,'in ',scr.cx-570,ny,color.wt);
-            countx=nx; county=ny;
-            [nx,ny] = DrawFormattedText(scr.win,'   seconds, but you may take a\n\n',countx,county,color.wt);
-            if ~notrain
-                [nx,ny] = DrawFormattedText(scr.win,['longer break and leave the room\n\n'...
-                    'or walk around.\n\n\n'...
-                    'Coming up: ' task_str 'Category Training before\n\n'...
-                    task_str 'Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
-            else
-                [nx,ny] = DrawFormattedText(scr.win,['longer break and leave the room\n\n'...
-                    'or walk around.\n\n\n'...
-                    'Coming up:\n\n'...
-                    task_str 'Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
-            end
             
-            countdown
-            
-            flip_pak_flip(scr,ny,color,'continue','initial_wait',0);
-            
-            if ~notrain
-                [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\n' task_str ' Category Training before\n\n'...
-                    task_str 'Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
-            else
-                [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\n'...
-                    task_str 'Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
-            end
-            flip_pak_flip(scr,ny,color,'begin');
-            
-            
-            % end top ten scores
-            
-        else % if just finished final block
-            if ~final_task % if have more tasks left
-                if strcmp(new_subject_flag,'y')
-                    [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with ' task_str '\n\n\n'...
-                        'Please go get the experimenter from the other room!'],'center',ny,color.wt);
-                    %             Screen('Flip',scr.win);
-                    %WaitSecs(5);
-                    flip_wait_for_experimenter_flip(scr.keyenter, scr);
-                    %             KbWait;
-                    %             Screen('Flip',scr.win);
-                    
-                elseif strcmp(new_subject_flag,'n')% if just finished experiment one, and there's another experiment coming up.
-                    [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with ' task_str '\n\n\n'],'center',ny,color.wt);
-                    [nx,ny] = DrawFormattedText(scr.win,['You may begin Task ' other_task_letter ' in '],scr.cx-570,ny,color.wt);
-                    countx=nx; county=ny;
-                    [nx,ny] = DrawFormattedText(scr.win,'   seconds,\n\n',countx,county,color.wt);
-                    [nx,ny] = DrawFormattedText(scr.win,['but you may take a longer break\n\n'...
-                        'and leave the room or walk around.\n\n\n'...
-                        'Coming up: Task ' other_task_letter],'center',ny,color.wt,50);
-                    
-                    countdown
-                    
-                    flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
-                    
-                end
-                
-            elseif final_task % if done with all experiments (incl if there is only one experiment)
-                [nx,ny] = DrawFormattedText(scr.win,'\n\n\n\nYou''re done with the experiment.\n\nThank you for participating!','center',ny,color.wt);
-                Screen('Flip',scr.win)
-                WaitSecs(1);
-                KbWait([], 0, GetSecs+180); % automatically quit after 3 minutes
-            end
-            
-            WaitSecs(1);
-        
-        end
-    
         if flag == 1 % when run_exp errors
             initial = [initial '_flaggedinrunexp'];
         end
     
-        save top_ten top_ten;
         elapsed_mins = toc(start_t)/60;
         save(strrep([datadir '/' initial '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P', 'category_type', 'elapsed_mins') % save complete session
         recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
@@ -600,14 +511,5 @@ catch %if error or script is cancelled
     
     psychrethrow(psychlasterror);
 end
-
-    function countdown
-        for i=1:countdown_time+1;
-            Screen('FillRect',scr.win,color.bg,[countx county countx+1.6*fontsize county+1.2*fontsize]) %timer background
-            DrawFormattedText(scr.win,[num2str(countdown_time+1-i) '  '],countx,county,color.wt);
-            Screen('Flip',scr.win,[],1); % flip to screen without clearing
-            WaitSecs(1);
-        end
-    end
 
 end

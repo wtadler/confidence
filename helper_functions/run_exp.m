@@ -1,4 +1,4 @@
-function [responses, flag, blockscore] = run_exp(n, R, t, scr, color, P, type, blok, new_subject_flag, task_str, final_task, varargin)    
+function [responses, flag, blockscore] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, varargin)    
 
 if length(varargin) == 1
     R2 = varargin{1};
@@ -31,9 +31,18 @@ try
                 str='Coming up: Testing';
         end
         [~,ny]=DrawFormattedText(scr.win,str,'center','center',color.wt);
-        flip_pak_flip(scr,ny,color,'begin')
+        flip_key_flip(scr,'begin',ny,color, false);
     end
 
+%             if ~notrain
+%                 [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\n' task_str ' Category Training before\n\n'...
+%                     task_str 'Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
+%             else
+%                 [nx,ny] = DrawFormattedText(scr.win,['You will now begin\n\n'...
+%                     task_str 'Testing Block ' num2str(k+1) '.'],'center','center',color.wt,50);
+%             end
+%             flip_pak_flip(scr,ny,color,'begin');
+%             
 
     
     
@@ -199,13 +208,14 @@ try
             end
             
             [~,ny]=DrawFormattedText(scr.win,midtxt,'center','center',color.wt);
-            flip_pak_flip(scr,ny,color,str);
+            flip_key_flip(scr,str,ny,color,false);
             
         end
         
         
     end
     [blockscore,scorereport]= calcscore(responses,n.sections*n.trials);
+    
     experimenter_needed = false;
     switch type
         case 'Training'
@@ -214,7 +224,7 @@ try
                     '\n\nComing up: ' task_str 'Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
                 str = 'begin';
             else % first block
-                if strcmp(new_subject_flag,'n') || (~strcmp(task_str,'') && nExperiments > 1) % because they will have seen this already
+                if ~new_subject || (~strcmp(task_str,'') && nExperiments > 1) % because they will have seen this already
                     hitxt = ['Great job! You just got ' scorereport '\n\n\n'];
                     str = 'continue';
                 else
@@ -223,35 +233,119 @@ try
                     experimenter_needed = true;
                 end
             end
+            [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
+
         case 'Confidence Training'
             hitxt = ['Great job! You have just finished Confidence Training.\n\n'...
                 'Coming up: ' task_str 'Testing']; % have just removed hard-coded block number for now
             %             'Coming up: Task ' task_letter ' Testing Block 1 of 3']; % number of blocks is hard coded here!!! BAD!!!
             str = 'begin';
+            [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
+
         case 'Attention Training'
             hitxt = ['Great job! You have just finished Attention Training.\n\n'...
                 'Coming up: ' task_str 'Testing'];
             str = 'begin';
+            [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
+
         case 'Test'
             hitxt = ['Great! You''ve just finished ' task_str 'Testing Block ' num2str(blok) ' with\n\n' scorereport];
             str = 'continue';
-            
-            
+            [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
+
     end
+    flip_key_flip(scr,str,ny,color,experimenter_needed);
+
     
-    [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
+    if strcmp(type, 'Test')
+        %load top scores
+        load top_ten
+        ranking = 11 - sum(blockscore>=top_ten.(category_type).scores); % calculate current ranking
+ 
+        if ranking < 11
+            top_ten.(category_type).scores = [top_ten.(category_type).scores(1:(ranking-1));  blockscore;  top_ten.(category_type).scores(ranking:9)];
+            for m = 10:-1:ranking+1
+                top_ten.(category_type).initial{m} = top_ten.(category_type).initial{m-1};
+            end
+            top_ten.(category_type).initial{ranking} = initial;
+            hitxt=['\n\nCongratulations! You made the ' task_str 'Top Ten!\n\n'];
+        else
+            hitxt='\n\n\n\n';
+        end
+
+        if ~any(strfind(initial,'test'))
+            save top_ten top_ten;
+        end
+
+        [nx,ny] = DrawFormattedText(scr.win,[hitxt 'Your score for Testing Block ' num2str(k) ': ' num2str(blockscore,'%.1f') '%\n\n'...
+            task_str 'Top Ten:\n\n'],'center',-90,color.wt);
+        for j = 1:10
+            [nx,ny] = DrawFormattedText(scr.win,[num2str(j) ') ' num2str(top_ten.(category_type).scores(j),'%.1f') '%    ' top_ten.(category_type).initial{j} '\n'],scr.cx*.8 - (j==10)*20,ny,color.wt);
+        end
+
+        
+        if k ~= Test.n.blocks % if didn't just finish final testing block
+            [nx,ny] = DrawFormattedText(scr.win,'\nPlease take a short break.\n\n\nYou may begin the next Training Block\n\n','center',ny,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,'in ',scr.cx-570,ny,color.wt);
+            countx=nx; county=ny;
+            [nx,ny] = DrawFormattedText(scr.win,'   seconds, but you may take a\n\n',countx,county,color.wt);
+            [nx,ny] = DrawFormattedText(scr.win,['longer break and leave the room\n\n'...
+                'or walk around.'],'center',ny,color.wt,50);
+            
+            %  'Coming up:\n\n'...
+%                     task_str 'Testing Block ' num2str(k+1)],'center',ny,color.wt,50);
+            countdown(scr,color,countx,county)
+
+            flip_key_flip(scr,'continue',ny,color,false);
+
+        else % final block
+            if ~final_task % if have more tasks left
+                if new_subject
+                    [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with ' task_str '\n\n\n'...
+                        'Please go get the experimenter from the other room!'],'center',ny,color.wt);
+%                     experimenter_needed = true;
+                    %             Screen('Flip',scr.win);
+                    %WaitSecs(5);
+%                     flip_wait_for_experimenter_flip(scr.keyenter, scr);
+                    %             KbWait;
+                    %             Screen('Flip',scr.win);
+                    
+                elseif ~new_subject% if just finished experiment one, and there's another experiment coming up.
+                    [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with ' task_str '\n\n\n'],'center',ny,color.wt);
+                    [nx,ny] = DrawFormattedText(scr.win,['You may begin Task ' other_task_letter ' in '],scr.cx-570,ny,color.wt);
+                    countx=nx; county=ny;
+                    [nx,ny] = DrawFormattedText(scr.win,'   seconds,\n\n',countx,county,color.wt);
+                    [nx,ny] = DrawFormattedText(scr.win,['but you may take a longer break\n\n'...
+                        'and leave the room or walk around.\n\n\n'...
+                        'Coming up: Task ' other_task_letter],'center',ny,color.wt,50);
+                    
+                    countdown(scr,color,countx,county);
+                    
+%                     flip_pak_flip(scr,ny,color,'begin','initial_wait',0);
+                    
+                end
+                
+                flip_key_flip(scr,'begin',ny,color,new_subject, 'initial_wait',0);
+                
+            elseif final_task % if done with all experiments (incl if there is only one experiment)
+                [nx,ny] = DrawFormattedText(scr.win,'\n\n\n\nYou''re done with the experiment.\n\nThank you for participating!','center',ny,color.wt);
+                Screen('Flip',scr.win)
+                WaitSecs(1);
+                KbWait([], 0, GetSecs+180); % automatically quit after 3 minutes
+            end
+            
+            WaitSecs(1);
+        end
+        
+
+%     flip_key_flip(scr,str,ny,color,experimenter_needed);
+%     if experimenter_needed
+%         flip_wait_for_experimenter_flip(scr.keyenter, scr);
+%     else
+%         flip_pak_flip(scr,ny,color,str)
+%     end
     
-    % move all the scoring stuff out of categorical_decision and put it here??
-    
-    
-    
-    if experimenter_needed
-        flip_wait_for_experimenter_flip(scr.keyenter, scr);
-    else
-        flip_pak_flip(scr,ny,color,str)
     end
-    
-    
     
     
 catch
