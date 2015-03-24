@@ -21,6 +21,6 @@ for category = 1 : 2
         end
     end
     
-    flip_key_flip(scr,'continue',ny,color,new_subject);
+    flip_key_flip(scr,'continue','center',color,new_subject);
     
 end

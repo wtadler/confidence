@@ -17,40 +17,14 @@ catch
     RandStream.setDefaultStream(s);
 end
 
-Screen('Preference', 'SkipSyncTests', 1); % WTA.
+Screen('Preference', 'SkipSyncTests', 1);
 Screen('Preference', 'VisualDebuglevel', 3);
 
-% switch user
-%     case 'rachel'
-        dir = pwd;
-        datadir = [dir '/data'];
-        addpath(genpath(dir))
-%     otherwise
-%         if strcmp(computer,'MACI64') % Assuming this is running on my MacBook
-%             dir = '/Users/will/Google Drive/Ma lab/repos/qamar confidence';
-%             datadir = '/Users/will/Google Drive/Will - Confidence/Data';
-%             
-%         elseif strcmp(computer,'PCWIN64') % Assuming the left Windows psychophysics machine
-%             dir = 'C:\Users\malab\Documents\GitHub\Confidence-Theory';
-%             datadir = 'C:\Users\malab\Google Drive/Will - Confidence/Data';
-%             
-%         end
-% end
+dir = pwd;
+datadir = [dir '/data'];
+addpath(genpath(dir))
 
 cd(dir)
-
-%subject_name = input('Please enter your initials.\n> ', 's'); % 's' returns entered text as a string
-
-%new_subject_flag = input('\nAre you new to this experiment? Please enter y or n.\n> ', 's');
-%while ~strcmp(new_subject_flag,'y') && ~strcmp(new_subject_flag,'n')
-%    new_subject_flag = input('You must enter y or n.\nAre you new to this experiment? Please enter y or n.\n> ', 's');
-%end
-
-%room_letter = input('\nPlease enter the room name [mbp] or [home] or [1139].\n> ', 's');
-
-%subject_name = 'test';
-%new = 'y'
-%room_letter = 'mbp';
 
 datetimestamp = datetimefcn; % establishes a timestamp for when the experiment was started
 
@@ -104,7 +78,7 @@ cue_validity = .7;
 % colors in 0:255 space
 white = 255;
 color.wt = [white white white];
-lightgray = 180;
+lightgray = 157;
 bg = 127.5;
 color.bg = bg;
 darkgray = 10;
@@ -112,24 +86,52 @@ color.bk = [0 0 0];
 color.red = [100 0  0];
 color.grn = [0 100 0];
 
-switch category_type
-    case 'same_mean_diff_std'
-        Test.category_params.sigma_1 = 3;
-        Test.category_params.sigma_2 = 12;
-    case 'diff_mean_same_std'
-        Test.category_params.sigma_s = 5; % these params give a level of performance that is about on par withthe original task (above)
-        Test.category_params.mu_1 = -4;
-        Test.category_params.mu_2 = 4;
-    case 'sym_uniform'
-        if attention_manipulation
-            Test.category_params.uniform_range = 15; % 5
-        else
-            Test.category_params.uniform_range = 15;
-        end
-        Test.category_params.overlap = 0;
-    case 'half_gaussian'
-        Test.category_params.sigma_s = 5;
+% CATEGORY PARAMS
+tmp.Test.category_params.category_type = category_type;
+tmp.Training.category_params.category_type = category_type;
+tmp.ConfidenceTraining.category_params.category_type = category_type;
+tmp.AttentionTraining.category_params.category_type = 'sym_uniform';
+
+fields = fieldnames(tmp);
+for f = 1:length(fields)
+    switch tmp.(fields{f}).category_params.category_type
+        case 'same_mean_diff_std'
+            tmp.(fields{f}).category_params.sigma_1 = 3;
+            tmp.(fields{f}).category_params.sigma_2 = 12;
+        case 'diff_mean_same_std'
+            tmp.(fields{f}).category_params.sigma_s = 5; % these params give a level of performance that is about on par withthe original task (above)
+            tmp.(fields{f}).category_params.mu_1 = -4;
+            tmp.(fields{f}).category_params.mu_2 = 4;
+        case 'sym_uniform'
+            tmp.(fields{f}).category_params.uniform_range = 15;
+            tmp.(fields{f}).category_params.overlap = 0;
+        case 'half_gaussian'
+            tmp.(fields{f}).category_params.sigma_s = 5;
+    end
+    eval([fields{f} '= tmp.(fields{f});'])
 end
+clear tmp
+
+if strcmp(P.stim_type, 'ellipse')
+    Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
+else
+    if attention_manipulation
+        Test.category_params.test_sigmas = exp(-3.5);
+    else
+        Test.category_params.test_sigmas= exp(linspace(-5.5,-2,6)); % on previous rig: exp(-4:.5:-1.5)
+    end
+end
+ConfidenceTraining.category_params.test_sigmas = Test.category_params.test_sigmas;
+
+if strcmp(P.stim_type, 'ellipse')
+    Training.category_params.test_sigmas = .95;
+else
+    Training.category_params.test_sigmas = 1;
+end
+
+AttentionTraining.category_params.test_sigmas = Test.category_params.test_sigmas;
+
+
 
 if nExperiments == 1
     task_letter = '';
@@ -152,25 +154,6 @@ elseif nExperiments > 1
     task_str = ['Task ' task_letter ' '];
 end
 
-Test.category_params.category_type = category_type;
-
-if strcmp(P.stim_type, 'ellipse')
-    Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
-else
-    if attention_manipulation
-        Test.category_params.test_sigmas = exp(-3.5);
-    else
-        Test.category_params.test_sigmas= exp(linspace(-5.5,-2,6)); % on previous rig: exp(-4:.5:-1.5)
-    end
-end
-
-Training.category_params = Test.category_params;
-if strcmp(P.stim_type, 'ellipse')
-    Training.category_params.test_sigmas = .95;
-else
-    Training.category_params.test_sigmas = 1;
-end
-
 if attention_manipulation
     Test.n.blocks = 4;
     Test.n.sections = 4;
@@ -184,19 +167,17 @@ end
 Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % WTA: 2
 Training.initial.n.trials = 36;% WTA: 36
-Training.confidence.n.blocks = 1;
-Training.confidence.n.sections = 1;
-Training.confidence.n.trials = 24; % WTA: 16
+ConfidenceTraining.n.blocks = 1;
+ConfidenceTraining.n.sections = 1;
+ConfidenceTraining.n.trials = 24; % WTA: 16
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 1; %changed from '2' on 10/14
 Training.n.trials = 48; % WTA: 48
 
 if attention_manipulation
-    Training.attention.n.blocks = 1;
-    Training.attention.n.sections = 1;
-    Training.attention.n.trials = 36;
-    Training.attention.category_params = Test.category_params;
-    Training.attention.category_params.category_type = 'sym_uniform';
+    AttentionTraining.n.blocks = 1;
+    AttentionTraining.n.sections = 1;
+    AttentionTraining.n.trials = 36;
 end
 
 Demo.t.pres = 250;
@@ -226,10 +207,9 @@ if strfind(subject_name,'fast') > 0 % if 'fast' is in the initials, the exp will
 end
 
 if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp will be short (for debugging)
-    [Test.n.trials,Training.initial.n.trials,Training.confidence.n.trials,Training.n.trials, Training.attention.n.trials]...
-        = deal(6);
-    nDemoTrials = 5;
-    scr.countdown_time = 2;
+    [Test.n.trials,Training.initial.n.trials,ConfidenceTraining.n.trials,Training.n.trials, AttentionTraining.n.trials,nDemoTrials]...
+        = deal(8);
+    scr.countdown_time = 5;
 end
 
 if strfind(subject_name,'notrain') > 0 % if 'notrain' is in the initials, the exp will not include training (for debugging)
@@ -358,16 +338,16 @@ try
         Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
     end
     
-    Training.confidence.R = setup_exp_order(Training.confidence.n, Test.category_params);
+    ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params);
     
     if attention_manipulation
-        Training.attention.R = setup_exp_order(Training.attention.n, Training.attention.category_params);
-        Training.attention.R2 = setup_exp_order(Training.attention.n, Training.attention.category_params, cue_validity);
+        AttentionTraining.R = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params);
+        AttentionTraining.R2 = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params, cue_validity);
     end
     
     start_t = tic;
-    %% DEMO
     
+    %% Show example stimulus    
     stim.ort = 0;
     stim.cur_sigma = Training.category_params.test_sigmas;
     
@@ -412,17 +392,19 @@ try
         if ~notrain
             if k == 1
                 if attention_manipulation                
-                    [Training.attention.responses, flag] = run_exp(Training.attention.n,Training.attention.R,Test.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, subject_name, Training.attention.R2);
+                    [AttentionTraining.responses, flag] = run_exp(AttentionTraining.n,AttentionTraining.R,Test.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, subject_name, AttentionTraining.R2);
                     if flag==1,break;end
                 end
                 
+                [nx,ny]=DrawFormattedText(scr.win, 'Let''s get some practice with the categories we''ll be using in this task.', 'center', 'center', color.wt);
+                flip_key_flip(scr,'continue',ny,color,new_subject);
                 category_demo
                 
                 Training.initial.n.blocks = Training.n.blocks;
                 [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
 
-%                 [Training.confidence.responses, flag] = run_exp(Training.confidence.n,Training.confidence.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
+%                 [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
 %                 if flag ==1,  break;  end
                 
             else
@@ -448,7 +430,7 @@ try
         end
     end
     
-    save(strrep([datadir '/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P', 'category_type', 'elapsed_mins') % save complete session
+    save(strrep([datadir '/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'ConfidenceTraining', 'AttentionTraining', 'P', 'category_type', 'elapsed_mins') % save complete session
     recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
     delete([datadir '/backup/' subject_name '_' datetimestamp '.mat']) % delete the block by block backup
     

@@ -7,35 +7,49 @@ else
     attention_manipulation = false;
 end
 
-% try
     flag = 0;
-    %binary matrix of correct/incorrect responses
+    responses.c = zeros(n.sections, n.trials); % cat response
+    responses.conf = zeros(n.sections, n.trials); % conf response
+    responses.rt = zeros(n.sections, n.trials); % rt
+    %bool matrix of correct/incorrect responses
     responses.tf = zeros(n.sections, n.trials);
-    responses.c = zeros(n.sections, n.trials);
-    responses.conf = zeros(n.sections, n.trials);
-    responses.rt = zeros(n.sections, n.trials);
     
-    
-    % text before trials
-    if blok == 1
-        switch type
-            case 'Training'
-                str='Coming up: Category Training';
-            case 'Confidence Training'
-                str=['Let''s get some quick practice with confidence ratings.\n\n'...
-                    'Coming up: ' task_str 'Confidence Training'];
-            case 'Attention Training'
-                str='Let''s practice the attention task.\n\n'; % more instructions here?
-            case 'Test'
-                str='Coming up: Testing';
-        end
-        [~,ny]=DrawFormattedText(scr.win,str,'center','center',color.wt);
-        flip_key_flip(scr,'begin',ny,color, false);
+    %%% Text before trials %%%
+    switch type
+        case 'Training'
+            str='Coming up: Category Training';
+        case 'Confidence Training'
+            str=['Let''s get some quick practice with confidence ratings.\n\n'...
+                'Coming up: ' task_str 'Confidence Training'];
+        case 'Attention Training'
+            str=['Let''s get some practice with the structure of this task.\n\n'...
+                'In the center of the screen there will be a cross, which you should focus on.\n'...
+                'Striped patterns will appear to both the left and right of the cross.\n'...
+                'The patterns will be tilted either clockwise or counter-clockwise from horizontal.\n\n'...
+                'Before the targets appear, the left or right arm of the cross will turn white,\n'...
+                'cuing you to focus your attention on either the left or right target.\n'...
+                'After the targets are presented, one arm of the cross will turn gray,\n'...
+                'telling you which target to report.\n\n'...
+                'Your task is to report whether that target was tilted clockwise or counter-clockwise,\n'...
+                'as well as your confidence in that judgment.\n'...
+                '70% of the time, the initial cue will correctly indicate the target you are asked to report,\n'...
+                'and 30% of the time, you''ll be asked to report the uncued target.\n\n'...
+                'Overall, payting attention to the target indicated by the initial cue will help you\n'...
+                'on this task, so you should do your best to focus your attention on the cued target.\n\n'...
+                'Remember to always keep your eyes on the cross and just shift your mental focus of attention\n'...
+                'to the cued target.']
+            Screen('TextSize', scr.win, round(scr.fontsize*.7));
+                
+        case 'Test'
+            str=['Coming up: ' task_str 'Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
     end
-
-
+    [~,ny]=center_print(str,'center');
+    Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
+    flip_key_flip(scr,'begin',ny,color, false);
+    
+    
     %%%Run trials %%%
-
+try
     for section = 1:n.sections
         for trial = 1:n.trials
             
@@ -159,14 +173,14 @@ end
                 
                 switch type
                     case 'Training'
-                        [~,ny]=DrawFormattedText(scr.win,['You said: Category ' num2str(resp)],'center',scr.cy-50,color.wt);
-                        [~,ny]=DrawFormattedText(scr.win,['\n' status],'center',ny+10,stat_col);
+                        [~,ny]=center_print(sprintf('You said: Category %i',resp),scr.cy-50);
+                        [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
                     case 'Confidence Training'
-                        [~,ny]=DrawFormattedText(scr.win,['You said: Category ' num2str(resp) ' with ' confstr ' confidence.'],'center',scr.cy-50,color.wt);
+                        [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',resp,confstr),scr.cy-50);
                     case 'Attention Training'
-                        if resp == 1; str = 'LEFT'; else; str = 'RIGHT'; end
-                        [~,ny]=DrawFormattedText(scr.win,['You said: ' str ' with ' confstr ' confidence.'],'center',scr.cy-50,color.wt);
-                        [~,ny]=DrawFormattedText(scr.win,['\n' status],'center',ny+10,stat_col);
+                        if resp == 1; str = 'LEFT'; else str = 'RIGHT'; end
+                        [~,ny]=center_print(sprintf('You said: %s with %s confidence.',str,confstr),scr.cy-50);
+                        [~,ny]=center_print(sprintf('\n%s',status),ny+10,stat_col);
                 end
                 
                 Screen('Flip',scr.win, tResp+t.pause/1000);
@@ -181,65 +195,48 @@ end
         if section ~= n.sections
             [~,scorereport]=calcscore(responses,n.trials);
             if strcmp('Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
-                midtxt = sprintf('Very good! You got %s\n\nYou have completed\n\n%s of %sCategory Training.',scorereport,fractionizer(section,n.sections), task_str);
+                midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %sCategory Training.',scorereport,fractionizer(section,n.sections), task_str);
                 str = 'continue';
-            elseif strcmp('Training', type) % this isn't happening right now;
-                midtxt = ['Coming up: Testing Block ' num2str(section+1) '\n\n'...
-                    'Training Block ' num2str(blok) '\n\n\n\n'];
-                str = 'begin';
             else
                 midtxt = sprintf('You have completed\n\n%s of %sTesting Block %i of %i.',fractionizer(section,n.sections),task_str,blok,n.blocks);
                 str = 'continue';
             end
             
-            [~,ny]=DrawFormattedText(scr.win,midtxt,'center','center',color.wt);
-            flip_key_flip(scr,str,ny,color,false);
-            
-        end
-        
-        
+            [~,ny]=center_print(midtxt,'center');
+            flip_key_flip(scr,str,ny,color,false); 
+        end    
     end
+    
+    
+    % FEEDBACK/INSTRUCTIONS AFTER END OF BLOCK
     [blockscore,scorereport]= calcscore(responses,n.sections*n.trials);
+    if blockscore >= 66
+        motivational_str = 'Great job!';
+    elseif blockscore < 66 && blockscore >=54
+        motivational_str = 'Good.';
+    elseif blockscore < 54
+        motivational_str = 'Please try a bit harder!\n\nIf you are confused about the task,\n\nplease talk to the experimenter.'
+    end
     
     experimenter_needed = false;
     switch type
         case 'Training'
-            if blok > 1
-                hitxt = ['Nice work! You just got ' scorereport ...
-                    '\n\nComing up: ' task_str 'Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
-                str = 'begin';
-            else % first block
-                if ~new_subject || (~strcmp(task_str,'') && nExperiments > 1) % because they will have seen this already
-                    hitxt = ['Great job! You just got ' scorereport '\n\n\n'];
-                    str = 'continue';
-                else
-                    hitxt = ['Great job! You just got ' scorereport '\n\n\n'...
-                        'Please go get the experimenter from the other room!'];
-                    experimenter_needed = true;
-                end
+            % strcmp(task_str,'') is a standin for nExperiments == 1.
+            if blok == 1 && new_subject && (strcmp(task_str,'') | (~strcmp(task_str,'') && ~final_task))
+                hitxt = sprintf('You just got %s\n\n\nPlease go get the experimenter from the other room!',scorereport);
+                experimenter_needed = true;
+            else
+                hitxt = sprintf('%s\n\nYou just got %s\n',motivational_str,scorereport);
             end
-            [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
-
         case 'Confidence Training'
-            hitxt = ['Great job! You have just finished Confidence Training.\n\n'...
-                'Coming up: ' task_str 'Testing']; % have just removed hard-coded block number for now
-            %             'Coming up: Task ' task_letter ' Testing Block 1 of 3']; % number of blocks is hard coded here!!! BAD!!!
-            str = 'begin';
-            [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
-
+            hitxt = 'Great job! You have just finished Confidence Training.\n';
         case 'Attention Training'
-            hitxt = ['Great job! You have just finished Attention Training.\n\n'...
-                'Coming up: ' task_str 'Category Training'];
-            str = 'begin';
-            [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
-
+            hitxt = sprintf('%s\n\nYou have just finished Attention Training with\n\n%s.\n',motivational_str,scorereport);
         case 'Test'
-            hitxt = ['Great! You''ve just finished ' task_str 'Testing Block ' num2str(blok) ' with\n\n' scorereport];
-            str = 'continue';
-            [~,ny]=DrawFormattedText(scr.win,hitxt,'center','center',color.wt);
-
+            hitxt = sprintf('%s\n\nYou''ve just finished %sTesting Block %i of %i with\n\n%s.\n',motivational_str,task_str,blok,n.blocks,scorereport);
     end
-    flip_key_flip(scr,str,ny,color,experimenter_needed);
+    [~,ny]=center_print(hitxt,'center');
+    flip_key_flip(scr,'continue',ny,color,experimenter_needed);
 
     
     if strcmp(type, 'Test')
@@ -253,7 +250,7 @@ end
                 top_ten.(R.category_type).initial{m} = top_ten.(R.category_type).initial{m-1};
             end
             top_ten.(R.category_type).initial{ranking} = subject_name;
-            hitxt=['\n\nCongratulations! You made the ' task_str 'Top Ten!\n\n'];
+            hitxt=sprintf('\n\nCongratulations! You made the %sTop Ten!\n\n',task_str);;
         else
             hitxt='\n\n\n\n';
         end
@@ -262,74 +259,72 @@ end
             save top_ten top_ten;
         end
 
-        [nx,ny] = DrawFormattedText(scr.win,[hitxt 'Your score for Testing Block ' num2str(blok) ': ' num2str(blockscore,'%.1f') '%\n\n'...
-            task_str 'Top Ten:\n\n'],'center',-90,color.wt);
-        for j = 1:10
-            [nx,ny] = DrawFormattedText(scr.win,[num2str(j) ') ' num2str(top_ten.(R.category_type).scores(j),'%.1f') '%    ' top_ten.(R.category_type).initial{j} '\n'],scr.cx*.8 - (j==10)*20,ny,color.wt);
-        end
-
+        [nx,ny] = center_print(sprintf('%sYour score for Testing Block %i of %i: %.1f\n\n%sTop Ten:\n\n',hitxt,blok,n.blocks,blockscore,task_str),-90);
         
-        if blok ~= n.blocks % if didn't just finish final testing block
-            [nx,ny] = DrawFormattedText(scr.win,'\nPlease take a short break.\n\n\nYou may begin the next Training Block\n\n','center',ny,color.wt);
-            [nx,ny] = DrawFormattedText(scr.win,'in ',scr.cx-570,ny,color.wt);
-            countx=nx; county=ny;
-            [nx,ny] = DrawFormattedText(scr.win,'   seconds, but you may take a\n\n',countx,county,color.wt);
-            [nx,ny] = DrawFormattedText(scr.win,['longer break and leave the room\n\n'...
-                'or walk around.'],'center',ny,color.wt,50);
-            
-            %  'Coming up:\n\n'...
-%                     task_str 'Testing Block ' num2str(blok+1)],'center',ny,color.wt,50);
-            countdown(scr,color,countx,county)
-
-            flip_key_flip(scr,'continue',ny,color,false);
-
-        else % final block
-            if ~final_task % if have more tasks left
-                if new_subject
-                    [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with ' task_str '\n\n\n'...
-                        'Please go get the experimenter from the other room!'],'center',ny,color.wt);
-                    
-                elseif ~new_subject% if just finished experiment one, and there's another experiment coming up.
-                    [nx,ny] = DrawFormattedText(scr.win,['\nYou''re done with ' task_str '\n\n\n'],'center',ny,color.wt);
-                    [nx,ny] = DrawFormattedText(scr.win,['You may begin Task ' other_task_letter ' in '],scr.cx-570,ny,color.wt);
-                    countx=nx; county=ny;
-                    [nx,ny] = DrawFormattedText(scr.win,'   seconds,\n\n',countx,county,color.wt);
-                    [nx,ny] = DrawFormattedText(scr.win,['but you may take a longer break\n\n'...
-                        'and leave the room or walk around.\n\n\n'...
-                        'Coming up: Task ' other_task_letter],'center',ny,color.wt,50);
-                    
-                    countdown(scr,color,countx,county);
-                    
-                end
-                
-                flip_key_flip(scr,'begin',ny,color,new_subject, 'initial_wait',0);
-                
-            elseif final_task % if done with all experiments (incl if there is only one experiment)
-                [nx,ny] = DrawFormattedText(scr.win,'\n\n\n\nYou''re done with the experiment.\n\nThank you for participating!','center',ny,color.wt);
-                Screen('Flip',scr.win)
-                WaitSecs(1);
-                KbWait([], 0, GetSecs+180); % automatically quit after 3 minutes
-            end
-            
-            WaitSecs(1);
+        for j = 1:10
+            [nx,ny] = center_print(sprintf('%i) %.1f%%    %s\n',j,top_ten.(R.category_type).scores(j),top_ten.(R.category_type).initial{j}),ny,[],scr.cx*.8 - (j==10)*20);
         end
+
+        % instructions below top ten
+        experimenter_needed = false;
+        if blok ~= n.blocks
+            hitxt = '\nPlease take a short break.\n\n\nYou may begin the next Category Training\n\n';
+        else
+            if ~final_task
+                if new_subject
+                    hitxt = sprintf('\nYou''re done with %s\n\n\nPlease go get the experimenter from the other room!',task_str);
+                    experimenter_needed = true;
+                else
+                    hitxt = sprintf('You''re done with %s\n\n\nYou may begin Task %s\n\n',task_str,other_task_letter);
+                end
+            else
+                hitxt='\n\n\n\nYou''re done with the experiment.\n\nThank you for participating!';
+                experimenter_needed = true;
+            end
+        end
+        
+        [nx,ny] = center_print(hitxt,ny);
+        if blok ~= n.blocks || (blok == n.blocks && ~final_task && ~new_subject)
+            [nx,ny] = center_print('in ',ny,[],scr.cx-570);
+            countx=nx; county=ny;
+            [nx,ny] = center_print('   seconds, but you may take a\n\n',county,[],countx);
+            [nx,ny] = center_print(['longer break and leave the room\n\n'...
+                'or walk around.'],ny,[],[],50);
+            countdown(scr,color,countx,county);
+        end
+        
+        flip_key_flip(scr,'continue',ny,color,experimenter_needed);
             
     end
     
     
-% catch
-%     % I think these lines just indicate where an error occurred when you look back at the data.
-%     responses.tf(section, trial) = -1;
-%     responses.c(section, trial) = -1;
-%     responses.conf(section, trial) = -1;
-%     responses.rt(section, trial) = -1;
-%     
-%     
-%     psychrethrow(psychlasterror)
-%     save responses
-%     flag = 1;
-%     
-% end
+catch
+    % I think these lines just indicate where an error occurred when you look back at the data.
+    responses.tf(section, trial) = -1;
+    responses.c(section, trial) = -1;
+    responses.conf(section, trial) = -1;
+    responses.rt(section, trial) = -1;
+    
+    
+    psychrethrow(psychlasterror)
+    save responses
+    flag = 1;
+    
+end
+
+    function [nx,ny]=center_print(str,y,text_color,x, wrapat)
+        if ~exist('text_color','var') | isempty(text_color)
+            text_color = color.wt;
+        end
+        if ~exist('x','var') | isempty(x)
+            x = 'center';
+        end
+        if ~exist('wrapat') | isempty(wrapat)
+            wrapat=[];
+        end
+        [nx,ny] = DrawFormattedText(scr.win, str, x, y, text_color, wrapat);
+    end
+
 end
 
 function str = fractionizer(numerator,denominator)
