@@ -133,8 +133,6 @@ end
 AttentionTraining.category_params.test_sigmas = 1;
 AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;
 
-
-
 if nExperiments == 1
     task_letter = '';
     task_str = '';
