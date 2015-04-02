@@ -91,6 +91,7 @@ tmp.Test.category_params.category_type = category_type;
 tmp.Training.category_params.category_type = category_type;
 tmp.ConfidenceTraining.category_params.category_type = category_type;
 tmp.AttentionTraining.category_params.category_type = 'sym_uniform';
+tmp.AttentionTrainingConf.category_params.category_type = 'sym_uniform';
 
 fields = fieldnames(tmp);
 for f = 1:length(fields)
@@ -129,7 +130,8 @@ else
     Training.category_params.test_sigmas = 1;
 end
 
-AttentionTraining.category_params.test_sigmas = Test.category_params.test_sigmas;
+AttentionTraining.category_params.test_sigmas = 1;
+AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;
 
 
 
@@ -158,6 +160,11 @@ if attention_manipulation
     Test.n.blocks = 4;
     Test.n.sections = 4;
     Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
+    
+    PreTest.n.blocks = 1;
+    PreTest.n.sections = 1;
+    PreTest.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
+
 else
     Test.n.blocks = 3;% WTA from 3
     Test.n.sections = 3; % WTA from 3
@@ -178,6 +185,8 @@ if attention_manipulation
     AttentionTraining.n.blocks = 1;
     AttentionTraining.n.sections = 1;
     AttentionTraining.n.trials = 36;
+    
+    AttentionTrainingConf.n = AttentionTraining.n;
 end
 
 Demo.t.pres = 250;
@@ -207,7 +216,7 @@ if strfind(subject_name,'fast') > 0 % if 'fast' is in the initials, the exp will
 end
 
 if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp will be short (for debugging)
-    [Test.n.trials,Training.initial.n.trials,ConfidenceTraining.n.trials,Training.n.trials, AttentionTraining.n.trials,nDemoTrials]...
+    [Test.n.trials,Training.initial.n.trials,ConfidenceTraining.n.trials,Training.n.trials, AttentionTraining.n.trials,nDemoTrials, AttentionTrainingConf.n.trials, PreTest.n.trials]...
         = deal(8);
     scr.countdown_time = 5;
 end
@@ -333,9 +342,11 @@ try
     end
     
     Test.R = setup_exp_order(Test.n, Test.category_params);
+    PreTest.R = setup_exp_order(PreTest.n, Test.category_params);
     
     if attention_manipulation
         Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
+        PreTest.R2 = setup_exp_order(PreTest.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
     end
     
     ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params);
@@ -343,6 +354,9 @@ try
     if attention_manipulation
         AttentionTraining.R = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params);
         AttentionTraining.R2 = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params, cue_validity);
+        
+        AttentionTrainingConf.R = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params);
+        AttentionTrainingConf.R2 = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params, cue_validity);
     end
     
     start_t = tic;
@@ -391,12 +405,15 @@ try
         % Training
         if ~notrain
             if k == 1
-                if attention_manipulation                
-                    [AttentionTraining.responses, flag] = run_exp(AttentionTraining.n,AttentionTraining.R,Test.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, subject_name, AttentionTraining.R2);
+                if attention_manipulation
+                    [AttentionTraining.responses, flag] = run_exp(AttentionTraining.n,AttentionTraining.R, Training.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, subject_name, AttentionTraining.R2);
+                    if flag==1,break;end
+                    
+                    [AttentionTrainingConf.responses, flag] = run_exp(AttentionTrainingConf.n,AttentionTrainingConf.R, Test.t,scr,color,P,'Attention Training Conf',k, new_subject, task_str, final_task, subject_name, AttentionTrainingConf.R2);
                     if flag==1,break;end
                 end
                 
-                [nx,ny]=DrawFormattedText(scr.win, 'Let''s get some practice with the categories we''ll be using in this task.', 'center', 'center', color.wt);
+                [nx,ny]=DrawFormattedText(scr.win, 'Let''s get some practice with the\n\ncategories we''ll be using in this task.', 'center', 'center', color.wt);
                 flip_key_flip(scr,'continue',ny,color,new_subject);
                 category_demo
                 
@@ -406,7 +423,9 @@ try
 
 %                 [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
 %                 if flag ==1,  break;  end
-                
+                if attention_manipulation
+                    [Test.responses{k}, flag] = run_exp(PreTest.n, PreTest.R, Test.t, scr, color, P, 'PreTest',k, new_subject, task_str, final_task, subject_name, PreTest.R2);
+                end
             else
                 [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
@@ -415,7 +434,7 @@ try
         end
         
         % Testing
-        if attention_manipulation
+        if attention_manipulation            
             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name, Test.R2);
         else
             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name);

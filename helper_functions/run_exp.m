@@ -40,8 +40,12 @@ end
                 'to the cued target.']
             Screen('TextSize', scr.win, round(scr.fontsize*.7));
                 
+        case 'Attention Training Conf'
+            str='Now rate your confidence as well as category.\n\nThe stimuli might be hard to see.';
         case 'Test'
             str=['Coming up: ' task_str 'Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
+        case 'PreTest'
+            str='Now for some practice trials...';
     end
     [~,ny]=center_print(str,'center');
     Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
@@ -123,7 +127,7 @@ try
                     error('You cancelled the script by pressing the insert and enter keys simultaneously.')
                 end
                 
-                if strcmp(type, 'Training')
+                if strcmp(type, 'Training') | strcmp(type, 'Attention Training')
                     if keyCode(scr.key5) % cat 1
                         resp = 1;
                     elseif keyCode(scr.key6) % cat 2
@@ -156,12 +160,12 @@ try
 %             fprintf('cat %d - ACC %d\n', resp, resp==cval) % for debugging
             responses.tf(section, trial) = (resp == cval);
             responses.c(section, trial) = resp;
-            if ~strcmp(type, 'Training') % if not in non-conf training
+            if ~strcmp(type, 'Training') && ~strcmp(type, 'Attention Training') % if not in non-conf training
                 responses.conf(section, trial) = conf;
             end
             responses.rt(section,trial) = tResp - t0;
             
-            if strcmp(type, 'Training') || strcmp(type,'Confidence Training') || strcmp(type,'Attention Training') %to add random feedback during test: || rand > .9 %mod(sum(sum(tfresponses)) ,10)==9
+            if ~strcmp(type,'Test') && ~ strcmp(type,'PreTest')% give trial by trial feedback unless testing.
                 %feedback
                 if resp == cval
                     status = 'Correct!';
@@ -177,10 +181,16 @@ try
                         [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
                     case 'Confidence Training'
                         [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',resp,confstr),scr.cy-50);
-                    case 'Attention Training'
+                    case {'Attention Training Conf', 'Attention Training'}
                         if resp == 1; str = 'LEFT'; else str = 'RIGHT'; end
-                        [~,ny]=center_print(sprintf('You said: %s with %s confidence.',str,confstr),scr.cy-50);
+                        if strcmp(type,'Attention Training Conf')
+                            confstr =  sprintf(' with %s confidence',confstr);
+                        else
+                            confstr = '';
+                        end
+                        [~,ny]=center_print(sprintf('You said: %s%s.',str,confstr),scr.cy-50);
                         [~,ny]=center_print(sprintf('\n%s',status),ny+10,stat_col);
+
                 end
                 
                 Screen('Flip',scr.win, tResp+t.pause/1000);
@@ -215,7 +225,7 @@ try
     elseif blockscore < 66 && blockscore >=54
         motivational_str = 'Good.';
     elseif blockscore < 54
-        motivational_str = 'Please try a bit harder!\n\nIf you are confused about the task,\n\nplease talk to the experimenter.'
+        motivational_str = 'Please try a bit harder!\n\nIf you are confused about the task,\n\nplease talk to the experimenter.';
     end
     
     experimenter_needed = false;
@@ -231,9 +241,13 @@ try
         case 'Confidence Training'
             hitxt = 'Great job! You have just finished Confidence Training.\n';
         case 'Attention Training'
-            hitxt = sprintf('%s\n\nYou have just finished Attention Training with\n\n%s.\n',motivational_str,scorereport);
+            hitxt = sprintf('%s\n\nYou have just finished Attention Training with\n\n%s\n',motivational_str,scorereport);
+        case 'Attention Training Conf'
+            hitxt = sprintf('%s\n\nYou have just finished Attention Training (Confidence) with\n\n%s\n',motivational_str,scorereport);
         case 'Test'
-            hitxt = sprintf('%s\n\nYou''ve just finished %sTesting Block %i of %i with\n\n%s.\n',motivational_str,task_str,blok,n.blocks,scorereport);
+            hitxt = sprintf('%s\n\nYou''ve just finished %sTesting Block %i of %i with\n\n%s\n',motivational_str,task_str,blok,n.blocks,scorereport);
+        case 'PreTest'
+            hitxt = sprintf('%s\n\nYou''ve just finished your practice trials with\n\n%s\n\nPlease let the experimenter know if\n\nyou have any questions.',motivational_str,scorereport);
     end
     [~,ny]=center_print(hitxt,'center');
     flip_key_flip(scr,'continue',ny,color,experimenter_needed);

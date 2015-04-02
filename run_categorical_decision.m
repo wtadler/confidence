@@ -1,8 +1,8 @@
 function run_categorical_decision(initial)
-% cd C:\GitHub\Confidence-Theory
+cd C:\GitHub\Confidence-Theory
 
 % initial = 'rd_p1_run02_notrain'; % 'rdshortnotrain'
-initial = 'testfast';
+% initial = 'testfast';
 
 new_subject = false;
 room_letter = '1139'; % 'mbp','Carrasco_L1'
