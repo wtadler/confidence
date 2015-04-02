@@ -129,7 +129,7 @@ else
     Training.category_params.test_sigmas = 1;
 end
 
-AttentionTraining.category_params.test_sigmas = Test.category_params.test_sigmas;
+AttentionTraining.category_params.test_sigmas = 1;
 
 
 
