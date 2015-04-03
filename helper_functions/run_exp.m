@@ -22,30 +22,14 @@ end
             str=['Let''s get some quick practice with confidence ratings.\n\n'...
                 'Coming up: ' task_str 'Confidence Training'];
         case 'Attention Training'
-            str=['Let''s get some practice with the structure of this task.\n\n'...
-                'In the center of the screen there will be a cross, which you should focus on.\n'...
-                'The targets, which are striped circles will appear to both the left and right of the cross.\n'...
-                'The targets will be tilted either clockwise or counter-clockwise from horizontal.\n\n'...
-                'Before the targets appear, the left or right arm of the cross will turn white,\n'...
-                'cuing you to focus your attention on either the left or right target.\n'...
-                'After the targets are presented, the left or right arm will turn gray,\n'...
-                'telling you which target to report.\n\n'...
-                'Your task is to report whether that target was tilted clockwise or counter-clockwise,\n'...
-                'as well as your confidence in that judgment.\n'...
-                '70% of the time, the initial cue will correctly indicate the target you are asked to report,\n'...
-                'and 30% of the time, you''ll be asked to report the uncued target.\n\n'...
-                'Overall, payting attention to the target indicated by the initial cue will help you\n'...
-                'on this task, so you should do your best to focus your attention on the cued target.\n\n'...
-                'Remember to always keep your eyes on the cross and just shift your mental focus of attention\n'...
-                'to the cued target.']
-            Screen('TextSize', scr.win, round(scr.fontsize*.7));
-                
+            str='Let''s get some practice with the attention task.\n\nReport left tilt (CCW) or right tilt (CW).';
+%             Screen('TextSize', scr.win, round(scr.fontsize*.7));
         case 'Attention Training Conf'
             str='Now rate your confidence as well as category.\n\nThe stimuli might be hard to see.';
         case 'Test'
             str=['Coming up: ' task_str 'Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
         case 'PreTest'
-            str='Now for some practice trials...';
+            str='Now for some practice trials...\n\nReport category 1 or 2 using the confidence scale.';
     end
     [~,ny]=center_print(str,'center');
     Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
@@ -55,8 +39,20 @@ end
     %%%Run trials %%%
 try
     for section = 1:n.sections
-        for trial = 1:n.trials
+        n_trials = n.trials; 
+        trial_order = 1:n.trials;
+        trial_counter = 1;
+        
+        % for trial = 1:n.trials;
+        while trial_counter <= n_trials
+            % Initialize for eye tracking trial breaks
+            stop_trial = 0;
             
+            % Current trial number
+            i_trial = trial_counter; % the trial we're on now
+            trial = trial_order(i_trial); % the current index into trials
+            trial_counter = trial_counter+1; % update the trial counter so that we will move onto the next trial, even if there is a fixation break
+
             stim = struct;
             stim(1).ort = R.draws{blok}(section, trial);        %orientation
             stim(1).cur_sigma = R.sigma{blok}(section, trial);  %contrast
@@ -64,6 +60,17 @@ try
 
             Screen('DrawTexture', scr.win, scr.cross);
             t0 = Screen('Flip', scr.win);
+            
+            % Check fixation hold
+            if P.eye_tracking
+                drift_corrected = rd_eyeLink('trialstart', scr.win, {scr.el, i_trial, scr.cx, scr.cy, scr.rad});
+                
+                if drift_corrected
+                    % restart trial
+                    Screen('DrawTexture', scr.win, scr.cross);
+                    t0 = Screen('Flip', scr.win);
+                end
+            end
 
             if ~attention_manipulation
                 WaitSecs(t.betwtrials/1000);
@@ -79,14 +86,31 @@ try
                     Screen('DrawTexture', scr.win, scr.cueR);
                 end
                 t_cue = Screen('Flip', scr.win, t0 + t.betwtrials/1000);
+                if P.eye_tracking
+                    Eyelink('Message', 'EVENT_CUE');
+                end
                 Screen('DrawTexture', scr.win, scr.cross);
                 t_cue_off = Screen('Flip', scr.win, t_cue + t.cue_dur/1000);
                 
                 %%% should make this timing exact by interfacing with grate
-                WaitSecs(t.cue_target_isi/1000);
+                if P.eye_tracking
+                    while GetSecs - t_cue_off < t.cue_target_isi/1000 - P.eye_slack && ~stop_trial
+                        WaitSecs(.01);
+                        fixation = rd_eyeLink('fixcheck', scr.win, {scr.cx, scr.cy, scr.rad});
+                        [stop_trial, trial_order, n_trials] = fixationBreakTasks(...
+                            fixation, scr.win, [], trial_order, i_trial, n_trials);
+                    end
+                    if stop_trial
+                        continue
+                    end
+                else
+                    WaitSecs(t.cue_target_isi/1000);
+                end
             end
             
-            
+            if P.eye_tracking
+                Eyelink('Message', 'EVENT_TARGET');
+            end
             if strcmp(P.stim_type, 'gabor')
                 r_gabor(P, scr, t, stim); % haven't yet added phase info to this function
             elseif strcmp(P.stim_type, 'grate')
@@ -95,11 +119,12 @@ try
                 ellipse(P, scr, t, stim); % ellipse doesn't need phase info
             end
             
-            if attention_manipulation
+            if attention_manipulation               
                 % DISPLAY RESPONSE CUE (i.e. probe)
                 %%% should make this timing exact by interfacing with grate
                 Screen('DrawTexture', scr.win, scr.cross);
                 t_target_off = Screen('Flip', scr.win);
+                
                 if R2.probe{blok}(section, trial) == 1
                     Screen('DrawTexture', scr.win, scr.resp_cueL);
                     cval = R.trial_order{blok}(section, trial);
@@ -107,7 +132,23 @@ try
                     Screen('DrawTexture', scr.win, scr.resp_cueR);
                     cval = R2.trial_order{blok}(section, trial);
                 end
+                
+                if P.eye_tracking
+                    while GetSecs - t_target_off < t.cue_target_isi/1000 - P.eye_slack && ~stop_trial
+                        WaitSecs(.01);
+                        fixation = rd_eyeLink('fixcheck', scr.win, {scr.cx, scr.cy, scr.rad});
+                        [stop_trial, trial_order, n_trials] = fixationBreakTasks(...
+                            fixation, scr.win, [], trial_order, i_trial, n_trials);
+                    end
+                    if stop_trial
+                        continue
+                    end
+                end
+                
                 t_resp_cue = Screen('Flip', scr.win, t_target_off + t.cue_target_isi/1000);
+                if P.eye_tracking
+                    Eyelink('Message', 'EVENT_RESPCUE');
+                end
             else
                 cval = R.trial_order{blok}(section, trial); %class
             end
@@ -198,8 +239,12 @@ try
                 WaitSecs(t.feedback/1000);
                 
             end
-            
+            if P.eye_tracking
+                Eyelink('Message', 'TRIAL_END %d', i_trial);
+            end
         end
+        
+        responses.trial_order{section} = trial_order;
         
         %if another section in the same block immediately follows
         if section ~= n.sections

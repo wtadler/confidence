@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, attention_manipulation, exp_number, nExperiments)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, attention_manipulation, eye_tracking, exp_number, nExperiments)
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
 % Will Adler
@@ -24,7 +24,12 @@ dir = pwd;
 datadir = [dir '/data'];
 addpath(genpath(dir))
 
-cd(dir)
+% eye tracking params
+eye_data_dir = 'eyedata';
+eye_file = sprintf('%s%s', subject_name([1:2 end-1:end]), datestr(now, 'mmdd'));
+P.eye_rad = 1; % allowable radius of eye motion, in degrees visual angle
+P.eye_slack = 0.05; % (s) cushion between the fixation check and the next stim presentation
+P.eye_tracking = eye_tracking; % are we eye tracking?
 
 datetimestamp = datetimefcn; % establishes a timestamp for when the experiment was started
 
@@ -280,6 +285,8 @@ try
     screen_angle = 2*(180/pi)*(atan((screen_width/2) / screen_distance)) ; % total visual angle of screen in degrees
     P.pxPerDeg = screen_resolution(1) / screen_angle;  % pixels per degree
     
+    scr.rad = P.eye_rad*P.pxPerDeg;
+    
     %set up fixation cross
     f_c_size = 30; % length and width. must be even.
     fw = 1; % line thickness = 2+2*fw pixels
@@ -355,6 +362,39 @@ try
         
         AttentionTrainingConf.R = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params);
         AttentionTrainingConf.R2 = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params, cue_validity);
+    end
+    
+    %% Start eyetracker
+    if eye_tracking
+        % Initialize eye tracker
+        [el exit_flag] = rd_eyeLink('eyestart', scr.win, eye_file);
+        if exit_flag
+            return
+        end
+        
+        % Write subject ID into the edf file
+        Eyelink('message', 'BEGIN DESCRIPTIONS');
+        Eyelink('message', 'Subject code: %s', subject_name);
+        Eyelink('message', 'END DESCRIPTIONS');
+        
+        % No sounds for drift correction
+        el.drift_correction_target_beep = [0 0 0];
+        el.drift_correction_failed_beep = [0 0 0];
+        el.drift_correction_success_beep = [0 0 0];
+        
+        % Accept input from all keyboards
+        el.devicenumber = -1; %see KbCheck for details of this value
+        
+        % Update with custom settings
+        EyelinkUpdateDefaults(el);
+        
+        % Calibrate eye tracker
+        [cal exit_flag] = rd_eyeLink('calibrate', scr.win, el);
+        if exit_flag
+            return
+        end
+        
+        scr.el = el; % store el in scr
     end
     
     start_t = tic;
@@ -451,7 +491,16 @@ try
     recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
     delete([datadir '/backup/' subject_name '_' datetimestamp '.mat']) % delete the block by block backup
     
-    Screen('CloseAll');
+    %% Save eye data and shut down the eye tracker
+    if eye_tracking
+        rd_eyeLink('eyestop', scr.win, {eye_file, eye_data_dir});
+        
+        % rename eye file
+        eye_file_full = sprintf('%s/%s_CategoricalDecision_%s.edf', eye_data_dir, subject_name, datestr(now, 'yyyymmdd'));
+        copyfile(sprintf('%s/%s.edf', eye_data_dir, eye_file), eye_file_full)
+    end
+    
+    Screen('CloseAll');    
     
 catch %if error or script is cancelled
     Screen('CloseAll');
