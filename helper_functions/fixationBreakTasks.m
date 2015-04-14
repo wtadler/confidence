@@ -9,8 +9,6 @@ if fixation==0
     soundsc(fixBreakSound)
     if ~isempty(fillColor)
         Screen('FillRect', window, fillColor);
-    else
-        Screen('FillRect', window);
     end
     Screen('Flip', window);
     WaitSecs(1);

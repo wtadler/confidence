@@ -56,7 +56,6 @@ switch room_letter
     case 'Carrasco_L1'
         screen_width = 40;
         screen_distance = 56;
-        
 end
 
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
@@ -122,7 +121,8 @@ if strcmp(P.stim_type, 'ellipse')
     Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
 else
     if attention_manipulation
-        Test.category_params.test_sigmas = exp(-3.5);
+%         Test.category_params.test_sigmas = exp(-3.5);
+        Test.category_params.test_sigmas = 0.05;
     else
         Test.category_params.test_sigmas= exp(linspace(-5.5,-2,6)); % on previous rig: exp(-4:.5:-1.5)
     end
