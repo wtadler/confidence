@@ -53,9 +53,13 @@ switch room_letter
         % This is for keys F1-5, F8-12.
         scr.fontsize = 42;
         scr.fontstyle = 1;
+        scr.displayHz = 60;
+
     case 'Carrasco_L1'
         screen_width = 40;
         screen_distance = 56;
+        scr.displayHz = 100;
+
 end
 
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
@@ -313,8 +317,8 @@ try
     P.grateAspectRatio = 1;
     P.grateSpatialFreq = .8; % cycles/degree
     P.grateSpatialFreq = P.grateSpatialFreq / P.pxPerDeg; % cycles / pixel
-    P.grateSpeed = 10; % cycles per second
-    P.grateDt = .01; %seconds per frame
+    P.grateSpeed = 6; % cycles per second % formerly 10
+    P.grateDt = 1/scr.displayHz; %seconds per frame % formerly .01
     P.grateAlphaMaskSize = round(10*P.grateSigma);
     
     % Ellipse parameters
