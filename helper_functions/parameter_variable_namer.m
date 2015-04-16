@@ -9,14 +9,16 @@ for l = find(logparams)'
     parameter_names{l} = parameter_names{l}(4:end);
 end
 
-for t = model.termparams'
+for t = model.term_params'
     p_in(t)=p_in(t-1)+p_in(t);
     parameter_names{t} = parameter_names{t}(1:end-4);
 end
-
 % name all the single variables
 for i = 1 : length(parameter_names)
-    p.(parameter_names{i}) = p_in(i);
+%     warning('saving pvntest')
+%     save pvntest
+
+    p.(parameter_names{i}) = p_in(i); % parameter_names is longer than p_in. problem. 4/15/15
 end
 
 % do special stuff for variables that go in vectors, such as boundaries...
@@ -28,6 +30,8 @@ if model.choice_only
     elseif strcmp(model.family, 'lin') || strcmp(model.family, 'quad')
         p.b_i = [0 0 0 0 p.b_0_x Inf Inf Inf Inf];
         p.m_i = [0 0 0 0 p.m_0 Inf Inf Inf Inf];
+    elseif strcmp(model.family, 'neural1')
+        p.b_i = [0 0 0 0 p.b_0_neural1 Inf Inf Inf Inf];
     end
     
 else
@@ -54,6 +58,13 @@ else
         else
             p.b_i = [0 p.b_n3_x p.b_n2_x p.b_n1_x p.b_0_x p.b_1_x p.b_2_x p.b_3_x Inf];
             p.m_i = [0 p.m_n3 p.m_n2 p.m_n1 p.m_0 p.m_1 p.m_2 p.m_3 Inf];
+        end
+    elseif strcmp(model.family, 'neural1')
+        if model.symmetric
+            tmp = [p.b_0_neural1 p.b_1_neural1 p.b_2_neural1 p.b_3_neural1];
+            p.b_i = [-Inf -fliplr(tmp(2:4)-tmp(1))+tmp(1) tmp Inf];
+        else
+            p.b_i = [0 p.b_n3_neural1 p.b_n2_neural1 p.b_n1_neural1 p.b_0_neural1 p.b_1_neural1 p.b_2_neural1 p.b_3_neural1 Inf];
         end
     end
 end

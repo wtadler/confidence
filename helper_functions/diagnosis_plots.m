@@ -1,4 +1,4 @@
-gen.opt=model; % this is for after CCO
+% gen.opt=model; % this is for after CCO
 if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
     % COMPARE TRUE AND FITTED PARAMETERS IN SUBPLOTS
     figure;

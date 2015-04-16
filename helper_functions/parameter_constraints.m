@@ -30,7 +30,7 @@ for m_id = 1 : nModels
     
     % important that this come before the symmetric piece right below it
     if c.joint_task_fit
-        c.diff_mean_same_std = 0; % don't need both of these params. this is ugly. clean it up.
+        c.diff_mean_same_std = 0; % don't need both of these params. this is ugly. replace with switch that can take 3 values?
     end
 
     if ~c.diff_mean_same_std && ~strcmp(c.family, 'opt')
@@ -106,14 +106,29 @@ for m_id = 1 : nModels
         'b_0_dChoice_TaskA'
         'b_0_xChoice_TaskA'
         'm_0Choice_TaskA'
+        'logsigma_tc'
+        'b_n3_neural1'
+        'b_n2_neural1Term'
+        'b_n1_neural1Term'
+        'b_0_neural1Term'
+        'b_1_neural1Term'
+        'b_2_neural1Term'
+        'b_3_neural1Term'
+        'b_0_neural1Choice'
+        'b_0_neural1_TaskA'
+        'b_1_neural1Term_TaskA'
+        'b_2_neural1Term_TaskA'
+        'b_3_neural1Term_TaskA'
+        'b_0_neural1Choice_TaskA'
         };
-    %               scl sch betabn3dbn2dbn1db0d b1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA
-    c.lb       = [  0   -5  -10 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30];
-    c.ub       = [  10  10  10  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   .25 .2  .2  .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30];
-    c.lb_gen   = [  1   -3  -2  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  -5   0   0   0   0   0   2   8  2   -2  3   0       -.3     .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5];
-    c.ub_gen   = [  3.5 1   2   1.2 1.2 1.2 1.2 1.2 1.2 1.2 3   5   5   5   5   5   5   1   1   1   1   1   1   1   1   .1  .1  .1  .2  .1  4   10  10  2   8   2       .3      1.2     1.2     2       2       5       5       30      2       1       1       1       2       3       5];
+
+    %               scl sch betabn3dbn2dbn1db0d b1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA  sig_tc  bn3n1   bn2n1   bn1n1   b0n1    b1n1    b2n1    b3n1    b0n1c   b0n1_TA     b1n1_TA     b2n1_TA     b3n1_TA     b0n1c_TA
+    c.lb       = [  0   -5  -10 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30     0       0       0       0       0       0       0       0       0       -50         0           0           0           -50          ]';
+    c.ub       = [  10  10  10  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   .25 .2  .2  .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30      10      150     150     150     150     150     200     300     200     50          200         200         200         50]';
+    c.lb_gen   = [  1   .5  -2  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  -5   0   0   0   0   0   2   8  2   -2  3   0       -.3     .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5      0       0       0       0       0       0       0       0       10      -10         0           0           0           -10]';
+    c.ub_gen   = [  3.5 1   2   1.2 1.2 1.2 1.2 1.2 1.2 1.2 3   5   5   5   5   5   5   1   1   1   1   1   1   1   1   .1  .1  .1  .2  .1  4   10  10  2   8   2       .3      1.2     1.2     2       2       5       5       30      2       1       1       1       2       3       5       1.7     15      15      15      15      15      15      15      20      10          15          15          15          10]';
     
-    c.beq      = [  1   1   1   -2  .7  .7  .7  .7  .7  .7  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0]';
+    c.beq      = [  1   1   1   -2  .7  .7  .7  .7  .7  .7  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0       3       10      10      20      20      20      50      50      15      0           10          10          10          0]';
 
     %log_params = strncmpi(c.parameter_names,'log',3);
 
@@ -134,6 +149,7 @@ for m_id = 1 : nModels
     c = symmetricizer(c);
     c = choiceizer(c);
     c = d_noiseizer(c);
+    c = neural1izer(c);
     c = partial_lapseizer(c);
     c = multi_lapseizer(c);
     c = repeat_lapseizer(c);
@@ -143,8 +159,9 @@ for m_id = 1 : nModels
     % calculate uniform param prior
     c.param_prior = prod(1 ./ (c.ub - c.lb)); % this is not great. lapse param should be a beta dist, not uniform. but only applies when doing hessian, which we've moved on from.
     
-    % indicate which are Term params, so that you don't have to do this every sample in parameter_variable_namer
-    c.termparams = find(~cellfun(@isempty, strfind(c.parameter_names,'Term')));
+    % indicate which are lapse and Term params, so that you don't have to do this every sample in parameter_variable_namer
+    c.term_params = find(~cellfun(@isempty, strfind(c.parameter_names,'Term')));
+    c.lapse_params = find(~cellfun(@isempty, strfind(c.parameter_names,'lambda')));
     
     % put back into model
     fields = fieldnames(c);
@@ -177,16 +194,19 @@ function c = familyizer(c)
 optbounds = find(~cellfun(@isempty, regexp(c.parameter_names, 'b_.*d')));
 xbounds   = find(~cellfun(@isempty, regexp(c.parameter_names,'b_.*x')));
 slopebounds=find(~cellfun(@isempty, regexp(c.parameter_names, 'm_[n0-9]')));
+neural1bounds = find(~cellfun(@isempty, regexp(c.parameter_names, 'b_.*neural1')));
 
 if strcmp(c.family, 'quad') || strcmp(c.family, 'lin')
-    otherbounds = optbounds;
+    otherbounds = {optbounds, neural1bounds};
 elseif strcmp(c.family, 'fixed') || strcmp(c.family, 'MAP')
-    otherbounds = union(optbounds, slopebounds);
+    otherbounds = {optbounds, slopebounds, neural1bounds};
 elseif strcmp(c.family, 'opt')
-    otherbounds = union(xbounds, slopebounds);
+    otherbounds = {xbounds, slopebounds, neural1bounds};
+elseif strcmp(c.family, 'neural1')
+    otherbounds = {xbounds, slopebounds, optbounds};
 end
 
-c = p_stripper(c,otherbounds);
+c = p_stripper(c,unique([otherbounds{:}]));
 end
 
 function c = symmetricizer(c)
@@ -230,7 +250,14 @@ if ~c.d_noise
     d_noiseP = find(~cellfun(@isempty, regexp(c.parameter_names, 'sigma_d')));
     c = p_stripper(c,d_noiseP);
 end
+end
 
+function c = neural1izer(c)
+% if not neural1, strip out sigma_tc parameter
+if ~strcmp(c.family, 'neural1')
+    sig_tcP = find(~cellfun(@isempty, regexp(c.parameter_names, 'sigma_tc')));
+    c = p_stripper(c, sig_tcP);
+end
 end
 
 function c = partial_lapseizer(c)

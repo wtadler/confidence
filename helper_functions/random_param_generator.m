@@ -19,7 +19,7 @@ switch contrast_type
         contrasts=exp(-4:.5:-1.5);
         sig_lim = [20 3 .2]; % [max for highest sigma, max for lowest sigma, minimum difference between the two]
     case 'new'
-        sig_lim = [ub(1) ub(2) .2]; % bounds are handled directly by ub in this case
+        sig_lim = [exp(ub(1)) exp(ub(2)) .2]; % bounds are handled directly by ub in this case
 end
 
 %A=model.A;
@@ -65,7 +65,7 @@ for i = 1 : sets;
         %         else
         %             x(monotonic_params) = sort(x(monotonic_params));
         %         end
-        contrast_type = 'new';
+
         switch contrast_type
             case 'old'
                 maxsig = sqrt(x(3).^2 + x(1) .* contrasts(1) .^ - x(2));

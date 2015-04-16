@@ -2,13 +2,13 @@ function raw = trial_generator(p_in, model, varargin)
 
 % define defaults
 n_samples = 2160;
-dist_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 % contrasts  = exp(-4:.5:-1.5);%[.125 .25 .5 1 2 4];
 contrasts = exp(linspace(-5.5,-2,6));
 
 model_fitting_data = [];
 conf_levels = 4;
 
+category_params.category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 category_params.sigma_1 = 3;
 category_params.sigma_2 = 12;
 category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
@@ -43,9 +43,8 @@ end
 if isempty(model_fitting_data)
     raw.C         = randsample([-1 1], n_samples, 'true');
     raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
-    raw.s(raw.C == -1) = stimulus_orientations(category_params, dist_type, 1, 1, sum(raw.C ==-1));
-    raw.s(raw.C ==  1) = stimulus_orientations(category_params, dist_type, 2, 1, sum(raw.C == 1));
-
+    raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1));
+    raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1));
 else % take real data
     raw.C           = model_fitting_data.C;
     raw.contrast    = model_fitting_data.contrast;
@@ -78,12 +77,26 @@ if model.ori_dep_noise
     raw.sig = pre_sig + abs(sin(raw.s*pi/90))*p.sig_amplitude;
 end
 
-raw.x = raw.s + randn(size(raw.sig)) .* raw.sig; % add noise to s. this line is the same in both tasks
+if strcmp(model.family, 'neural1')
+    %%
+%     figure
+%     nTrials = 10000; %%%%%
+%     p.sigma_tc = exp(2.5); %%%%%
+%     raw.s = randn(1,nTrials)*12; %%%%%
+%     raw.sig = 1*ones(1, nTrials); %%%%%
+    g = 1./(raw.sig.^2);
+    neural_mu = g .* raw.s .* sqrt(2*pi*p.sigma_tc^2);
+    neural_sig = sqrt(g .* (p.sigma_tc^2 + raw.s.^2) * sqrt(2*pi*p.sigma_tc^2));
+    raw.x = neural_mu + neural_sig .* randn(size(raw.sig));
+%     plot(raw.s, raw.x, '.') %%%%%
+else
+    raw.x = raw.s + randn(size(raw.sig)) .* raw.sig; % add noise to s. this line is the same in both tasks
+end
 
 % calculate d(x)
-switch dist_type
-    case 'same_mean_diff_std'
-        if strcmp(model.family,'opt')
+if strcmp(model.family,'opt')
+    switch category_params.category_type
+        case 'same_mean_diff_std'
             if model.non_overlap
                 raw.d = zeros(1, n_samples);
                 for c = 1 : nContrasts; % for each sigma level, generate d from the separate function
@@ -98,35 +111,44 @@ switch dist_type
                 x_mat = repmat(raw.x,length(sVec),1);
                 sig_mat=repmat(pre_sig, length(sVec), 1);
                 raw.d = log((1/category_params.sigma_1 * sum((1./(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude)).*exp(-((x_mat-s_mat).^2)./(2*(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude).^2) - s_mat.^2 ./ (2*category_params.sigma_1^2)))) ./ ...
-                            (1/category_params.sigma_2 * sum((1./(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude)).*exp(-((x_mat-s_mat).^2)./(2*(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude).^2) - s_mat.^2 ./ (2*category_params.sigma_2^2)))));
-%                 raw.d = log((1/category_params.sigma_1 * sum((1./sig_mat).*exp(-((x_mat-s_mat).^2)./(2*sig_mat.^2) - s_mat.^2 ./ (2*category_params.sigma_1^2)))) ./ ...
-%                             (1/category_params.sigma_2 * sum((1./sig_mat).*exp(-((x_mat-s_mat).^2)./(2*sig_mat.^2) - s_mat.^2 ./ (2*category_params.sigma_2^2)))));
+                    (1/category_params.sigma_2 * sum((1./(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude)).*exp(-((x_mat-s_mat).^2)./(2*(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude).^2) - s_mat.^2 ./ (2*category_params.sigma_2^2)))));
+                %                 raw.d = log((1/category_params.sigma_1 * sum((1./sig_mat).*exp(-((x_mat-s_mat).^2)./(2*sig_mat.^2) - s_mat.^2 ./ (2*category_params.sigma_1^2)))) ./ ...
+                %                             (1/category_params.sigma_2 * sum((1./sig_mat).*exp(-((x_mat-s_mat).^2)./(2*sig_mat.^2) - s_mat.^2 ./ (2*category_params.sigma_2^2)))));
             else
                 raw.k1 = .5 * log( (raw.sig.^2 + category_params.sigma_2^2) ./ (raw.sig.^2 + category_params.sigma_1^2));% + p.b_i(5);
                 raw.k2 = (category_params.sigma_2^2 - category_params.sigma_1^2) ./ (2 .* (raw.sig.^2 + category_params.sigma_1^2) .* (raw.sig.^2 + category_params.sigma_2^2));
                 raw.d = raw.k1 - raw.k2 .* raw.x.^2;
             end
             %raw.posterior = 1 ./ (1 + exp(-raw.d));
-        end
-        
-    case 'half_gaussian'        
-        mu = (raw.x.* category_params.sigma_s^2)./(raw.sig.^2 + category_params.sigma_s^2);
-        k = raw.sig .* category_params.sigma_s ./ sqrt(raw.sig.^2 + category_params.sigma_s^2);
-        raw.d = log(normcdf(0,mu,k)./normcdf(0,-mu,k));
-        
-    case 'sym_uniform'
-        denom = raw.sig * sqrt(2);
-        raw.d = log( (erf((raw.x-a)./denom) - erf((raw.x+1-a)./denom)) ./ (erf((raw.x-1+a)./denom) - erf((raw.x+a)./denom)));
-        
-    case 'diff_mean_same_std'
-        raw.d = (2*raw.x * (category_params.mu_1 - category_params.mu_2) - category_params.mu_1^2 + category_params.mu_2^2) ./ ...
-            (2*(raw.sig.^2 + category_params.sigma_s^2));
-        
-    otherwise
-        error('DIST_TYPE is not valid.')
-        
+            
+        case 'half_gaussian'
+            mu = (raw.x.* category_params.sigma_s^2)./(raw.sig.^2 + category_params.sigma_s^2);
+            k = raw.sig .* category_params.sigma_s ./ sqrt(raw.sig.^2 + category_params.sigma_s^2);
+            raw.d = log(normcdf(0,mu,k)./normcdf(0,-mu,k));
+            
+        case 'sym_uniform'
+            denom = raw.sig * sqrt(2);
+            raw.d = log( (erf((raw.x-a)./denom) - erf((raw.x+1-a)./denom)) ./ (erf((raw.x-1+a)./denom) - erf((raw.x+a)./denom)));
+            
+        case 'diff_mean_same_std'
+            
+            if model.ori_dep_noise
+                ds = 1;
+                sVec = -90:ds:90;
+                s_mat = repmat(sVec', 1, length(raw.x));
+                x_mat = repmat(raw.x, length(sVec), 1);
+                sig_mat = repmat(pre_sig, length(sVec), 1);
+                raw.d = something...;%%%%
+                
+            else
+                % did i never do ori_dep_noise here for task A trial generation??
+                raw.d = (2*raw.x * (category_params.mu_1 - category_params.mu_2) - category_params.mu_1^2 + category_params.mu_2^2) ./ ...
+                    (2*(raw.sig.^2 + category_params.sigma_s^2));
+            end
+        otherwise
+            error('DIST_TYPE is not valid.')
+    end
 end
-
 
 
 confidences = [linspace(conf_levels,1,conf_levels) linspace(1,conf_levels,conf_levels)];
@@ -154,7 +176,7 @@ elseif strcmp(model.family, 'MAP')
         sig = sigs(i);
         idx = find(raw.contrast_id==i);
 
-        switch dist_type
+        switch category_params.category_type
             case 'same_mean_diff_std'
                 k1 = sqrt(1/(sig^-2 + category_params.sigma_1^-2));
                 mu1 = raw.x(idx)*sig^-2 * k1^2;
@@ -193,9 +215,9 @@ elseif strcmp(model.family, 'MAP')
     end    
     b = p.b_i(5);
     
-    if strcmp(dist_type, 'same_mean_diff_std')
+    if strcmp(category_params.category_type, 'same_mean_diff_std')
         shat_tmp = abs(raw.shat);
-    elseif strcmp(dist_type, 'diff_mean_same_std')
+    elseif strcmp(category_params.category_type, 'diff_mean_same_std')
         shat_tmp = raw.shat;
     end
     raw.Chat(shat_tmp <= b) = -1;
@@ -208,23 +230,24 @@ elseif strcmp(model.family, 'MAP')
         end
     end
     
-else % all measurement models
+else % all non-Bayesian models
     if strcmp(model.family, 'lin')
         b = p.b_i(5) + p.m_i(5) * raw.sig;
     elseif strcmp(model.family, 'quad')
         b = p.b_i(5) + p.m_i(5) * raw.sig.^2;
-    else
+    else % fixed and neural
         b = p.b_i(5);
     end
     
-    if strcmp(dist_type, 'same_mean_diff_std')
+    if strcmp(category_params.category_type, 'same_mean_diff_std')
         x_tmp=abs(raw.x);
-    elseif strcmp(dist_type, 'diff_mean_same_std')
+    elseif strcmp(category_params.category_type, 'diff_mean_same_std')
         x_tmp=raw.x;
     end
+    
     raw.Chat(x_tmp <= b)   = -1;
     raw.Chat(x_tmp >  b)   =  1;
-%     if strcmp(dist_type, 'diff_mean_same_std')
+%     if strcmp(category_params.category_type, 'diff_mean_same_std')
 %        raw.Chat = -raw.Chat;
 %     end
     
@@ -236,7 +259,7 @@ else % all measurement models
             elseif strcmp(model.family, 'quad')
                 raw.g( p.b_i(g) + p.m_i(g) * raw.sig.^2 < x_tmp ...
                     &  p.b_i(g+1) + p.m_i(g+1) * raw.sig.^2 >= x_tmp) = confidences(g);
-            else
+            else % fixed and neural
                 raw.g( p.b_i(g)   <  x_tmp ...
                     &  p.b_i(g+1) >= x_tmp) = confidences(g);
             end

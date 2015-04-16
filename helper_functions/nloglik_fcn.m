@@ -1,20 +1,19 @@
 function [nloglik, loglik_vec] = nloglik_fcn(p_in, raw, model, nDNoiseSets, varargin)
-% 
-% % check to see what variables have changed
-% persistent old_p_in p_choice p_conf_choice;
-% p_in = reshape(p_in,numel(p_in),1);
-% if ~exist('old_p_in','var') || numel(old_p_in)~=numel(p_in)
-%     old_p_in = nan(size(p_in));
-% end
-% same_p = old_p_in==p_in; % 0 indicates that parameter has changed
-% old_p_in = p_in;
-% diff_param_names = model.parameter_names(~same_p);
+
+lapse_sum = lapse_rate_sum(p_in, model);
+
+if lapse_sum > 1
+    nloglik = Inf;
+    loglik_vec = -inf(size(raw.Chat));
+%     warning('lapse_sum > 1')
+    return
+end
 
 if length(varargin) == 1;
     category_params = varargin{1};
 end
 
-% % this is now going to break non-fmincon optimization, because i took out the constraints
+% % constraints for optimization algorithms that don't have constraints as inputs. this should be a wrapper for the function
 % if length(varargin) == 2 | length(varargin) == 3
 %     alg = varargin{2};
 %     if strcmp(alg,'snobfit') | strcmp(alg,'mcs') % opt algorithms that don't have linear constraints built in
@@ -32,6 +31,11 @@ end
 % SETUP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p = parameter_variable_namer(p_in, model.parameter_names, model);
+
+
+
+
+
 contrasts = exp(linspace(-5.5,-2,6)); % THIS IS HARD CODED
 %contrasts = exp(-4:.5:-1.5);
 nContrasts = length(contrasts);
@@ -139,7 +143,7 @@ if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian
         end
         
     else
-        sq_flag = 1; % this is because f gets passed a square root that can be negative. causes it to ignore the negatives
+        sq_flag = 1; % this is because f gets passed a square root that can be negative. causes f to ignore the resulting imaginaries
         k1 = .5 * log( (sig.^2 + sig2^2) ./ (sig.^2 + sig1^2)); %log(prior / (1 - prior));
         k2 = (sig2^2 - sig1^2) ./ (2 .* (sig.^2 + sig1^2) .* (sig.^2 + sig2^2));
         k  = sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - bf(0)) ./ repmat(k2, nDNoiseSets, 1));
@@ -158,7 +162,7 @@ elseif strcmp(model.family, 'quad') && ~model.diff_mean_same_std
 elseif strcmp(model.family, 'quad') && model.diff_mean_same_std
     k = bf(0) + mf(0) * sig.^2;
     
-elseif strcmp(model.family, 'fixed')
+elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1')
     k = bf(0)*ones(1,nContrasts);
     
 elseif strcmp(model.family, 'MAP')
@@ -226,11 +230,35 @@ if any(size(k) == nContrasts) % k needs to be expanded for each trial
     k = k(:,raw.contrast_id);
 end
 
-if ~model.diff_mean_same_std
-    p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) -repmat(raw.Chat, nDNoiseSets, 1) .* f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1), sq_flag);
-elseif model.diff_mean_same_std
-    p_choice = 0.5 + repmat(raw.Chat,nDNoiseSets, 1) .* sym_f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
+if ~strcmp(model.family, 'neural1')
+    mu = raw.s;
+    sigma = sig;
+else
+    g = 1./(sig.^2);
+    mu = g .* raw.s .* sqrt(2*pi) * p.sigma_tc;
+    sigma = sqrt(g .* (p.sigma_tc^2 + raw.s.^2) .* sqrt(2*pi) * p.sigma_tc);
 end
+
+if ~model.diff_mean_same_std
+    p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) - repmat(raw.Chat, nDNoiseSets, 1) .* asym_f(k, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1), sq_flag);
+elseif model.diff_mean_same_std
+    p_choice = 0.5 + repmat(raw.Chat, nDNoiseSets, 1) .* sym_f(k, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1));
+end
+% 
+%     if ~model.diff_mean_same_std
+%         p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) -repmat(raw.Chat, nDNoiseSets, 1) .* f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1), sq_flag);
+%     elseif model.diff_mean_same_std
+%         p_choice = 0.5 + repmat(raw.Chat, nDNoiseSets, 1) .* sym_f(k, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
+%     end
+% else
+% %     neural_mu = sig.^-2 .* raw.s .* sqrt(2*pi) * p.sigma_tc;
+% %     neural_sig = sqrt(sig.^-2 .* (p.sigma_tc^2 + raw.s.^2) .* sqrt(2*pi) * p.sigma_tc);
+%     if ~model.diff_mean_same_std
+%         p_choice = 0.5 + 0.5 * raw.Chat - raw.Chat .* f(k, neural_mu, neural_sig, 0); % try this with sqflag = 1?
+%     elseif model.diff_mean_same_std
+%         p_choice = 0.5 + raw.Chat .* sym_f(k, neural_mu, neural_sig);
+%     end
+% end
 p_choice = normalized_weights*p_choice;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -327,10 +355,10 @@ if ~model.choice_only
         a = bf(raw.Chat .* raw.g - .5*(raw.Chat+1)) + sig.^2 .* mf(raw.Chat .* raw.g - .5*(raw.Chat+1));
         b = bf(raw.Chat .* raw.g - .5*(raw.Chat-1)) + sig.^2 .* mf(raw.Chat .* raw.g - .5*(raw.Chat-1));
         
-    elseif strcmp(model.family, 'fixed') && ~model.diff_mean_same_std
+    elseif (strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1')) && ~model.diff_mean_same_std
         a = raw.Chat .* bf(raw.Chat .* (raw.g)    );
         b = raw.Chat .* bf(raw.Chat .* (raw.g - 1));
-    elseif strcmp(model.family, 'fixed') && model.diff_mean_same_std
+    elseif (strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1')) && model.diff_mean_same_std
         a = bf(raw.Chat .* raw.g - .5*(raw.Chat+1));
         b = bf(raw.Chat .* raw.g - .5*(raw.Chat-1));
         
@@ -386,22 +414,42 @@ if ~model.choice_only
         
     end
     
-    if ~model.diff_mean_same_std
-        fa = f(a, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1), sq_flag);
-        fb = f(b, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1), sq_flag);
-        p_conf_choice = fa - fb;
-        
-    elseif model.diff_mean_same_std
-        %             fb = sym_f(b, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
-        %             fa = sym_f(a, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
-        %             p_conf_choice = fa - fb; % equivalent to 0.5 * (erf((a + raw.s)./(sqrt(2)*sig)) - erf((b + raw.s)./(sqrt(2)*sig))); % just switched fa and fb
-        %p_conf_choice = .5 * (erf((b-raw.s)./(sqrt(2)*sig)) + erf((a - raw.s)./(sqrt(2)*sig)));
-        %
-        fa = sym_f(a, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
-        fb = sym_f(b, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
-        p_conf_choice = fa - fb;
-        %                           p_conf_choice = .5 * (erf((raw.s-a)./(sqrt(2)*sig))-erf((raw.s-b)./(sqrt(2)*sig)));
+
+    
+    if ~strcmp(model.family, 'neural1')
+        mu = raw.s;
+        sigma = sig;
+    else
+        mu = sig.^-2 .* raw.s .* sqrt(2*pi) * p.sigma_tc;
+        sigma = sqrt(sig.^-2 .* (p.sigma_tc^2 + raw.s.^2) .* sqrt(2*pi) * p.sigma_tc);
     end
+    
+    if ~model.diff_mean_same_std
+        f = @asym_f;
+    else
+        f = @sym_f;
+    end
+    
+    fa = f(a, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1), sq_flag);
+    fb = f(b, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1), sq_flag);
+    p_conf_choice = fa - fb;
+
+%     if ~model.diff_mean_same_std
+%         fa = f(a, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1), sq_flag);
+%         fb = f(b, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1), sq_flag);
+%         p_conf_choice = fa - fb;
+%         
+%     elseif model.diff_mean_same_std
+%         %             fb = sym_f(b, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
+%         %             fa = sym_f(a, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
+%         %             p_conf_choice = fa - fb; % equivalent to 0.5 * (erf((a + raw.s)./(sqrt(2)*sig)) - erf((b + raw.s)./(sqrt(2)*sig))); % just switched fa and fb
+%         %p_conf_choice = .5 * (erf((b-raw.s)./(sqrt(2)*sig)) + erf((a - raw.s)./(sqrt(2)*sig)));
+%         %
+%         fa = sym_f(a, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
+%         fb = sym_f(b, repmat(raw.s, nDNoiseSets, 1), repmat(sig, nDNoiseSets, 1));
+%         p_conf_choice = fa - fb;
+%         %                           p_conf_choice = .5 * (erf((raw.s-a)./(sqrt(2)*sig))-erf((raw.s-b)./(sqrt(2)*sig)));
+%     end
     
     p_conf_choice = normalized_weights*p_conf_choice;
     %p_conf_choice = max(0,p_conf_choice); % this max is a hack. it covers for non overlap x_bounds being weird.
@@ -445,25 +493,21 @@ if ~model.choice_only
     loglik_vec = log (p_full_lapse + ...
         (p.lambda_g / 4) * p_choice + ...
         p.lambda_r * p_repeat + ...
-        (1 - p.lambda - p.lambda_g - p.lambda_r) * p_conf_choice);
-    
+        (1 - p.lambda - p.lambda_g - p.lambda_r) * p_conf_choice); % can also do 1 - lapse_sum instead of (1 - stuff - stuff).
 else % choice models
     loglik_vec = log(p.lambda / 2 + ...
         p.lambda_r * p_repeat + ...
-        (1 - p.lambda - p.lambda_r) * p_choice);
-    
+        (1 - p.lambda - p.lambda_r) * p_choice); % can also do 1 - lapse_sum instead of (1 - stuff - stuff).
 end
-% Set all -Inf logliks to an arbitrarily small number. It looks like these
-% trials are all ones in which abs(s) was very large, and the subject
-% didn't respond with full confidence. This occurs about .3% of trials.
-% Shouldn't happen with lapse rate
+% Set all -Inf logliks to a very negative number. These are usually trials where
+% the subject reports something very strange. Usually lapse rate accounts for this.
 loglik_vec(loglik_vec < -1e5) = -1e5;
 nloglik = - sum(loglik_vec);
 
 if ~isreal(nloglik)
-    % this is a big problem for truncated cats.
+    % in case things go wrong. this shouldn't execute.
     warning('imaginary nloglik')
-    
+%     save nltest
     nloglik = real(nloglik) + 1e3; % is this an okay way to avoid "undefined at initial point" errors? it's a hack.
 end
 
@@ -487,22 +531,24 @@ end
 
 end
 
-function retval = f(y,s,sigma,sq_flag)
-retval              = zeros(size(s)); % length of all trials
+function retval = asym_f(k, mu, sig, sq_flag) % come up with better names for these functions
+% mu is the mean of the measurement distribution, usually the stimulus
+% sigma is the width of the measurement distribution.
+% y is the upper or lower category boundary in measurement space
+retval              = zeros(size(mu)); % length of all trials
 if sq_flag
-    idx           = find(y>0);      % find all trials where y is greater than 0. y is either positive or imaginary. so a non-positive y would indicate negative a or b
-    s                   = s(idx);
-    sigma               = sigma(idx);
-    y                   = y(idx);
+    idx           = find(k>0);      % find all trials where y is greater than 0. y is either positive or imaginary. so a non-positive y would indicate negative a or b
+    mu                   = mu(idx);
+    sig               = sig(idx);
+    k                   = k(idx);
 else
-    idx = true(size(s));
+    idx = true(size(mu));
 end
-retval(idx)   = 0.5 * (erf((s+y)./(sigma*sqrt(2))) - erf((s-y)./(sigma*sqrt(2)))); % erf is faster than normcdf.
+% retval(idx)   = 0.5 * (erf((mu+k)./(sig*sqrt(2))) - erf((mu-k)./(sig*sqrt(2)))); % erf is faster than normcdf.
+retval(idx)   = sym_f(-k, mu, sig) - sym_f(k, mu, sig);
 end
 
-
-
-function retval = sym_f(y,s,sigma)
-retval = 0.5 * erf((s-y)./(sigma*sqrt(2)));
+function retval = sym_f(k, mu, sig, sq_flag)
+retval = 0.5 * erf((mu-k)./(sig*sqrt(2)));
 end
 
