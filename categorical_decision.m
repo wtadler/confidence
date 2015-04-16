@@ -125,8 +125,7 @@ if strcmp(P.stim_type, 'ellipse')
     Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
 else
     if attention_manipulation
-%         Test.category_params.test_sigmas = exp(-3.5);
-        Test.category_params.test_sigmas = 0.05;
+        Test.category_params.test_sigmas = exp(-3.5);
     else
         Test.category_params.test_sigmas= exp(linspace(-5.5,-2,6)); % on previous rig: exp(-4:.5:-1.5)
     end
@@ -136,7 +135,11 @@ ConfidenceTraining.category_params.test_sigmas = Test.category_params.test_sigma
 if strcmp(P.stim_type, 'ellipse')
     Training.category_params.test_sigmas = .95;
 else
-    Training.category_params.test_sigmas = 1;
+    if strcmp(room_letter, 'Carrasco_L1')
+        Training.category_params.test_sigmas = 0.5;
+    else
+        Training.category_params.test_sigmas = 1;
+    end
 end
 
 AttentionTraining.category_params.test_sigmas = 1;
@@ -165,7 +168,7 @@ end
 
 if attention_manipulation
     Test.n.blocks = 4;
-    Test.n.sections = 4;
+    Test.n.sections = 2;
     Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
     
     PreTest.n.blocks = 1;
@@ -202,14 +205,22 @@ Demo.t.betwtrials = 200;
 Test.t.pres = 50;           %50
 Test.t.pause = 200;         %200 isn't used
 Test.t.feedback = 1200;     %1200 isn't used
-Test.t.betwtrials = 1000;   %1000
+if attention_manipulation
+    Test.t.betwtrials = 1300;
+else
+    Test.t.betwtrials = 1000;   %1000
+end
 Test.t.cue_dur = 150;
 Test.t.cue_target_isi = 150;
 
 Training.t.pres = 300; %300 %how long to show first stimulus (ms)
 Training.t.pause = 100; %100 time between response and feedback
 Training.t.feedback = 1100;  %1700 time of "correct" or "incorrect" onscreen
-Training.t.betwtrials = 1000; %1000
+if attention_manipulation
+    Training.t.betwtrials = 1300;
+else
+    Training.t.betwtrials = 1000; %1000
+end
 Training.t.cue_dur = 150;
 Training.t.cue_target_isi = 150;
 

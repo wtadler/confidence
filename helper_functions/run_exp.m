@@ -48,11 +48,14 @@ try
             % Initialize for eye tracking trial breaks
             stop_trial = 0;
             
+%             responses.c %%% print for debugging
+%             trial_order
+            
             % Current trial number
             i_trial = trial_counter; % the trial we're on now
             trial = trial_order(i_trial); % the current index into trials
             trial_counter = trial_counter+1; % update the trial counter so that we will move onto the next trial, even if there is a fixation break
-
+            
             stim = struct;
             stim(1).ort = R.draws{blok}(section, trial);        %orientation
             stim(1).cur_sigma = R.sigma{blok}(section, trial);  %contrast
@@ -154,7 +157,7 @@ try
             end
             
             
-            clc;
+            clc; %%% comment out for debugging
             fprintf('blok %g, section %g, trial %g\n\n',blok,section,trial)
             %subject input
             t0 = GetSecs;
