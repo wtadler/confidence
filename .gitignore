@@ -3,4 +3,5 @@
 *.DS_Store
 *~
 data/
+eyedata/
 randsample.m

@@ -98,7 +98,7 @@ try
                         WaitSecs(.01);
                         fixation = rd_eyeLink('fixcheck', scr.win, {scr.cx, scr.cy, scr.rad});
                         [stop_trial, trial_order, n_trials] = fixationBreakTasks(...
-                            fixation, scr.win, [], trial_order, i_trial, n_trials);
+                            fixation, scr.win, color.bg, trial_order, i_trial, n_trials);
                     end
                     if stop_trial
                         continue
@@ -138,7 +138,7 @@ try
                         WaitSecs(.01);
                         fixation = rd_eyeLink('fixcheck', scr.win, {scr.cx, scr.cy, scr.rad});
                         [stop_trial, trial_order, n_trials] = fixationBreakTasks(...
-                            fixation, scr.win, [], trial_order, i_trial, n_trials);
+                            fixation, scr.win, color.bg, trial_order, i_trial, n_trials);
                     end
                     if stop_trial
                         continue
