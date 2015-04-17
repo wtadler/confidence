@@ -229,7 +229,7 @@ if strfind(subject_name,'fast') > 0 % if 'fast' is in the initials, the exp will
 end
 
 if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp will be short (for debugging)
-    [Test.n.trials,Training.initial.n.trials,ConfidenceTraining.n.trials,Training.n.trials]...%, AttentionTraining.n.trials,nDemoTrials, AttentionTrainingConf.n.trials, PreTest.n.trials]...
+    [Test.n.trials,Training.initial.n.trials,ConfidenceTraining.n.trials,Training.n.trials,nDemoTrials]...%, AttentionTraining.n.trials, AttentionTrainingConf.n.trials, PreTest.n.trials]...
         = deal(8);
     scr.countdown_time = 5;
 end
@@ -341,7 +341,7 @@ try
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
     P.ellipseColor = 0;
     
-    P.attention_stim_spacing = 3.5;% for two stimuli, distance from center, in degrees
+    P.attention_stim_spacing = 5;% for two stimuli, distance from center, in degrees
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
     
     %%%Setup routine. this is some complicated stuff to deal with the
