@@ -11,8 +11,10 @@ submodel_struct.model_B.name = '';
 submodel_struct.model_B.joint_task_fit = 0;
 submodel_struct.model_B.joint_d = 0;
 submodel_struct.model_B.diff_mean_same_std = 0;
+
 % warning('saving pps')
 % save pps
+
 if ~m.joint_d
     submodel_struct.nonbound_param_idx = ~cellfun(@isempty, regexp(m.parameter_names,'^((?!(b_|m_)).)*$'));
     submodel_struct.A_bound_param_idx = ~cellfun(@isempty, regexp(m.parameter_names,'^(b_|m_).*TaskA'));

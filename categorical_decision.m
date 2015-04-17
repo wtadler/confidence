@@ -122,25 +122,23 @@ end
 clear tmp
 
 if strcmp(P.stim_type, 'ellipse')
+    Training.category_params.test_sigmas = .95;
     Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
 else
     if attention_manipulation
+        % AttentionTraining.category_params.test_sigmas = 1;
+        % AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;        
+        Training.category_params.test_sigmas = 0.1;
+        Test.category_params.test_sigmas = 0.1;
 %         Test.category_params.test_sigmas = exp(-3.5);
-        Test.category_params.test_sigmas = 0.05;
     else
+        Training.category_params.test_sigmas = 1;
         Test.category_params.test_sigmas= exp(linspace(-5.5,-2,6)); % on previous rig: exp(-4:.5:-1.5)
     end
 end
+
 ConfidenceTraining.category_params.test_sigmas = Test.category_params.test_sigmas;
 
-if strcmp(P.stim_type, 'ellipse')
-    Training.category_params.test_sigmas = .95;
-else
-    Training.category_params.test_sigmas = 1;
-end
-
-AttentionTraining.category_params.test_sigmas = 1;
-AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;
 
 if nExperiments == 1
     task_letter = '';
@@ -168,9 +166,9 @@ if attention_manipulation
     Test.n.sections = 4;
     Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
     
-    PreTest.n.blocks = 1;
-    PreTest.n.sections = 1;
-    PreTest.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
+%     PreTest.n.blocks = 1;
+%     PreTest.n.sections = 1;
+%     PreTest.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
 
 else
     Test.n.blocks = 3;% WTA from 3
@@ -188,13 +186,13 @@ Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 1; %changed from '2' on 10/14
 Training.n.trials = 48; % WTA: 48
 
-if attention_manipulation
-    AttentionTraining.n.blocks = 1;
-    AttentionTraining.n.sections = 1;
-    AttentionTraining.n.trials = 36;
-    
-    AttentionTrainingConf.n = AttentionTraining.n;
-end
+% if attention_manipulation
+%     AttentionTraining.n.blocks = 1;
+%     AttentionTraining.n.sections = 1;
+%     AttentionTraining.n.trials = 36;
+%     
+%     AttentionTrainingConf.n = AttentionTraining.n;
+% end
 
 Demo.t.pres = 250;
 Demo.t.betwtrials = 200;
@@ -223,7 +221,7 @@ if strfind(subject_name,'fast') > 0 % if 'fast' is in the initials, the exp will
 end
 
 if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp will be short (for debugging)
-    [Test.n.trials,Training.initial.n.trials,ConfidenceTraining.n.trials,Training.n.trials, AttentionTraining.n.trials,nDemoTrials, AttentionTrainingConf.n.trials, PreTest.n.trials]...
+    [Test.n.trials,Training.initial.n.trials,ConfidenceTraining.n.trials,Training.n.trials]...%, AttentionTraining.n.trials,nDemoTrials, AttentionTrainingConf.n.trials, PreTest.n.trials]...
         = deal(8);
     scr.countdown_time = 5;
 end
@@ -300,13 +298,22 @@ try
     scr.cross = Screen('MakeTexture', scr.win , f_c);
 
     if attention_manipulation
+        arm_rows = f_c_size/2-fw:f_c_size/2 + 1 + fw;
+        L_arm_cols = 1:f_c_size/2-1-fw;
+        R_arm_cols = f_c_size/2+2+fw:f_c_size;
+        
         cross_whiteL = f_c;
-        cross_whiteL(f_c_size/2-fw:f_c_size/2 + 1 + fw, 1:f_c_size/2-1-fw) = white;
-        cross_grayL = f_c;
-        cross_grayL(f_c_size/2-fw:f_c_size/2 + 1 + fw, 1:f_c_size/2-1-fw) = lightgray;
+        cross_whiteL(arm_rows, L_arm_cols) = white;
+        cross_whiteLR = cross_whiteL; % neutral cue
+        cross_whiteLR(arm_rows, R_arm_cols) = white;
+        
+        cross_grayL = cross_whiteL;
+        cross_grayL(cross_grayL==white) = lightgray;
         
         scr.cueL = Screen('MakeTexture', scr.win, cross_whiteL);
         scr.cueR = Screen('MakeTexture', scr.win, fliplr(cross_whiteL));
+        scr.cueLR= Screen('MakeTexture', scr.win, cross_whiteLR);
+        
         scr.resp_cueL = Screen('MakeTexture', scr.win, cross_grayL);
         scr.resp_cueR = Screen('MakeTexture', scr.win, fliplr(cross_grayL));
     end
@@ -350,22 +357,20 @@ try
         Training.R.phase{spec} = TrainingpreR.phase{spec-1};
     end
     
-    Test.R = setup_exp_order(Test.n, Test.category_params);
-    PreTest.R = setup_exp_order(PreTest.n, Test.category_params);
-    
-    if attention_manipulation
-        Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
-        PreTest.R2 = setup_exp_order(PreTest.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
-    end
-    
     ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params);
+    Test.R = setup_exp_order(Test.n, Test.category_params);
+%     PreTest.R = setup_exp_order(PreTest.n, Test.category_params);
     
     if attention_manipulation
-        AttentionTraining.R = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params);
-        AttentionTraining.R2 = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params, cue_validity);
-        
-        AttentionTrainingConf.R = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params);
-        AttentionTrainingConf.R2 = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params, cue_validity);
+        ConfidenceTraining.R2 = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, cue_validity);
+        Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
+%         PreTest.R2 = setup_exp_order(PreTest.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
+
+%         AttentionTraining.R = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params);
+%         AttentionTraining.R2 = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params, cue_validity);
+%         
+%         AttentionTrainingConf.R = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params);
+%         AttentionTrainingConf.R2 = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params, cue_validity);
     end
     
     %% Start eyetracker
@@ -447,14 +452,6 @@ try
         % Training
         if ~notrain
             if k == 1
-                if attention_manipulation
-                    [AttentionTraining.responses, flag] = run_exp(AttentionTraining.n,AttentionTraining.R, Training.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, subject_name, AttentionTraining.R2);
-                    if flag==1,break;end
-                    
-                    [AttentionTrainingConf.responses, flag] = run_exp(AttentionTrainingConf.n,AttentionTrainingConf.R, Test.t,scr,color,P,'Attention Training Conf',k, new_subject, task_str, final_task, subject_name, AttentionTrainingConf.R2);
-                    if flag==1,break;end
-                end
-                
                 [nx,ny]=DrawFormattedText(scr.win, 'Let''s get some practice with the\n\ncategories we''ll be using in this task.', 'center', 'center', color.wt);
                 flip_key_flip(scr,'continue',ny,color,new_subject);
                 category_demo
@@ -463,11 +460,24 @@ try
                 [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
 
-%                 [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
-%                 if flag ==1,  break;  end
                 if attention_manipulation
-                    [Test.responses{k}, flag] = run_exp(PreTest.n, PreTest.R, Test.t, scr, color, P, 'PreTest',k, new_subject, task_str, final_task, subject_name, PreTest.R2);
+                    [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name, ConfidenceTraining.R2);
+                else
+                    [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
                 end
+                if flag ==1,  break;  end
+
+%                 if attention_manipulation
+%                     [AttentionTraining.responses, flag] = run_exp(AttentionTraining.n,AttentionTraining.R, Training.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, subject_name, AttentionTraining.R2);
+%                     if flag==1,break;end
+%                     
+%                     [AttentionTrainingConf.responses, flag] = run_exp(AttentionTrainingConf.n,AttentionTrainingConf.R, Test.t,scr,color,P,'Attention Training Conf',k, new_subject, task_str, final_task, subject_name, AttentionTrainingConf.R2);
+%                     if flag==1,break;end
+%                 end
+%
+%                 if attention_manipulation
+%                     [Test.responses{k}, flag] = run_exp(PreTest.n, PreTest.R, Test.t, scr, color, P, 'PreTest',k, new_subject, task_str, final_task, subject_name, PreTest.R2);
+%                 end
             else
                 [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end

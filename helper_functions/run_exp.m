@@ -80,11 +80,14 @@ try
                 stim(2).phase = R2.phase{blok}(section, trial);
                 
                 % DISPLAY SPATIAL ATTENTION CUE
-                if R2.cue{blok}(section, trial) == 1
+                if R2.cue{blok}(section, trial) == -1
                     Screen('DrawTexture', scr.win, scr.cueL);
-                elseif R2.cue{blok}(section, trial) == 2
+                elseif R2.cue{blok}(section, trial) == 0
+                    Screen('DrawTexture', scr.win, scr.cueLR);
+                elseif R2.cue{blok}(section, trial) == 1
                     Screen('DrawTexture', scr.win, scr.cueR);
                 end
+                
                 t_cue = Screen('Flip', scr.win, t0 + t.betwtrials/1000);
                 if P.eye_tracking
                     Eyelink('Message', 'EVENT_CUE');
@@ -125,10 +128,10 @@ try
                 Screen('DrawTexture', scr.win, scr.cross);
                 t_target_off = Screen('Flip', scr.win);
                 
-                if R2.probe{blok}(section, trial) == 1
+                if R2.probe{blok}(section, trial) == -1
                     Screen('DrawTexture', scr.win, scr.resp_cueL);
                     cval = R.trial_order{blok}(section, trial);
-                elseif R2.probe{blok}(section, trial) == 2
+                elseif R2.probe{blok}(section, trial) == 1
                     Screen('DrawTexture', scr.win, scr.resp_cueR);
                     cval = R2.trial_order{blok}(section, trial);
                 end

@@ -6,7 +6,7 @@ opt_models(1).family = 'neural1';
 opt_models(1).multi_lapse = 1;
 opt_models(1).partial_lapse = 1;
 opt_models(1).repeat_lapse = 1;
-opt_models(1).choice_only = 0; % joint_task_fit doesn't work for choice_only. work on this after working on imaginary nloglik problem
+opt_models(1).choice_only = 0;
 opt_models(1).ori_dep_noise = 0;
 opt_models(1).joint_task_fit = 1;
 
@@ -580,15 +580,15 @@ elseif strcmp(optimization_method,'mcmc_slice')
             for dataset_id = 1:length(o.extracted) % dataset
                 ex = o.extracted(dataset_id);
                 
-                warning('move this stuff up or out of here. it happens in CCO')
-                % move this up
-                ex.logposterior = ex.logprior - ex.nll;
-                for c = 1:size(ex.logposterior,2)
-                    lp_tmp{c}=ex.logposterior(:,c);
-                    samp{c}=ex.p(:,:,c);
-                end
-                ex.logposterior = lp_tmp;
-                ex.p = samp;
+%                 warning('move this stuff up or out of here. it happens in CCO')
+%                 % move this up
+%                 ex.logposterior = ex.logprior - ex.nll;
+%                 for c = 1:size(ex.logposterior,2)
+%                     lp_tmp{c}=ex.logposterior(:,c);
+%                     samp{c}=ex.p(:,:,c);
+%                 end
+%                 ex.logposterior = lp_tmp;
+%                 ex.p = samp;
                 
                 if ~isempty(ex.p) % if there's data here                    
                     [true_p,true_logposterior]=deal([]);

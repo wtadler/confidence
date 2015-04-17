@@ -4,15 +4,16 @@ function compile_cluster_opts(varargin)
 
 datadir='/Users/will/Google Drive/Ma lab/output/v3_joint_feb28';
 rawdatadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA/'; % for computing DIC
-st = compile_data('datadir',rawdatadir);
 rawdatadirB='/Users/will/Google Drive/Will - Confidence/Data/v3/taskB/'; % for computing DIC
-stB = compile_data('datadir',rawdatadirB);
 
 toss_bad_samples = false;
 
 jobid = 'ab';
 hpc = true;
 assignopts(who,varargin)
+
+st = compile_data('datadir',rawdatadir);
+stB = compile_data('datadir',rawdatadirB);
 
 if strcmp(jobid,'newest')
     D = dir([datadir '/*.mat']);
@@ -188,21 +189,21 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                         %burn_start = max(1,round(nSamples*extraburn_prop));
                         %ex.p{c} = ex.p{c}(burn_start:end,:);
                         %ex.nll{c} = ex.nll{c}(burn_start:end,:);
-                        ex.logposteriors{c} = -ex.nll{c} + ex.log_prior{c};
-                        %logposteriors{c} = -o.extracted(d).nll(burn_start:end,c) + o.extracted(d).log_prior(burn_start:end,c);
+                        ex.logposterior{c} = -ex.nll{c} + ex.logprior{c};
+                        %logposterior{c} = -o.extracted(d).nll(burn_start:end,c) + o.extracted(d).logprior(burn_start:end,c);
                     end
                     
                     all_samples = [];
                     all_nll = [];
 
                     threshold = 40;
-                    max_logpost = max(cellfun(@max, ex.logposteriors));
+                    max_logpost = max(cellfun(@max, ex.logposterior));
                     for c = 1:nChains
                         if toss_bad_samples
-                            keepers = ex.logposteriors{c} > max_logpost-threshold;
+                            keepers = ex.logposterior{c} > max_logpost-threshold;
                             ex.p{c} = ex.p{c}(keepers,:);
                             ex.nll{c} = ex.nll{c}(keepers);
-                            ex.logposteriors{c} = ex.logposteriors{c}(keepers);
+                            ex.logposterior{c} = ex.logposterior{c}(keepers);
                         end
                         all_samples = cat(1,all_samples,ex.p{c});
                         all_nll = cat(1,all_nll,ex.nll{c});
@@ -215,31 +216,7 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                     elseif model(m).joint_task_fit
 
                         sm=prepare_submodels(model(m));
-%                         sm.model_A = o;
-%                         sm.model_A.name = '';
-%                         sm.model_A.joint_task_fit = 0;
-%                         sm.model_A.joint_d = 0;
-%                         sm.model_A.diff_mean_same_std = 1;
-%                         
-%                         sm.model_B = o;
-%                         sm.model_B.name = '';
-%                         sm.model_B.joint_task_fit = 0;
-%                         sm.model_B.joint_d = 0;
-%                         sm.model_B.diff_mean_same_std = 0;
-%                         
-%                         if ~o.joint_d
-%                             sm.nonbound_param_idx = ~cellfun(@isempty, regexp(o.parameter_names,'^((?!(b_|m_)).)*$'));
-%                             sm.A_bound_param_idx = ~cellfun(@isempty, regexp(o.parameter_names,'^(b_|m_).*TaskA'));
-%                             sm.B_bound_param_idx = ~cellfun(@isempty, regexp(o.parameter_names,'^(b_|m_)(?!.*TaskA)'));
-%                             
-%                             sm.A_param_idx = logical(sm.nonbound_param_idx + sm.A_bound_param_idx);
-%                             sm.B_param_idx = logical(sm.nonbound_param_idx + sm.B_bound_param_idx);
-%                             
-%                             sm.model_A = parameter_constraints(sm.model_A);
-%                             sm.model_B = parameter_constraints(sm.model_B);
-%                         end
-%                         
-%                         sm.joint_d = o.joint_d;
+
                         dtbar=-2*two_task_ll_wrapper(ex.mean_params, st.data(d).raw, stB.data(d).raw, sm, nDNoiseSets, category_params, true);
 
                     end

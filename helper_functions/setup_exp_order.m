@@ -25,10 +25,13 @@ for k = 1:n.blocks
     R.draws{k}(classtwos) = stimulus_orientations(category_params, 2, nnz(classtwos));
     
     if attention_manipulation
-        R.probe{k} = reshape(randsample(2,n.trials*n.sections,true), n.sections, n.trials);
+        R.probe{k} = reshape(randsample([-1 0 1],n.trials*n.sections,true), n.sections, n.trials);
         
         R.cue{k} = R.probe{k};
-        flip_idx = rand(size(R.probe{k}))>cue_validity; % find trials where cue is invalid. need to flip those cues.
-        R.cue{k}(flip_idx) = -R.cue{k}(flip_idx) + 3; % y = -x + 3 flips 2 trials to 1, and 1 trials to 2.       
+        flip_idx = rand(size(R.probe{k}))>cue_validity; % find trials where cue is invalid.
+        R.cue{k}(flip_idx) = -R.cue{k}(flip_idx); % flip those cues
+        
+        neutral_cue_idx = R.cue{k} == 0;
+        R.probe{k}(neutral_cue_idx) = randsample([-1 1], sum(neutral_cue_idx), true);
     end
 end
