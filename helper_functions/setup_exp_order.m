@@ -32,6 +32,7 @@ for k = 1:n.blocks
         R.cue{k}(flip_idx) = -R.cue{k}(flip_idx); % flip those cues
         
         neutral_cue_idx = R.cue{k} == 0;
-        R.probe{k}(neutral_cue_idx) = randsample([-1 1], sum(neutral_cue_idx), true);
+
+        R.probe{k}(neutral_cue_idx) = randsample([-1 1], nnz(neutral_cue_idx), true);
     end
 end
