@@ -324,7 +324,7 @@ try
             save top_ten top_ten;
         end
 
-        [nx,ny] = center_print(sprintf('%sYour score for Testing Block %i of %i: %.1f\n\n%sTop Ten:\n\n',hitxt,blok,n.blocks,blockscore,task_str),-90);
+        [nx,ny] = center_print(sprintf('%sYour score for Testing Block %i of %i: %.1f%%\n\n%sTop Ten:\n\n',hitxt,blok,n.blocks,blockscore,task_str),-110);
         
         for j = 1:10
             [nx,ny] = center_print(sprintf('%i) %.1f%%    %s\n',j,top_ten.(R.category_type).scores(j),top_ten.(R.category_type).initial{j}),ny,[],scr.cx*.8 - (j==10)*20);
@@ -333,7 +333,7 @@ try
         % instructions below top ten
         experimenter_needed = false;
         if blok ~= n.blocks
-            hitxt = '\nPlease take a short break.\n\n\nYou may begin the next Category Training\n\n';
+            hitxt = '\nPlease take a short break.\n\nYou may begin the next Category Training\n\n';
         else
             if ~final_task
                 if new_subject
@@ -350,9 +350,9 @@ try
         
         [nx,ny] = center_print(hitxt,ny);
         if blok ~= n.blocks || (blok == n.blocks && ~final_task && ~new_subject)
-            [nx,ny] = center_print('in ',ny,[],scr.cx-570);
+            [nx,ny] = center_print('in ',ny,[],scr.cx-9.2*P.pxPerDeg); %570: 240
             countx=nx; county=ny;
-            [nx,ny] = center_print('   seconds, but you may take a\n\n',county,[],countx);
+            [nx,ny] = center_print('seconds, but you may take a\n\n',county,[],countx+1.7*P.pxPerDeg); % 3 spaces: 5 spaces
             [nx,ny] = center_print(['longer break and leave the room\n\n'...
                 'or walk around.'],ny,[],[],50);
             countdown(scr,color,countx,county);

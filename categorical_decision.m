@@ -230,7 +230,7 @@ end
 
 if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp will be short (for debugging)
     [Test.n.trials,Training.initial.n.trials,ConfidenceTraining.n.trials,Training.n.trials,nDemoTrials]...%, AttentionTraining.n.trials, AttentionTrainingConf.n.trials, PreTest.n.trials]...
-        = deal(8);
+        = deal(4);
     scr.countdown_time = 5;
 end
 
@@ -261,14 +261,19 @@ try
     %LoadIdentityClut(scr.win) % default gamma table
     switch room_letter
         case '1139'
-%             gt=load('calibration/iPadGammaTable'); % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
-%             Screen('LoadNormalizedGammaTable', scr.win, gt.gammaTable*[1 1 1]);
+%             calib=load('calibration/iPadGammaTable'); % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
+%             Screen('LoadNormalizedGammaTable', scr.win, calib.gammaTable*[1 1 1]);
         case 'Carrasco_L1'
-            calib = load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
-            Screen('LoadNormalizedGammaTable', scr.win, repmat(calib.calib.table,1,3));
+%             calib = load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
+%             rgbtable = calib.calib.table*[1 1 1];
+            calib = load('calibration/carrasco_l1_calibration_42015.mat');
+            rgbtable = calib.gammaTable1*[1 1 1];
+            
+            Screen('LoadNormalizedGammaTable', scr.win, rgbtable);
+            
             % check gamma table
             gammatable = Screen('ReadNormalizedGammaTable', scr.win);
-            if nnz(abs(gammatable-repmat(calib.calib.table,1,3))>0.0001)
+            if nnz(abs(gammatable-rgbtable)>0.0001)
                 error('Gamma table not loaded correctly! Perhaps set screen res and retry.')
             end
     end
