@@ -1,4 +1,4 @@
-function [ gammaTable1, gammaTable2, displayBaseline, displayRange, displayGamma, maxLevel ] = CalibrateMonitorPhotometer(numMeasures, screenid)
+function [ gammaTable1, gammaTable2, displayBaseline, displayRange, displayGamma, maxLevel ] = CalibrateMonitorPhotometer_WTA(numMeasures, screenid)
 % [gammaTable1, gammaTable2, displayBaseline, displayRange. displayGamma, maxLevel ] = CalibrateMonitorPhotometer([numMeasures=9][, screenid=max])
 %
 % A simple calibration script for analog photometers.
@@ -26,7 +26,7 @@ function [ gammaTable1, gammaTable2, displayBaseline, displayRange, displayGamma
 % %Then save the corresponding gamma table for later use
 % gammaTable = gammaTable1;
 % save MyGammaTable gammaTable
-% 
+%
 % %Then when you're ready to use the gamma table:
 % load MyGammaTable
 % Screen('LoadNormalizedGammaTable', win, gammaTable*[1 1 1]);
@@ -45,16 +45,21 @@ global vals;
 global inputV;
 %KbName('UnifyKeyNames')
 
-    if (nargin < 1) || isempty(numMeasures)
-        numMeasures = 9;
-    end
+if (nargin < 1) || isempty(numMeasures)
+    numMeasures = 9;
+end
 
-    input(sprintf(['When black screen appears, point photometer, \n' ...
-           'get reading in cd/m^2, input reading using numpad and press enter. \n' ...
-           'A screen of higher luminance will be shown. Repeat %d times. ' ...
-           'Press enter to start'], numMeasures));
-       
-    psychlasterror('reset');    
+input(sprintf(['When black screen appears, point photometer, \n' ...
+    'get reading in cd/m^2, input reading using numpad and press enter. \n' ...
+    'A screen of higher luminance will be shown. Repeat %d times. ' ...
+    'Press enter to start'], numMeasures));
+
+psychlasterror('reset');
+
+rgb_gammatable = [];
+
+for channel = 1:3
+    channel
     try
         if nargin < 2 || isempty(screenid)
             % Open black window on default screen:
@@ -63,27 +68,30 @@ global inputV;
         
         % Open black window:
         win = Screen('OpenWindow', screenid, 0);
-
+        
         maxLevel = Screen('ColorRange', win);
         % Load identity gamma table for calibration:
-        LoadIdentityClut(win);
-%         load MyGammaTable
-%         Screen('LoadNormalizedGammaTable', win, gammaTable*[1 1 1]);
-        
+%         LoadIdentityClut(win);
+                load('carrasco_l1_calibration_42215_rgb', 'rgb_gammatable')
+                Screen('LoadNormalizedGammaTable', win, rgb_gammatable);
         vals = [];
+        
         inputV = [0:(maxLevel+1)/(numMeasures - 1):(maxLevel+1)]; %#ok<NBRAK>
         inputV(end) = maxLevel;
         
-%         for i = inputV
-%             Screen('FillRect',win,i);
-%             Screen('Flip',win);
-% 
-%             fprintf('Value? ');
-%             resp = GetNumber;
-%             fprintf('\n');
-%             vals = [vals resp]; %#ok<AGROW>
-%         end
-        vals = [0 0 0 0 1.2 2.56 4.71 7.69 11.7 16.6 22.7 29.9 38.3 47.8 58.6 70.4 82.4]
+        
+        rgb = zeros(1,3);
+        rgb(channel) = 1;
+        for i = inputV
+            Screen('FillRect',win,i*rgb);
+            Screen('Flip',win);
+            
+            fprintf('Value? ');
+            resp = GetNumber;
+            fprintf('\n');
+            vals = [vals resp]; %#ok<AGROW>
+        end
+        
         % Restore normal gamma table and close down:
         RestoreCluts;
         Screen('CloseAll');
@@ -92,10 +100,10 @@ global inputV;
         Screen('CloseAll');
         psychrethrow(psychlasterror);
     end
-
+    
     displayRange = range(vals);
     displayBaseline = min(vals);
-    '5'
+    
     %Normalize values
     vals = (vals - displayBaseline) / displayRange;
     inputV = inputV/maxLevel;
@@ -119,14 +127,17 @@ global inputV;
     %Spline interp fitting
     fittedmodel = fit(inputV',vals','splineinterp');
     secondFit = fittedmodel([0:maxLevel]/maxLevel); %#ok<NBRAK>
-    
+ 
     figure;
     plot(inputV, vals, '.', [0:maxLevel]/maxLevel, firstFit, '--', [0:maxLevel]/maxLevel, secondFit, '-.'); %#ok<NBRAK>
     legend('Measures', 'Gamma model', 'Spline interpolation');
     title(sprintf('Gamma model x^{%.2f} vs. Spline interpolation', displayGamma));
-    %Invert interpolation
-    fittedmodel = fit(vals',inputV','splineinterp');
     
-    gammaTable2 = fittedmodel([0:maxLevel]/maxLevel); %#ok<NBRAK>
-    save bla.mat
+    rgb_gammatable = cat(2, rgb_gammatable, gammaTable1);
+    
+    %Invert interpolation
+    % fittedmodel = fit(vals',inputV','splineinterp');
+    
+    % gammaTable2 = fittedmodel([0:maxLevel]/maxLevel); %#ok<NBRAK>
+end
 return;

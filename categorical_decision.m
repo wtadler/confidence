@@ -86,7 +86,7 @@ cue_validity = .7;
 % colors in 0:255 space
 white = 255;
 color.wt = [white white white];
-lightgray = 157;
+lightgray = 180; % 157
 bg = 127.5;
 color.bg = bg;
 darkgray = 10;
@@ -180,8 +180,8 @@ Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % WTA: 2
 Training.initial.n.trials = 36;% WTA: 36
 ConfidenceTraining.n.blocks = 1;
-ConfidenceTraining.n.sections = 1;
-ConfidenceTraining.n.trials = 24; % WTA: 16
+ConfidenceTraining.n.sections = 2;
+ConfidenceTraining.n.trials = 36; % WTA: 16
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 1; %changed from '2' on 10/14
 Training.n.trials = 48; % WTA: 48
@@ -194,8 +194,8 @@ Training.n.trials = 48; % WTA: 48
 %     AttentionTrainingConf.n = AttentionTraining.n;
 % end
 
-Demo.t.pres = 250;
-Demo.t.betwtrials = 200;
+Demo.t.pres = 300; % 250
+Demo.t.betwtrials = 650; % 200
 
 Test.t.pres = 50;           %50
 Test.t.pause = 200;         %200 isn't used
@@ -264,10 +264,17 @@ try
 %             calib=load('calibration/iPadGammaTable'); % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
 %             Screen('LoadNormalizedGammaTable', scr.win, calib.gammaTable*[1 1 1]);
         case 'Carrasco_L1'
-%             calib = load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
-%             rgbtable = calib.calib.table*[1 1 1];
-            calib = load('calibration/carrasco_l1_calibration_42015.mat');
+            
+            % GRAYSCALE
+            % calib = load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
+            % rgbtable = calib.calib.table*[1 1 1];
+            calib = load('calibration/carrasco_l1_calibration_42015.mat')
+            % calib = load('calibration/carrasco_l1_calibration_42215_grayscale.mat');
             rgbtable = calib.gammaTable1*[1 1 1];
+            
+            % RGB
+            % calib = load('calibration/carrasco_l1_calibration_42215_rgb.mat');
+            % rgbtable = calib.rgb_gammatable;
             
             Screen('LoadNormalizedGammaTable', scr.win, rgbtable);
             
@@ -303,8 +310,8 @@ try
     scr.rad = P.eye_rad*P.pxPerDeg;
     
     %set up fixation cross
-    f_c_size = 30; % length and width. must be even.
-    fw = 1; % line thickness = 2+2*fw pixels
+    f_c_size = 28; % length and width. must be even.
+    fw = 0; % line thickness = 2+2*fw pixels
     f_c = bg*ones(f_c_size);
     f_c(f_c_size/2 - fw: f_c_size/2 + 1 + fw,:) = darkgray;
     f_c(:,f_c_size/2 - fw: f_c_size/2 + 1 + fw) = darkgray;
@@ -346,7 +353,7 @@ try
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
     P.ellipseColor = 0;
     
-    P.attention_stim_spacing = 5;% for two stimuli, distance from center, in degrees
+    P.attention_stim_spacing = 5.5;% for two stimuli, distance from center, in degrees (5 to 8, 4/21/15)
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
     
     %%%Setup routine. this is some complicated stuff to deal with the
@@ -465,6 +472,7 @@ try
         % Training
         if ~notrain
             if k == 1
+                % UNCOMMENT THIS BLOCK!!!!
                 [nx,ny]=DrawFormattedText(scr.win, 'Let''s get some practice with the\n\ncategories we''ll be using in this task.', 'center', 'center', color.wt);
                 flip_key_flip(scr,'continue',ny,color,new_subject);
                 category_demo
