@@ -59,7 +59,7 @@ switch room_letter
         screen_width = 40;
         screen_distance = 56;
         scr.displayHz = 100;
-
+        % should be 1280 x 960 screen res
 end
 
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
@@ -268,8 +268,8 @@ try
             % GRAYSCALE
             % calib = load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
             % rgbtable = calib.calib.table*[1 1 1];
-            calib = load('calibration/carrasco_l1_calibration_42015.mat')
-            % calib = load('calibration/carrasco_l1_calibration_42215_grayscale.mat');
+%             calib = load('calibration/carrasco_l1_calibration_42015.mat')
+            calib = load('calibration/carrasco_l1_calibration_42215_grayscale.mat');
             rgbtable = calib.gammaTable1*[1 1 1];
             
             % RGB
