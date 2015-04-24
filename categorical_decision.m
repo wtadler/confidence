@@ -43,6 +43,7 @@ switch room_letter
         screen_width = 64;%64 %30" cinema display width in cm (.250 mm pixels)
     case 'mbp'
         screen_width = 33.2509;
+        scr.displayHz = 60;
     case '1139'
         screen_width = 19.7042; %iPad screen width in cm
         scr.keyinsert = 45; % insert
