@@ -60,7 +60,7 @@ switch room_letter
         screen_width = 40;
         screen_distance = 56;
         scr.displayHz = 100;
-        % should be 1280 x 960 screen res
+        scr.res = [1280 960]; % should be 1280 x 960 screen res
 end
 
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
@@ -265,12 +265,18 @@ try
 %             calib=load('calibration/iPadGammaTable'); % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
 %             Screen('LoadNormalizedGammaTable', scr.win, calib.gammaTable*[1 1 1]);
         case 'Carrasco_L1'
-            
+            % Check screen resolution and refresh rate - if it's not set correctly to
+            % begin with, the color might be off
+            res = Screen('Resolution', screenNumber);
+            if ~all([res.width res.height res.hz] == [scr.res scr.displayHz])
+                error('Screen resolution and/or refresh rate has not been set correctly by the experimenter!')
+            end
+
             % GRAYSCALE
             % calib = load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
             % rgbtable = calib.calib.table*[1 1 1];
-%             calib = load('calibration/carrasco_l1_calibration_42015.mat')
-            calib = load('calibration/carrasco_l1_calibration_42215_grayscale.mat');
+            calib = load('calibration/carrasco_l1_calibration_42015.mat')
+%             calib = load('calibration/carrasco_l1_calibration_42215_grayscale.mat');
             rgbtable = calib.gammaTable1*[1 1 1];
             
             % RGB
