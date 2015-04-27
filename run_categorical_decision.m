@@ -9,8 +9,8 @@ if nargin==0
     initial = 'shortfast';
 end
 
-new_subject = false;
-room_letter = 'mbp'; % 'mbp','Carrasco_L1','1139'
+new_subject = true;
+room_letter = 'Carrasco_L1'; % 'mbp','Carrasco_L1','1139'
 
 category_type = 'same_mean_diff_std'; % 'same_mean_diff_std','sym_uniform'
 attention_manipulation = true;

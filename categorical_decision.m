@@ -67,8 +67,9 @@ if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter
     [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
         scr.key7, scr.key8, scr.key9, scr.key10] ...
         = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
-    scr.keyinsert=53;% backspace
-    scr.keyenter=42;%tilde
+    scr.keyenter=88;
+    %     scr.keyinsert=53;% backspace
+%     scr.keyenter=42;%tilde
     %scr.keyx=27; %x
     %scr.keyz=29; %z
 end
@@ -267,7 +268,7 @@ try
         case 'Carrasco_L1'
             % Check screen resolution and refresh rate - if it's not set correctly to
             % begin with, the color might be off
-            res = Screen('Resolution', screenNumber);
+            res = Screen('Resolution', screenid);
             if ~all([res.width res.height res.hz] == [scr.res scr.displayHz])
                 error('Screen resolution and/or refresh rate has not been set correctly by the experimenter!')
             end
