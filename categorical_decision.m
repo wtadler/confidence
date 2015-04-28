@@ -68,7 +68,7 @@ if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter
         scr.key7, scr.key8, scr.key9, scr.key10] ...
         = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
     scr.keyenter=88;
-    %     scr.keyinsert=53;% backspace
+    scr.keyinsert=76;% delete
 %     scr.keyenter=42;%tilde
     %scr.keyx=27; %x
     %scr.keyz=29; %z
@@ -164,8 +164,8 @@ elseif nExperiments > 1
 end
 
 if attention_manipulation
-    Test.n.blocks = 4;
-    Test.n.sections = 3;
+    Test.n.blocks = 2;
+    Test.n.sections = 2;
     Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
     
 %     PreTest.n.blocks = 1;
@@ -207,8 +207,8 @@ if attention_manipulation
 else
     Test.t.betwtrials = 1000;   %1000
 end
-Test.t.cue_dur = 150;
-Test.t.cue_target_isi = 150;
+Test.t.cue_dur = 350; %150
+Test.t.cue_target_isi = 350; %150
 
 Training.t.pres = 300; %300 %how long to show first stimulus (ms)
 Training.t.pause = 100; %100 time between response and feedback
@@ -361,7 +361,7 @@ try
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
     P.ellipseColor = 0;
     
-    P.attention_stim_spacing = 5.5;% for two stimuli, distance from center, in degrees (5 to 8, 4/21/15)
+    P.attention_stim_spacing = 7; % 5.5 % for two stimuli, distance from center, in degrees (5 to 8, 4/21/15)
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
     
     %%%Setup routine. this is some complicated stuff to deal with the

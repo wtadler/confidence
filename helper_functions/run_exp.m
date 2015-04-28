@@ -256,10 +256,10 @@ try
         if section ~= n.sections
             [~,scorereport]=calcscore(responses,n.trials);
             if strcmp('Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
-                midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %sCategory Training.',scorereport,fractionizer(section,n.sections), task_str);
+                midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %sCategory Training.', scorereport, fractionizer(section, n.sections), task_str);
                 str = 'continue';
             else
-                midtxt = sprintf('You have completed\n\n%s of %sTesting Block %i of %i.',fractionizer(section,n.sections),task_str,blok,n.blocks);
+                midtxt = sprintf('You have completed\n\n%s of %s%s Block %i of %i.', fractionizer(section, n.sections), task_str, type, blok, n.blocks);
                 str = 'continue';
             end
             
@@ -324,7 +324,7 @@ try
             save top_ten top_ten;
         end
 
-        [nx,ny] = center_print(sprintf('%sYour score for Testing Block %i of %i: %.1f%%\n\n%sTop Ten:\n\n',hitxt,blok,n.blocks,blockscore,task_str),-110);
+        [nx,ny] = center_print(sprintf('%sYour score for Testing Block %i of %i: %.1f%%\n\n%sTop Ten:\n\n',hitxt,blok,n.blocks,blockscore,task_str),-80);
         
         for j = 1:10
             [nx,ny] = center_print(sprintf('%i) %.1f%%    %s\n',j,top_ten.(R.category_type).scores(j),top_ten.(R.category_type).initial{j}),ny,[],scr.cx*.8 - (j==10)*20);
