@@ -18,7 +18,7 @@ for i = 1 : length(parameter_names)
 %     warning('saving pvntest')
 %     save pvntest
 
-    p.(parameter_names{i}) = p_in(i); % parameter_names is longer than p_in. problem. 4/15/15
+    p.(parameter_names{i}) = p_in(i);
 end
 
 % do special stuff for variables that go in vectors, such as boundaries...

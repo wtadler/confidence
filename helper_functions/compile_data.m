@@ -31,7 +31,7 @@ session_files = session_files.mat;
 % to do but having problems with regexp below
 
 % find unique subject names
-names = regexp(session_files,'[a-z]+(?=_)','match'); % find characters before _ in session_files
+names = regexp(session_files,'^[a-z]+(?=_)','match'); % find characters before _ in session_files
 names = unique(cat(1,names{:}));
 
 
@@ -54,6 +54,11 @@ for subject = 1 : length(names)
     for session = 1 : length(subject_sessions); % for each session
         load([datadir subject_sessions(session).name])
         
+        if isfield(Test, 'R2')
+            attention_manipulation = true;
+        else
+            attention_manipulation = false;
+        end
         %tmp.Training = Training; % maybe work on this later. it's going to
         %change how the data comes out and might mess with other scripts.
         %tmp.Test = Test;
@@ -68,22 +73,33 @@ for subject = 1 : length(names)
                 
                 % trials
                 raw.C          (start_trial:end_trial) = Test.R.trial_order{block}(section,:) * 2 - 3;
-                raw.s          (start_trial:end_trial) = Test.R.draws{block}(section,:);
-                raw.contrast   (start_trial:end_trial) = Test.R.sigma{block}(section,:);
-                [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast,'sig_levels',sig_levels,'flipsig',flipsig);
+                raw.s          (start_trial:end_trial) = Test.R.draws      {block}(section,:);
+                raw.contrast   (start_trial:end_trial) = Test.R.sigma      {block}(section,:);
                 
-                
-                if numel(raw.contrast_values) ~= sig_levels  % group and average contrast values if sig_levels specifies something different than the normal 6 raw.contrast_values.
-                    newcontrast       = nan(1,sig_levels);
-                    raw.contrast_valuespergroup = length(raw.contrast_values) / sig_levels;
-                    for i=1:sig_levels;
-                        contrast_range = (i-1)*raw.contrast_valuespergroup+1 : (i-1)*raw.contrast_valuespergroup + raw.contrast_valuespergroup;
-                        raw.contrast_id(ismember(raw.contrast_id,contrast_range)) = i;
-                        newcontrast(i) = mean(raw.contrast_values(contrast_range));
-                    end
-                    raw.contrast_values = newcontrast;
-                    clear newcontrast;
+                if ~attention_manipulation
+                    [contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast,'sig_levels',sig_levels,'flipsig',flipsig);
+                elseif attention_manipulation
+                    raw.probe  (start_trial:end_trial) = Test.R2.probe{block}(section,:);
+                    raw.cue    (start_trial:end_trial) = Test.R2.cue  {block}(section,:);
+                    
+                    raw.cue_validity(raw.probe == raw.cue)                  =  1;  % valid cues
+                    raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
+                    raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
+                    
+                    [contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity, 'sig_levels', 3, 'flipsig', flipsig);
                 end
+                
+%                 if numel(contrast_values) ~= sig_levels  % group and average contrast values if sig_levels specifies something different than the normal 6 raw.contrast_values.
+%                     newcontrast       = nan(1,sig_levels);
+%                     contrast_valuespergroup = length(contrast_values) / sig_levels;
+%                     for i=1:sig_levels;
+%                         contrast_range = (i-1)*contrast_valuespergroup+1 : (i-1)*contrast_valuespergroup + contrast_valuespergroup;
+%                         raw.contrast_id(ismember(raw.contrast_id,contrast_range)) = i;
+%                         newcontrast(i) = mean(contrast_values(contrast_range));
+%                     end
+%                     raw.contrast_values = newcontrast;
+%                     clear newcontrast;
+%                 end
                 
                 % responses
                 raw.Chat       (start_trial:end_trial) = Test.responses{block}.c(section,:) * 2 - 3;
@@ -94,11 +110,35 @@ for subject = 1 : length(names)
                     Test.responses{block}.conf(section,:) + conflevels + ...
                     (Test.responses{block}.c(section,:)-2) .* ...
                     (2 * Test.responses{block}.conf(section,:) - 1); % this combines conf and class to give resp on 8 point scale.
+                
+                if attention_manipulation
+                    % vector of order of trials. eg, [1 2 3 2] indicates that trial 2 was repeated. nothing is recorded for the first attempt at trial 2
+                    trial_order = Test.responses{block}.trial_order{section};
+                    
+                    % there must be a better way to do this part.
+                    % flip, go backwards, finding unique trial numbers. flip again. will result in, e.g., [1 3 2]
+                    flipped_trial_order = fliplr(trial_order);
+                    trials = [];
+                    for trial = 1:length(flipped_trial_order)
+                        if ~any(flipped_trial_order(trial)==trials)
+                            trials = [trials flipped_trial_order(trial)];
+                        end
+                    end
+                    trial_order = fliplr(trials);
+                    
+                    % re-order all trial info.
+                    fields = fieldnames(raw);
+                    for f = 1:length(fields)
+                        cur_trials = raw.(fields{f})(start_trial:end_trial);
+                        raw.(fields{f})(start_trial:end_trial) = cur_trials(trial_order);
+                    end
+                end
+                
             end
         end
     end
-    fields = fieldnames(raw);
-    fields = fields([1 2 3 5 6 7 8 9 10]); % drop 'contrast_values'
+%     fields = fieldnames(raw);
+%     fields = fields([1 2 3 5 6 7 8 9 10]); % drop 'contrast_values'
     
     if crossvalidate % can remove the second clause to get lots of samples for each subject (see below)
         nTrials = length(raw.C);
