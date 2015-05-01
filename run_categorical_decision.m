@@ -56,5 +56,3 @@ all_s = [Test.R.draws{1}(:); Test.R.draws{2}(:); Test.R.draws{3}(:)]
 
 
 plot(all_s,all_resp+.2*rand(size(all_resp)),'.')
->>>>>>> 189400d8d26578b0ee3c7027b0d84534da2d262a
-
