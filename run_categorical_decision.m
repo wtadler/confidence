@@ -9,7 +9,7 @@ if nargin==0
     initial = 'shortfast';
 end
 
-exp_type = 'AB'; %'attention' or 'AB'
+exp_type = 'attention'; %'attention' or 'AB'
 new_subject = true;
 
 switch exp_type
