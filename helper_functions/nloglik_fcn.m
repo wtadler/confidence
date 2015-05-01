@@ -32,10 +32,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p = parameter_variable_namer(p_in, model.parameter_names, model);
 
-
-
-
-
 contrasts = exp(linspace(-5.5,-2,6)); % THIS IS HARD CODED
 %contrasts = exp(-4:.5:-1.5);
 nContrasts = length(contrasts);
@@ -75,20 +71,28 @@ else
 end
 
 
-if isfield(p,'sigma_0') % old contrast parameterization
-        unique_sigs = fliplr(sqrt(max(0,p.sigma_0^2 + p.alpha .* contrasts .^ -p.beta))); % low to high sigma. should line up with contrast id
-elseif isfield(p,'sigma_c_hi') % new contrast parameterization
-        c_low = min(contrasts);
-        c_hi = max(contrasts);
-        alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
-        unique_sigs = fliplr(sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta)); % low to high sigma. should line up with contrast id
+% if isfield(p,'sigma_0') % old contrast parameterization
+%         unique_sigs = fliplr(sqrt(max(0,p.sigma_0^2 + p.alpha .* contrasts .^ -p.beta))); % low to high sigma. should line up with contrast id
+% elseif isfield(p,'sigma_c_hi') % new contrast parameterization
+if ~model.attention1
+    c_low = min(contrasts);
+    c_hi = max(contrasts);
+    alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
+    unique_sigs = fliplr(sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta)); % low to high sigma. should line up with contrast id
+elseif model.attention1
+    unique_sigs = [p.sigma_c_high p.sigma_c_mid p.sigma_c_low];
 end
+% end
 
 % now k will only be 6 cols, rather than 3240.
 sq_flag = 0;
 
 if model.ori_dep_noise && ~strcmp(model.family, 'opt')
-    sig = unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
+    if ~model.attention1
+        sig = unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
+    else
+        sig = unique_sigs(raw.cue_validity_id);
+    end
     sig = sig + p.sig_amplitude*abs(sin(raw.s*pi/90)); % add orientation dependent noise to each sigma.
 else
     sig = unique_sigs;
@@ -100,6 +104,8 @@ if ~model.diff_mean_same_std
 else
     xVec = linspace(-45,45,xSteps)';
 end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CHOICE PROBABILITY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

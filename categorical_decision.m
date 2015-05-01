@@ -96,6 +96,8 @@ color.bk = [0 0 0];
 color.red = [100 0  0];
 color.grn = [0 100 0];
 
+scr.countdown_time = 30;
+
 % CATEGORY PARAMS
 tmp.Test.category_params.category_type = category_type;
 tmp.Training.category_params.category_type = category_type;
@@ -141,7 +143,6 @@ end
 
 ConfidenceTraining.category_params.test_sigmas = Test.category_params.test_sigmas;
 
-
 if nExperiments == 1
     task_letter = '';
     task_str = '';
@@ -163,65 +164,77 @@ elseif nExperiments > 1
     task_str = ['Task ' task_letter ' '];
 end
 
+<<<<<<< HEAD
 if attention_manipulation
     Test.n.blocks = 4;
     Test.n.sections = 3;
-    Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
-    
-%     PreTest.n.blocks = 1;
-%     PreTest.n.sections = 1;
-%     PreTest.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
+=======
 
+% number of trials, timing
+
+if attention_manipulation    
+    Demo.t.pres = 300; % 250
+    Demo.t.betwtrials = 650; % 200
+
+    ConfidenceTraining.n.blocks = 1;
+    ConfidenceTraining.n.sections = 2;
+    ConfidenceTraining.n.trials = 36; % WTA: 16
+
+    Training.t.betwtrials = 1300;
+
+    Test.n.blocks = 2;
+    Test.n.sections = 2;
+>>>>>>> 189400d8d26578b0ee3c7027b0d84534da2d262a
+    Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
+
+    Test.t.betwtrials = 1300;
+    
+    %     AttentionTraining.n.blocks = 1;
+    %     AttentionTraining.n.sections = 1;
+    %     AttentionTraining.n.trials = 36;
+    %
+    %     AttentionTrainingConf.n = AttentionTraining.n;
+    
+    %     PreTest.n.blocks = 1;
+    %     PreTest.n.sections = 1;
+    %     PreTest.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108    
 else
+    Demo.t.pres = 250;
+    Demo.t.betwtrials = 200;
+    
+    ConfidenceTraining.n.blocks = 1;
+    ConfidenceTraining.n.sections = 1;
+    ConfidenceTraining.n.trials = 24;
+
+    Training.t.betwtrials = 1000; %1000
+
     Test.n.blocks = 3;% WTA from 3
     Test.n.sections = 3; % WTA from 3
     Test.n.trials = 8*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
+    
+    Test.t.betwtrials = 1000;   %1000
+
 end
 
 Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % WTA: 2
 Training.initial.n.trials = 36;% WTA: 36
-ConfidenceTraining.n.blocks = 1;
-ConfidenceTraining.n.sections = 2;
-ConfidenceTraining.n.trials = 36; % WTA: 16
+
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 1; %changed from '2' on 10/14
 Training.n.trials = 48; % WTA: 48
 
-% if attention_manipulation
-%     AttentionTraining.n.blocks = 1;
-%     AttentionTraining.n.sections = 1;
-%     AttentionTraining.n.trials = 36;
-%     
-%     AttentionTrainingConf.n = AttentionTraining.n;
-% end
-
-Demo.t.pres = 300; % 250
-Demo.t.betwtrials = 650; % 200
-
-Test.t.pres = 50;           %50
-Test.t.pause = 200;         %200 isn't used
-Test.t.feedback = 1200;     %1200 isn't used
-if attention_manipulation
-    Test.t.betwtrials = 1300;
-else
-    Test.t.betwtrials = 1000;   %1000
-end
-Test.t.cue_dur = 350; %150
-Test.t.cue_target_isi = 350; %150
-
-Training.t.pres = 300; %300 %how long to show first stimulus (ms)
+Training.t.pres = 300; %300 % time stimulus is on screen
 Training.t.pause = 100; %100 time between response and feedback
-Training.t.feedback = 1100;  %1700 time of "correct" or "incorrect" onscreen
-if attention_manipulation
-    Training.t.betwtrials = 1300;
-else
-    Training.t.betwtrials = 1000; %1000
-end
+Training.t.feedback = 1200;  %1700 time of "correct" or "incorrect" onscreen
 Training.t.cue_dur = 150;
 Training.t.cue_target_isi = 150;
 
-scr.countdown_time = 30;
+Test.t.pres = 50;           % time stimulus is on screen
+Test.t.cue_dur = 350; %150
+Test.t.cue_target_isi = 350; %150
+
+
 
 if strfind(subject_name,'fast') > 0 % if 'fast' is in the initials, the exp will be super fast (for debugging)
     [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,...

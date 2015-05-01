@@ -45,10 +45,34 @@ if isempty(model_fitting_data)
     raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
     raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1));
     raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1));
+    
+    if model.attention1
+        cue_validity = .7;
+        
+        raw.probe = randsample([-1 0 1], n_samples, 'true');
+        raw.cue = raw.probe;
+        
+        flip_idx = rand(1, n_trials) > cue_validity;
+        raw.cue(flip_idx) = -raw.cue(flip_idx);
+        
+        neutral_cue_idx = raw.cue == 0;
+        raw.probe(neutral_cue_idx) = randsample([-1 1], nnz(neutral_cue_idx), true);
+        
+        raw.cue_validity(raw.probe == raw.cue)                  =  1;  % valid cues
+        raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
+        raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
+    end 
+        
 else % take real data
     raw.C           = model_fitting_data.C;
     raw.contrast    = model_fitting_data.contrast;
     raw.s           = model_fitting_data.s;
+    
+    if model.attention1
+        raw.probe        = model_fitting_data.probe;
+        raw.cue          = model_fitting_data.cue;
+        raw.cue_validity = model_fitting_data.cue_validity;
+    end
 end
 n_samples = length(raw.C);
 
@@ -57,18 +81,18 @@ if ~model.choice_only
     raw.g = zeros(1, n_samples);
 end
 
-[raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
-contrast_type = 'new';
-switch contrast_type
-    case 'old'
-        sigs = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast_values .^ - p.beta);
-        raw.sig = sqrt(p.sigma_0^2 + p.alpha .* raw.contrast .^ - p.beta);
-    case 'new'
-        c_low = min(raw.contrast_values);
-        c_hi = max(raw.contrast_values);
-        alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
-        sigs = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*raw.contrast_values.^-p.beta);
-        raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*raw.contrast.^-p.beta);
+if ~model.attention1
+    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
+    c_low = min(raw.contrast_values);
+    c_hi = max(raw.contrast_values);
+    alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
+    sigs =    sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast_values .^ -p.beta); % the list of possible sigma values
+    raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
+elseif model.attention1
+    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity, 'sig_levels', 3); % contrast = cue_validity in this case.
+    raw.sig(raw.cue_validity  == -1) = p.sigma_c_low; % invalid cue -> high sigma (c_low means low "contrast")
+    raw.sig(raw.cue_validity  ==  0) = p.sigma_c_mid;
+    raw.sig(raw.cue_validitiy ==  1) = p.sigma_c_hi;
 end
 raw.sig = reshape(raw.sig,1,length(raw.sig)); % make sure it's a row.
 
