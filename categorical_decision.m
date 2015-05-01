@@ -164,8 +164,8 @@ elseif nExperiments > 1
 end
 
 if attention_manipulation
-    Test.n.blocks = 2;
-    Test.n.sections = 2;
+    Test.n.blocks = 4;
+    Test.n.sections = 3;
     Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
     
 %     PreTest.n.blocks = 1;

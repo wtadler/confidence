@@ -14,7 +14,7 @@ room_letter = 'Carrasco_L1'; % 'mbp','Carrasco_L1','1139'
 
 category_type = 'same_mean_diff_std'; % 'same_mean_diff_std','sym_uniform'
 attention_manipulation = true;
-eye_tracking = false;
+eye_tracking = true;
 
 categorical_decision(category_type, initial, new_subject, ...
     room_letter, attention_manipulation, eye_tracking)
