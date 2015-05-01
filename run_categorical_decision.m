@@ -9,7 +9,7 @@ if nargin==0
     initial = 'shortfast';
 end
 
-exp_type = 'AB'; %'attention' or 'AB'
+exp_type = 'attention'; %'attention' or 'AB'
 new_subject = true;
 
 switch exp_type
@@ -56,4 +56,3 @@ all_s = [Test.R.draws{1}(:); Test.R.draws{2}(:); Test.R.draws{3}(:)]
 
 
 plot(all_s,all_resp+.2*rand(size(all_resp)),'.')
-

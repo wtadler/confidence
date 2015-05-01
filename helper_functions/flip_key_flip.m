@@ -12,6 +12,7 @@ assignopts(who,varargin);
 Screen('Flip',scr.win,[],1);
 
 if experimenter_needed
+    WaitSecs(initial_wait)
     while true
         [~,keyCode] = KbWait;
         if keyCode(scr.(key))

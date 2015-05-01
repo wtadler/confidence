@@ -132,8 +132,8 @@ else
     if attention_manipulation
         % AttentionTraining.category_params.test_sigmas = 1;
         % AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;        
-        Training.category_params.test_sigmas = 0.1;
-        Test.category_params.test_sigmas = 0.1;
+        Training.category_params.test_sigmas = 0.08;
+        Test.category_params.test_sigmas = Training.category_params.test_sigmas;
 %         Test.category_params.test_sigmas = exp(-3.5);
     else
         Training.category_params.test_sigmas = 1;
@@ -164,24 +164,23 @@ elseif nExperiments > 1
     task_str = ['Task ' task_letter ' '];
 end
 
-
 % number of trials, timing
 
 if attention_manipulation    
     Demo.t.pres = 300; % 250
-    Demo.t.betwtrials = 650; % 200
+    Demo.t.betwtrials = 550; % 200
 
     ConfidenceTraining.n.blocks = 1;
     ConfidenceTraining.n.sections = 2;
     ConfidenceTraining.n.trials = 36; % WTA: 16
 
-    Training.t.betwtrials = 1300;
+    Training.t.betwtrials = 800;
 
-    Test.n.blocks = 2;
+    Test.n.blocks = 3;
     Test.n.sections = 2;
     Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
 
-    Test.t.betwtrials = 1300;
+    Test.t.betwtrials = 800;
     
     %     AttentionTraining.n.blocks = 1;
     %     AttentionTraining.n.sections = 1;
@@ -215,18 +214,20 @@ Training.initial.n.sections = 2; % WTA: 2
 Training.initial.n.trials = 36;% WTA: 36
 
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
-Training.n.sections = 1; %changed from '2' on 10/14
+Training.n.sections = 2; %changed from '2' on 10/14
 Training.n.trials = 48; % WTA: 48
 
 Training.t.pres = 300; %300 % time stimulus is on screen
 Training.t.pause = 100; %100 time between response and feedback
-Training.t.feedback = 1200;  %1700 time of "correct" or "incorrect" onscreen
+Training.t.feedback = 1100;  %1700 time of "correct" or "incorrect" onscreen
 Training.t.cue_dur = 150;
 Training.t.cue_target_isi = 150;
 
 Test.t.pres = 50;           % time stimulus is on screen
-Test.t.cue_dur = 350; %150
-Test.t.cue_target_isi = 350; %150
+Test.t.pause = 100; % time between response and feedback
+Test.t.feedback = 1100;
+Test.t.cue_dur = 300; %150
+Test.t.cue_target_isi = 300; %150
 
 
 
@@ -244,9 +245,21 @@ if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp wi
 end
 
 if strfind(subject_name,'notrain') > 0 % if 'notrain' is in the initials, the exp will not include training (for debugging)
-    notrain = 1;
+    notrain = true;
 else
-    notrain = 0;
+    notrain = false;
+end
+
+if strfind(subject_name, 'nodemo') > 0
+    nodemo = true;
+else
+    nodemo = false;
+end
+
+if strfind(subject_name, 'noconf') > 0
+    noconftraining = true;
+else
+    noconftraining = false;
 end
 
 
@@ -490,16 +503,20 @@ try
                 % UNCOMMENT THIS BLOCK!!!!
                 [nx,ny]=DrawFormattedText(scr.win, 'Let''s get some practice with the\n\ncategories we''ll be using in this task.', 'center', 'center', color.wt);
                 flip_key_flip(scr,'continue',ny,color,new_subject);
-                category_demo
+                if ~nodemo
+                    category_demo
+                end
                 
                 Training.initial.n.blocks = Training.n.blocks;
                 [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
 
-                if attention_manipulation
-                    [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name, ConfidenceTraining.R2);
-                else
-                    [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
+                if ~noconftraining
+                    if attention_manipulation
+                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name, ConfidenceTraining.R2);
+                    else
+                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
+                    end
                 end
                 if flag ==1,  break;  end
 
