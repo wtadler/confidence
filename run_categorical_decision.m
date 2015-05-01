@@ -10,7 +10,7 @@ if nargin==0
 end
 
 exp_type = 'AB'; %'attention' or 'AB'
-new_subject = true;
+new_subject = false;
 
 switch exp_type
     case 'attention'
@@ -26,7 +26,7 @@ switch exp_type
         room_letter = '1139';
         attention_manipulation = false;
         eye_tracking = false;
-        first_task_letter = 'B';
+        first_task_letter = 'A';
         category_types = {'diff_mean_same_std', 'same_mean_diff_std'};
         if strcmp(first_task_letter, 'B')
             category_types = fliplr(category_types);

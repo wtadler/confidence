@@ -340,7 +340,12 @@ try
                     hitxt = sprintf('\nYou''re done with %s\n\n\nPlease go get the experimenter from the other room!',task_str);
                     experimenter_needed = true;
                 else
-                    hitxt = sprintf('You''re done with %s\n\n\nYou may begin Task %s\n\n',task_str,other_task_letter);
+                    switch task_str
+                        case 'Task A '
+                            hitxt = '\nYou''re done with Task A.\n\n\nYou may begin Task B.\n\n';
+                        case 'Task B '
+                            hitxt = '\nYou''re done with Task B.\n\n\nYou may begin Task A.\n\n';
+                    end
                 end
             else
                 hitxt='\n\n\n\nYou''re done with the experiment.\n\nThank you for participating!';

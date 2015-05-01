@@ -55,12 +55,18 @@ switch room_letter
         scr.fontsize = 42;
         scr.fontstyle = 1;
         scr.displayHz = 60;
+        
+        f_c_size = 37; % length and width. must be even.
+        fw = 1; % line thickness = 2+2*fw pixels
 
     case 'Carrasco_L1'
         screen_width = 40;
         screen_distance = 56;
         scr.displayHz = 100;
         scr.res = [1280 960]; % should be 1280 x 960 screen res
+        
+        f_c_size = 28; % length and width. must be even.
+        fw = 0; % line thickness = 2+2*fw pixels
 end
 
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
@@ -156,20 +162,11 @@ elseif nExperiments > 1
     switch category_type
         case 'same_mean_diff_std'
             task_letter = 'B';
-            other_task_letter = 'A';
         case 'diff_mean_same_std'
             task_letter = 'A';
-            other_task_letter = 'B';
     end
-    task_str = ['Task ' task_letter ' '];
+    task_str       = ['Task ' task_letter ' '];
 end
-
-<<<<<<< HEAD
-if attention_manipulation
-    Test.n.blocks = 4;
-    Test.n.sections = 3;
-=======
-
 % number of trials, timing
 
 if attention_manipulation    
@@ -184,7 +181,6 @@ if attention_manipulation
 
     Test.n.blocks = 2;
     Test.n.sections = 2;
->>>>>>> 189400d8d26578b0ee3c7027b0d84534da2d262a
     Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
 
     Test.t.betwtrials = 1300;
@@ -231,6 +227,8 @@ Training.t.cue_dur = 150;
 Training.t.cue_target_isi = 150;
 
 Test.t.pres = 50;           % time stimulus is on screen
+Test.t.pause = 100;
+Test.t.feedback = 1200;
 Test.t.cue_dur = 350; %150
 Test.t.cue_target_isi = 350; %150
 
@@ -276,8 +274,8 @@ try
     %LoadIdentityClut(scr.win) % default gamma table
     switch room_letter
         case '1139'
-%             calib=load('calibration/iPadGammaTable'); % gammatable calibrated on Meyer 1139 L Dell monitor, using CalibrateMonitorPhotometer (edits are saved in the calibration folder)
-%             Screen('LoadNormalizedGammaTable', scr.win, calib.gammaTable*[1 1 1]);
+            calib=load('calibration/iPadGammaTable');
+            Screen('LoadNormalizedGammaTable', scr.win, calib.gammaTable*[1 1 1]);
         case 'Carrasco_L1'
             % Check screen resolution and refresh rate - if it's not set correctly to
             % begin with, the color might be off
@@ -331,8 +329,6 @@ try
     scr.rad = P.eye_rad*P.pxPerDeg;
     
     %set up fixation cross
-    f_c_size = 28; % length and width. must be even.
-    fw = 0; % line thickness = 2+2*fw pixels
     f_c = bg*ones(f_c_size);
     f_c(f_c_size/2 - fw: f_c_size/2 + 1 + fw,:) = darkgray;
     f_c(:,f_c_size/2 - fw: f_c_size/2 + 1 + fw) = darkgray;
@@ -472,12 +468,13 @@ try
         hitxt=sprintf('Important: You are now doing Task %s!\n\n',task_letter);
         
         if ~new_subject
-            if strcmp(task_letter, 'A')
-                midtxt = 'In Task A, stimuli from Category 1 tend to\n\nbe left-tilted, and stimuli from Category 2\n\ntend to be right-tilted.\n\nSee Task sheet for more info.';
-            elseif strcmp(task_letter, 'B')
-                midtxt = 'In Task B, a flat stimulus is more likely\n\nto be from Category 1, and a strongly tilted\n\nstimulus is more likely\n\nto befrom Category 2.\n\nSee Task sheet for more info.';
-            else
-                midtxt = '';
+            switch task_letter
+                case 'A'
+                    midtxt = 'In Task A, stimuli from Category 1 tend to\n\nbe left-tilted, and stimuli from Category 2\n\ntend to be right-tilted.\n\nSee Task sheet for more info.';
+                case 'B'
+                    midtxt = 'In Task B, a flat stimulus is more likely\n\nto be from Category 1, and a strongly tilted\n\nstimulus is more likely\n\nto be from Category 2.\n\nSee Task sheet for more info.';
+                otherwise
+                    midtxt = '';
             end
         else
             midtxt = '';
