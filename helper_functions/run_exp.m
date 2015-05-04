@@ -159,9 +159,9 @@ try
                 cval = R.trial_order{blok}(section, trial); %class
             end
             
-            
-            clc; %%% comment out for debugging
+            %clc;
             fprintf('blok %g, section %g, trial %g\n\n',blok,section,trial)
+            
             %subject input
             t0 = GetSecs;
             resp = 0;

@@ -1,5 +1,9 @@
-function  grate(P, scr, t, stim)
-%%% Create and and display grating (moving gabor) %%%
+function  grate(P, scr, t, stim, demo)
+%%% Create and and display drifting grating %%%
+
+if ~exist('demo', 'var')
+    demo = false;
+end
 
 nStim = length(stim);
 
@@ -31,7 +35,14 @@ while (lastTime - startTime)*1000 < t.pres;
             Screen('DrawTexture', scr.win, scr.cross); % display fixation cross when there are multiple stimuli.
         end
     end
+    
     lastTime = Screen('Flip',scr.win, startTime + frame*P.grateDt);
+    
+    % if demo, display static screen and wait for key to move on
+    if demo
+        flip_key_flip(scr, 'continue', scr.cy, color, true);
+        break
+    end
 end
 
 for i = 1:nStim

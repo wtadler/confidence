@@ -514,6 +514,25 @@ try
                 [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
 
+                if attention_manipulation && new_subject
+                    % attention and probe demo
+                    
+                    demostim(1).ort = -45;
+                    demostim(2).ort = -4;
+                    demostim(1).phase = 360*rand;
+                    demostim(2).phase = 360*rand;
+                    demostim(1).cur_sigma = Test.category_params.test_sigmas;
+                    demostim(2).cur_sigma = Test.category_params.test_sigmas;
+                    
+                    % display static 2-stimulus screen
+                    grate(P, scr, t, demostim, true)
+                    
+                    % display probe
+                    Screen('DrawTexture', scr.win, scr.resp_cueL);
+                    Screen('Flip', scr.win);
+                    flip_key_flip(scr, 'continue', scr.cy, color, true);
+                    
+                
                 if ~noconftraining
                     if attention_manipulation
                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name, ConfidenceTraining.R2);
