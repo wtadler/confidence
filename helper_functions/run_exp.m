@@ -263,6 +263,9 @@ try
             if strcmp('Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
                 midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %sCategory Training.', scorereport, fractionizer(section, n.sections), task_str);
                 str = 'continue';
+            elseif strcmp('Confidence Training', type) && attention_manipulation
+                midtxt = sprintf('You have completed\n\n%s of %sConfidence and Attention Training.', fractionizer(section, n.sections), task_str, type);
+                str = 'continue';
             else
                 midtxt = sprintf('You have completed\n\n%s of %s%s Block %i of %i.', fractionizer(section, n.sections), task_str, type, blok, n.blocks);
                 str = 'continue';
@@ -295,7 +298,11 @@ try
                 hitxt = sprintf('%s\n\nYou just got %s\n',motivational_str,scorereport);
             end
         case 'Confidence Training'
-            hitxt = 'Great job! You have just finished Confidence Training.\n';
+            if attention_manipulation
+                hitxt = 'Great job! You have just finished Confidence and Attention Training.\n';
+            elseif ~attention_manipulation
+                hitxt = 'Great job! You have just finished Confidence Training.\n';
+            end
         case 'Attention Training'
             hitxt = sprintf('%s\n\nYou have just finished Attention Training with\n\n%s\n',motivational_str,scorereport);
         case 'Attention Training Conf'
