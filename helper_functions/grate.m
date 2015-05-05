@@ -36,12 +36,10 @@ while (lastTime - startTime)*1000 < t.pres;
         end
     end
     
-    lastTime = Screen('Flip',scr.win, startTime + frame*P.grateDt);
-    
-    % if demo, display static screen and wait for key to move on
-    if demo
-        flip_key_flip(scr, 'continue', scr.cy, color, true);
-        break
+    if ~demo
+        lastTime = Screen('Flip',scr.win, startTime + frame*P.grateDt);
+    else
+        return
     end
 end
 

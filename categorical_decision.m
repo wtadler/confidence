@@ -524,14 +524,18 @@ try
                     demostim(1).cur_sigma = Test.category_params.test_sigmas;
                     demostim(2).cur_sigma = Test.category_params.test_sigmas;
                     
+                    
                     % display static 2-stimulus screen
-                    grate(P, scr, t, demostim, true)
+                    flip_key_flip(scr, 'continue', scr.cy, color, true);
+                    grate(P, scr, Test.t, demostim, true)
+                    flip_key_flip(scr, 'continue', scr.cy, color, true);
                     
                     % display probe
                     Screen('DrawTexture', scr.win, scr.resp_cueL);
-                    Screen('Flip', scr.win);
                     flip_key_flip(scr, 'continue', scr.cy, color, true);
-                    
+                    flip_key_flip(scr, 'continue', scr.cy, color, true);
+
+                end
                 
                 if ~noconftraining
                     if attention_manipulation

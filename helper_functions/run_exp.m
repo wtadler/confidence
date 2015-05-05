@@ -19,8 +19,13 @@ end
         case 'Training'
             str='Coming up: Category Training';
         case 'Confidence Training'
-            str=['Let''s get some quick practice with confidence ratings.\n\n'...
-                'Coming up: ' task_str 'Confidence Training'];
+            if ~attention_manipulation
+                str=['Let''s get some quick practice with confidence ratings.\n\n'...
+                    'Coming up: ' task_str 'Confidence Training'];
+            elseif attention_manipulation
+                str=['Let''s get some practice with the task.\n\n'...
+                    'Coming up: ' task_str 'Confidence and Attention Training'];
+            end
         case 'Attention Training'
             str='Let''s get some practice with the attention task.\n\nReport left tilt (CCW) or right tilt (CW).';
 %             Screen('TextSize', scr.win, round(scr.fontsize*.7));
@@ -224,7 +229,7 @@ try
                 
                 switch type
                     case 'Training'
-                        [~,ny]=center_print(sprintf('You said: Category %i',resp),scr.cy-50);
+                        [~,ny]=center_print(sprintf('You said: Category %i',resp),scr.cy); % scr.cy-50
                         [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
                     case 'Confidence Training'
                         [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',resp,confstr),scr.cy-50);

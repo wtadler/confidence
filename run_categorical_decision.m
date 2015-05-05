@@ -6,7 +6,7 @@ function run_categorical_decision(initial)
 
 if nargin==0
     % initial = 'rd_p1_run02_notrain'; % 'rdshortnotrain'
-    initial = 'shortfast';
+    initial = 'short';
 end
 
 exp_type = 'attention'; %'attention' or 'AB'
@@ -37,8 +37,6 @@ switch exp_type
         end
 
 end
-
-
 
 return
 
