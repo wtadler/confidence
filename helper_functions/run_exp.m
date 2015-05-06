@@ -295,7 +295,11 @@ try
                 hitxt = sprintf('%s\n\nYou just got %s\n',motivational_str,scorereport);
             end
         case 'Confidence Training'
-            hitxt = 'Great job! You have just finished Confidence Training.\n';
+            if attention_manipulation
+                hitxt = 'Great job! You have just finished Confidence and Attention Training.\n';
+            else
+                hitxt = 'Great job! You have just finished Confidence Training.\n';
+            end
         case 'Attention Training'
             hitxt = sprintf('%s\n\nYou have just finished Attention Training with\n\n%s\n',motivational_str,scorereport);
         case 'Attention Training Conf'
