@@ -155,7 +155,6 @@ for subject = 1 : length(names)
                         raw.(fields{f})(end-nTrials+1:end) = cur_trials(trial_order);
                     end
                 end
-                raw.g
             end
         end
     end

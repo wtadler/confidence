@@ -360,14 +360,13 @@ set(checks,'facecolor',[0 .6 0],'edgecolor','w','linewidth',1)
 
 
 %% model comparison bar plot
+cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations/v3')
+load('v3_combined_and_cleaned_POSTER_DATA.mat')
 
-cd('/Users/will/Google Drive/Will - Confidence/Presentations/cosyne')
-load('combined_and_cleaned_POSTER_TIME.mat')
 
-best
 dic_delta = dic_sorted-repmat(min(dic_sorted,[],2),1,5);
 %%
-bar(-dic_delta','barwidth',.75)
+% bar(-dic_delta','barwidth',.75)
 nModels = 5;
 nSubjects = 5;
 inter_group_gutter=.2;
@@ -393,6 +392,44 @@ set(gca,'ticklength',[0 0],'box','off','xtick',1:nModels,'xticklabel',{'Bayes_{S
     'xaxislocation','top','fontweight','bold','fontname','Helvetica Neue','ytick',-2000:500:0,'ylim',[-2000 0])
 set(gcf,'position',[1693 345 645 392])
 
+
+
+
+%% find DIC contributions from the task A and B trials (for VSS 2015)
+% cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations/v3')
+% load('v3_combined_and_cleaned_POSTER_DATA.mat')
+
+streal.A = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskA')
+streal.B = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskB')
+
+for m = 5%1:nModels
+    sm = prepare_submodels(model(m));
+    nSubjects = length(model(m).extracted);
+    for subject = 1:nSubjects
+%         h = waitbar(0, sprintf('model %i, subject %i/%i', m, subject, nSubjects));
+        
+        all_p = vertcat(model(m).extracted(subject).p{:});
+        p_A = all_p(:, sm.A_param_idx);
+        p_B = all_p(:, sm.B_param_idx);
+        
+        nSamples = size(all_p, 1);
+        LL_taskA = zeros(nSamples, 1);
+        LL_taskB = zeros(nSamples, 1);
+        
+        progress_report_interval = 10;
+        parfor sample = 1:nSamples
+            if rand < 1/progress_report_interval
+            	fprintf('model %i, subject %i/%i, sample %i/%i\n', m, subject, nSubjects, sample, nSamples)
+            end
+            LL_taskA(sample) = -nloglik_fcn(p_A(sample, :), streal.A.data(subject).raw, sm.model_A, nDNoiseSets, category_params);
+            LL_taskB(sample) = -nloglik_fcn(p_B(sample, :), streal.B.data(subject).raw, sm.model_B, nDNoiseSets, category_params);
+        end
+%         close(h)
+
+        model(m).extracted(subject).LL_taskA = LL_taskA;
+        model(m).extracted(subject).LL_taskB = LL_taskB;
+    end
+end
 
 
 %% big monster plot loop
