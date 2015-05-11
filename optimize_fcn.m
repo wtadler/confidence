@@ -256,7 +256,6 @@ for gen_model_id = active_gen_models
         % OPTIMIZE
         for dataset = datasets;
             my_print(sprintf('\n\n########### DATASET %i ######################\n\n', dataset));
-            data = gen(gen_model_id).data(dataset);
             
             if min(size(fixed_params_opt_values))>1 % if it's a matrix, assign the different datasets the different values. this is hacky
                 o.beq(fixed_params_opt) = fixed_params_opt_values(:,dataset);
@@ -269,20 +268,26 @@ for gen_model_id = active_gen_models
                 x0 = random_param_generator(nOptimizations, o, 'generating_flag', x0_reasonable, 'fixed_params', fixed_params_opt); % try turning on generating_flag.
 
                 if crossvalidate
-                    d = data.train(trainset);
-                    d_test = data.test(trainset);
+                    d      = gen(gen_model_id).data(dataset).train(trainset);
+                    d_test = gen(gen_model_id).data(dataset).test(trainset);
                 else
-                    d = data.raw;
+                    if o.joint_task_fit
+                        data_taskA = gen (gen_model_id).data(dataset).raw;
+                        data_taskB = genB(gen_model_id).data(dataset).raw;
+                    elseif ~o.joint_task_fit
+                        if ~o.diff_mean_same_std % task B
+                            data =       genB(gen_model_id).data(dataset).raw;
+                        elseif o.diff_mean_same_std % task A
+                            data =       gen (gen_model_id).data(dataset).raw;
+                        end
+                    end
                 end
                 
                 % use anon objective function to fix data parameter.
                 if ~o.joint_task_fit
-                    loglik_wrapper = @(p) -nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
+                    loglik_wrapper = @(p) -nloglik_fcn(p, data, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
                 elseif o.joint_task_fit
-                    dA = d;
-                    dB = genB(gen_model_id).data(dataset).raw;
-
-                    loglik_wrapper = @(p) two_task_ll_wrapper(p, dA, dB, sm, nDNoiseSets, category_params);
+                    loglik_wrapper = @(p) two_task_ll_wrapper(p, data_taskA, data_taskB, sm, nDNoiseSets, category_params);
                 end
                 
                 logprior_wrapper = @log_prior;
