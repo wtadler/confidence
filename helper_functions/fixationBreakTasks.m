@@ -10,9 +10,9 @@ if fixation==0
     if ~isempty(fillColor)
         Screen('FillRect', window, fillColor);
     end
-    DrawFormattedText(window, 'please fixate', 'center', 'center')
+    DrawFormattedText(window, 'Please fixate!', 'center', 'center', [255 255 255])
     Screen('Flip', window);
-    WaitSecs(1);
+    WaitSecs(1.3);
     
     % redo this trial at the end of the experiment
     % this can be easily done by appending the trial number to the end of

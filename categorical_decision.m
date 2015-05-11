@@ -181,8 +181,8 @@ if attention_manipulation
     Training.t.betwtrials = 800;
 
     Test.n.blocks = 3;
-    Test.n.sections = 2;
-    Test.n.trials = 40; % 9*numel(Test.sigma.int)*2 = 108
+    Test.n.sections = 4;
+    Test.n.trials = 36; % 9*numel(Test.sigma.int)*2 = 108
 
     Test.t.betwtrials = 800;
     
@@ -219,7 +219,7 @@ Training.initial.n.trials = 36;% WTA: 36
 
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 2; %changed from '2' on 10/14
-Training.n.trials = 48; % WTA: 48
+Training.n.trials = 36; % WTA: 48
 
 Training.t.pres = 300; %300 % time stimulus is on screen
 Training.t.pause = 100; %100 time between response and feedback
