@@ -23,7 +23,7 @@ end
                 str=['Let''s get some quick practice with confidence ratings.\n\n'...
                     'Coming up: ' task_str 'Confidence Training'];
             elseif attention_manipulation
-                str=['Let''s get some practice with the task.\n\n'...
+                str=['Let''s get some practice with confidence ratings and attentional cues.\n\n'...
                     'Coming up: ' task_str 'Confidence and Attention Training'];
             end
         case 'Attention Training'
@@ -264,7 +264,7 @@ try
                 midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %sCategory Training.', scorereport, fractionizer(section, n.sections), task_str);
                 str = 'continue';
             elseif strcmp('Confidence Training', type) && attention_manipulation
-                midtxt = sprintf('You have completed\n\n%s of %sConfidence and Attention Training.', fractionizer(section, n.sections), task_str, type);
+                midtxt = sprintf('You have completed\n\n%s of %sConfidence and Attention Training.', fractionizer(section, n.sections), task_str);
                 str = 'continue';
             else
                 midtxt = sprintf('You have completed\n\n%s of %s%s Block %i of %i.', fractionizer(section, n.sections), task_str, type, blok, n.blocks);

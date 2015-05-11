@@ -16,7 +16,7 @@ switch exp_type
     case 'attention'
         room_letter = 'Carrasco_L1'; % 'mbp','Carrasco_L1','1139'
         category_type = 'same_mean_diff_std'; % 'same_mean_diff_std','sym_uniform'
-        eye_tracking = true;
+        eye_tracking = false;
 
         attention_manipulation = true;
         

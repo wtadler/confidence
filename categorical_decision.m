@@ -503,7 +503,6 @@ try
         % Training
         if ~notrain
             if k == 1
-                % UNCOMMENT THIS BLOCK!!!!
                 [nx,ny]=DrawFormattedText(scr.win, 'Let''s get some practice with the\n\ncategories we''ll be using in this task.', 'center', 'center', color.wt);
                 flip_key_flip(scr,'continue',ny,color,new_subject);
                 if ~nodemo
