@@ -10,6 +10,7 @@ if fixation==0
     if ~isempty(fillColor)
         Screen('FillRect', window, fillColor);
     end
+    DrawFormattedText(window, 'please fixate', 'center', 'center')
     Screen('Flip', window);
     WaitSecs(1);
     
