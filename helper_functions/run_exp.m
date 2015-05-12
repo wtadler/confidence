@@ -229,10 +229,10 @@ try
                 
                 switch type
                     case 'Training'
-                        [~,ny]=center_print(sprintf('You said: Category %i',resp),scr.cy); % scr.cy-50
+                        [~,ny]=center_print(sprintf('You said: Category %i',resp),scr.cy-60); % scr.cy-50
                         [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
                     case 'Confidence Training'
-                        [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',resp,confstr),scr.cy-50);
+                        [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',resp,confstr),scr.cy - 20); % -50
                     case {'Attention Training Conf', 'Attention Training'}
                         if resp == 1; str = 'LEFT'; else str = 'RIGHT'; end
                         if strcmp(type,'Attention Training Conf')
