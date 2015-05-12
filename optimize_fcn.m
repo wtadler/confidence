@@ -2,16 +2,17 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'neural1';
+opt_models(1).family = 'fixed';
 opt_models(1).multi_lapse = 1;
 opt_models(1).partial_lapse = 1;
 opt_models(1).repeat_lapse = 1;
 opt_models(1).choice_only = 0;
-opt_models(1).ori_dep_noise = 0;
-opt_models(1).joint_task_fit = 1;
+opt_models(1).ori_dep_noise = 1;
+opt_models(1).diff_mean_same_std = 1;
+opt_models(1).joint_task_fit = 0;
 
 opt_models(2) = opt_models(1);
-opt_models(2).ori_dep_noise = 1;
+opt_models(2).diff_mean_same_std = 0;
 
 opt_models = parameter_constraints(opt_models);
 
@@ -517,7 +518,7 @@ for gen_model_id = active_gen_models
                 [ex.aic, ex.bic, ex.aicc] = aicbic(-ex.min_nll, nParams, gen_nSamples);
                 
                 if strcmp(data_type, 'real')
-                    gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = data.name;
+                    gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = gen(gen_model_id).data(dataset).name;
                 end
                 if slimdown
                     fields = {'p','nll','logprior','hessian','min_nll','min_idx','best_params','n_good_params','aic','bic','aicc','dic','best_hessian','laplace'};

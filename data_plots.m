@@ -230,19 +230,20 @@ load cosyne_poster_hyperplots
 set(0,'defaultaxesfontsize',12,'defaultaxesfontname','Helvetica Neue')
 hhh = hot;
 %contrast_colors = hhh([6 30 40],:)%hhh(round(linspace(5,40,3)),:); % black to orange indicate high to low contrast
-contrast_colors = [[[20 45 5]];...
-    [[120 180 90]-12];...
-    [[217 232 217]-60]]/256;
+contrast_colors = [10 94 0;...
+    181 172 69;...
+    189 189 189]...
+    /256;
 yl = [0 1;1 8;1 4;0 1];
 outputs = {'tf','resp','g','Chat'};
 x = [1:nBins fliplr(1:nBins)];
-alpha = .5;
+alpha = .7;
 models = [5 4 3 1 2];
 model_names = {'Linear','Fixed','Bayes_{Free}','Bayes_{Sym}','Bayes_{Sym,Joint}'};
 
 figure(5)
 clf
-active_contrasts = [6];
+active_contrasts = [2 4 6];
 
 for o = 2
     for m = 1:5
@@ -265,7 +266,9 @@ for o = 2
                     
                                 
             end
-            set(gca,'xtick', ori_label_bin_value,'xticklabel',ori_labels,'ylim',yl(o,:),'xlim',[0 nBins+1],'box','off','tickdir','out','ticklength',[.025 .2],'yticklabel','')
+            
+            plot([0 nBins+1], [4.5 4.5],'k', 'linewidth', 1)
+            set(gca,'xtick', ori_label_bin_value,'xticklabel',ori_labels,'ylim',yl(o,:),'xlim',[0 nBins+1],'box','off','tickdir','out','ticklength',[.025 .2],'yticklabel','', 'ydir', 'reverse')
 % 
 %             % model fits as fill
             if t==1
