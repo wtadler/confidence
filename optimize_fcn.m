@@ -329,6 +329,7 @@ for gen_model_id = active_gen_models
                             %remaining_p = isnan(ex_p);
                             [s_tmp,ll_tmp,lp_tmp] = deal(cell(1,nOptimizations));
                             fclose(log_fid);
+
                             % HERE FOLLOWS SOME TERRIBLE, REDUNDANT CODE.
                             if maxWorkers == 0
                                 for optimization = 1:nOptimizations
@@ -618,13 +619,17 @@ fh = [];
 fclose(log_fid);
 delete([savedir filename '~'])
 save([savedir filename])
+
 %%
     function lp = log_prior(x)
+        x = reshape(x, length(x), 1); % make sure x is column vector
+        
         lapse_sum = lapse_rate_sum(x, o);
         if any(x<o.lb) || any(x>o.ub) || lapse_sum > 1
             lp = -Inf;
         else
-            uniform_range = o.ub(~o.lapse_params)-o.lb(~o.lapse_params);
+            non_lapse_params = setdiff(1:length(x), o.lapse_params);
+            uniform_range = o.ub(non_lapse_params) - o.lb(non_lapse_params);
             a=1; % beta dist params
             b=20;
             lp=sum(log(1./uniform_range))+sum(log(betapdf(x(o.lapse_params),a,b)));
