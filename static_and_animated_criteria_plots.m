@@ -29,11 +29,12 @@ for iii=1:length(list.models)
     clf
     
     makevideo = 1;
-    loopSecs = 7.5;
-    fps = 3;
-    nSteps=round(loopSecs * fps);
-    sss=1:nSteps;
-    scalefactor = 2.73; % 2: XGA. 2.5: SXGA. 2.73: SXGA+, 1400x1050.
+    loopSecs = 3;
+    fps = 90;
+    nSteps=round(loopSecs * fps); % this controls the number of frames as well as the x resolution. if you want high res, crank this up, and also....
+    rendereveryNframes = 6; % ...turn this up to start skipping frames, if you don't want so many.
+    sss=1:rendereveryNframes:nSteps;
+    scalefactor = 1; % 2: XGA. 2.5: SXGA. 2.73: SXGA+, 1400x1050.
     shiftfactor = .6;
     model_label = 0;
     blue=[.7 .7 1];
@@ -91,7 +92,7 @@ for iii=1:length(list.models)
     mintruesig=min(true_sigs);
     maxtruesig=max(true_sigs);
     
-    contrasts = fliplr(8.^(linspace(-2,-.5,nSteps)));
+    contrasts = fliplr(8.^(linspace(-2,-.6,nSteps)));
     mincontrast=min(contrasts);
     maxcontrast=max(contrasts);
     sigs = sqrt(p.sigma_0+p.alpha*contrasts.^-p.beta);
@@ -99,20 +100,20 @@ for iii=1:length(list.models)
     maxsig = max(sigs);
     
     
-    gcf_w = 512; % keep at 512
-    gcf_rh = .375*gcf_w; % height in pixels for a one row figure
+    gcf_w = 275; % 512
+    gcf_rh = .5*gcf_w; % .375*gcf_w. height in pixels for a one row figure
     
-    alpha=.6;
+    alpha=.8;
     subject = 2;
     go = true;
-    xt=-15:5:15;
+    xt=[-20 -10 0 10 20];
     set(gcf,'DefaultAxesXtick',xt,'DefaultAxesXticklabel',[],'DefaultAxesYtick',[],'DefaultAxesYticklabel',[],'Color', [1 1 1],'DefaultAxesLineWidth',1,'position',[264 901 gcf_w gcf_rh],'DefaultAxesColorOrder', colors,'visible','on');
     if ~makevideo
         set(gcf,'renderer','painters')
     else
         set(gcf,'renderer','opengl','visible','off')
     end
-    fs = 12; %fontsize
+    fs = 18; %fontsize
     set(0,'defaultaxesfontsize',fs-1)
     
     set(gcf,'position',[264 901 gcf_w 2*gcf_rh])
@@ -127,8 +128,9 @@ for iii=1:length(list.models)
         p.b_i = [-100 -1.8 -1.15 -.5 0 .34 .5 .8 100]; % when showing the diff between opt and asym, change the choice bound to something that's not 0.
         d_bounds = flipud(p.b_i(2:end-1)');
     elseif any(regexp(m(model_id).name, 'opt'))
-        p.b_i = [0 0.45 0.75 0.95 100];
-        d_bounds = [flipud(p.b_i(2:end-1)'); 0; -p.b_i(2:end-1)'];
+%         p.b_i = [0 0.45 0.75 0.95 100];
+%         d_bounds = [flipud(p.b_i(2:end-1)'); 0; -p.b_i(2:end-1)'];
+            d_bounds = [1 .55 .45 0 -.45 -.9 -3]';
     elseif any(regexp(m(model_id).name, 'lin')) | any(regexp(m(model_id).name, 'quad'))
         %         p.m_i(5:8) = p.m_i(5:8) + .05;
         %         p.b_i(5:8) = p.b_i(5:8) + 2.2;
@@ -212,11 +214,11 @@ for iii=1:length(list.models)
             l2 = plot([0 1],[true_contrasts(i) true_contrasts(i)],'color',[.6 .6 .6],'linewidth',1);
         end
         
-        set(gca,'yscale','log','ylim',[mincontrast maxcontrast], 'xtick',[],'gridlinestyle','-','zgrid','off','xgrid','off','ztick',[],'ytick',true_contrasts,'yaxislocation','right','yticklabel',{'1.8%','3.0%','5.0%','8.2%','13.5%', '22.3%'},'ticklength',[0 0],'visible','on','box','on')
+        set(gca,'yscale','log','ylim',[mincontrast maxcontrast], 'xtick',[],'gridlinestyle','-','zgrid','off','xgrid','off','ztick',[],'ytick',[],'yaxislocation','right','ticklength',[0 0],'visible','on','box','on')
         
         yy=ylabel('contrast');
         yypos = get(yy,'position');
-        set(yy,'fontsize',fs,'rot',-90,'interpreter','latex');
+        set(yy,'fontsize',fs,'rot',-90,'position',yypos+[2 0 0]);
         
         subplot(nModels,subplotcols,[subplotcols*cur_row-(subplotcols-1) : subplotcols*cur_row-1])
         cla
@@ -270,12 +272,14 @@ for iii=1:length(list.models)
         end
         if model_id == list.models(end)
             apos=get(gca,'position');
-            set(gca,'xticklabel',xt,'ztick',[],'layer','top','position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)],'box','off')
-            xx=xlabel('measurement $x$ $(^\circ)$','interpreter','latex','fontsize',fs);
-            %yy=ylabel({'{\color[rgb]{.7 .7 1}$p(x|C=1)$}\hspace{2.5mm}';'{\color[rgb]{1 .7 .7}$p(x|C=2)$}\hspace{2.5mm}'}, 'interpreter','latex','fontsize',fs,'rot',0,'horizontalalignment','right');
-            yy = ylabel('$p(x|C=1)$\hspace{2.5mm}','interpreter','latex','color',darkblue, 'interpreter','latex','fontsize',fs,'rot',0,'horizontalalignment','right');
+            set(gca,'xticklabels',{},'tickdir','out','ticklength',[.02 .02],'ytick',[],'xtick',xt,'yticklabels',{},'ztick',[],'layer','top','position',[apos(1)+shiftfactor*apos(1) apos(2)-.05 apos(3)-shiftfactor*apos(1) apos(4)+.05],'box','off')
+%             xx=xlabel('measurement $x$ $(^\circ)$','interpreter','latex','fontsize',fs);
+%             yy=ylabel({'{\color[rgb]{.7 .7 1}$p(x|C=1)$}\hspace{2.5mm}';'{\color[rgb]{1 .7 .7}$p(x|C=2)$}\hspace{2.5mm}'}, 'interpreter','latex','fontsize',fs,'rot',0,'horizontalalignment','right');
+            yy = ylabel('$p(x|C=1)$\hspace{2.5mm}','interpreter','latex','color',darkblue, 'interpreter','latex','fontsize',fs,'rot',90,'horizontalalignment','right');
             yypos = get(yy,'position');
-            text(yypos(1)+.1,yypos(2)-.012,'$p(x|C=2)$\hspace{2.5mm}','interpreter','latex','color',darkred,'fontsize',fs,'horizontalalignment','right');
+            set(yy,'pos',yypos+[-5 .085 0])
+            yypos = get(yy,'position');
+            text(yypos(1)+3,yypos(2),'$p(x|C=2)$\hspace{2.5mm}','interpreter','latex','color',darkred,'fontsize',fs,'horizontalalignment','right','rot',90);
         end
         
         if extraplot
@@ -370,7 +374,7 @@ for iii=1:length(list.models)
                 scrubber=plot(xl,[sigs(step) sigs(step)], 'k-','linewidth',2);
                 uistack(scrubber,'top')
                 apos=get(gca,'position');
-                set(gca,'position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)],'visible','on','ydir','normal','ygrid','on','ycolor',[0 0 0],'xgrid','off','zgrid','off','xticklabel',xt,'xtick',xt,'ztick',[],'gridlinestyle','-','ytick',0:2:20,'yticklabel',0:2:20,'xlim',xl,'ylim',[minsig maxsig],'box','off','layer','top')
+                set(gca,'position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)+.05],'visible','on','ydir','normal','ygrid','on','ycolor',[0 0 0],'xgrid','off','zgrid','off','xticklabel',{},'tickdir','out','ticklength',[.02 .02],'xtick',xt,'ztick',[],'gridlinestyle','-','ytick',[],'yticklabel',{},'xlim',xl,'ylim',[minsig maxsig],'box','off','layer','top')
                 
                 %if iii>11
                 %    set(gca,'ydir','normal')
@@ -385,14 +389,15 @@ for iii=1:length(list.models)
                 end
                 uistack(scrubber,'up',100)
                 
-                xx=xlabel('measurement $x$ $(^\circ)$');
-                yy=ylabel('noise level $\sigma$ $(^\circ)$\hspace{0mm}');
+                xx=xlabel('measurement');
+                yy=ylabel('uncertainty');
                 if step == 1 | step ==2
                     xxpos2 = get(xx,'position');
                 end
-                set(xx,'fontsize',fs,'position',xxpos2,'interpreter','latex')
+                set(xx,'fontsize',fs,'position',xxpos2-[2.5 0 0])
+                text(xxpos2(1)+11.5,xxpos2(2)-1.3,'$x$','interpreter','latex','fontsize',fs)
                 
-                set(yy,'fontsize',fs,'rot',0,'interpreter','latex','horizontalalignment','right','verticalalignment','middle')
+%                 set(yy,'fontsize',fs,'rot',90,'horizontalalignment','right','verticalalignment','middle')
                 
             elseif strcmp(extraplot,'empty')
                 set(gca,'visible','off')
