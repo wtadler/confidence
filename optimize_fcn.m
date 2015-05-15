@@ -393,9 +393,9 @@ for gen_model_id = active_gen_models
                             return
                         else
                             aborted=false;
-                            if exist([savedir 'aborted/aborted_' filename])
-                                delete([savedir 'aborted/aborted_' filename])
-                            end
+%                             if exist([savedir 'aborted/aborted_' filename])
+%                                 delete([savedir 'aborted/aborted_' filename])
+%                             end
                         end
                         
                         if end_early
@@ -497,9 +497,9 @@ for gen_model_id = active_gen_models
                     ex.best_params = all_p(ex.min_idx,:)';
                     ex.mean_params = mean(all_p);
                     dbar = 2*mean(all_nll);
-                    nloglik_wrapper = @(p) nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
+                    %nloglik_wrapper = @(p) nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
                     
-                    dtbar= 2*nloglik_wrapper(ex.mean_params); % f is nll
+                    dtbar= -2*loglik_wrapper(ex.mean_params);
                     ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
                     
                     ex.best_hessian = [];

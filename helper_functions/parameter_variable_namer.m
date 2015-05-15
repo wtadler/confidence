@@ -9,10 +9,15 @@ for l = find(logparams)'
     parameter_names{l} = parameter_names{l}(4:end);
 end
 
+if ~isfield(model, 'term_params')
+    model.term_params = model.termparams; % I changed the name here and it's been messing things up for old data.
+end
+
 for t = model.term_params'
     p_in(t)=p_in(t-1)+p_in(t);
     parameter_names{t} = parameter_names{t}(1:end-4);
 end
+
 % name all the single variables
 for i = 1 : length(parameter_names)
 %     warning('saving pvntest')
