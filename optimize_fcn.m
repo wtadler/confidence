@@ -10,9 +10,7 @@ opt_models(1).choice_only = 0;
 opt_models(1).ori_dep_noise = 1;
 opt_models(1).diff_mean_same_std = 1;
 opt_models(1).joint_task_fit = 0;
-
-opt_models(2) = opt_models(1);
-opt_models(2).diff_mean_same_std = 0;
+opt_models(1).attention1 = 1;
 
 opt_models = parameter_constraints(opt_models);
 

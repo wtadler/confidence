@@ -28,7 +28,7 @@ for iii=1:length(list.models)
     f=figure;
     clf
     
-    makevideo = 1;
+    makevideo = 0;
     loopSecs = 7.5;
     fps = 3;
     nSteps=round(loopSecs * fps);
@@ -99,8 +99,8 @@ for iii=1:length(list.models)
     maxsig = max(sigs);
     
     
-    gcf_w = 512; % keep at 512
-    gcf_rh = .375*gcf_w; % height in pixels for a one row figure
+    gcf_w = 275; % 512
+    gcf_rh = .5*gcf_w; % .375*gcf_w. height in pixels for a one row figure
     
     alpha=.6;
     subject = 2;
