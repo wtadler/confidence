@@ -26,18 +26,7 @@ p = parameter_variable_namer(p_in, model.parameter_names, model);
 if model.free_cats
     category_params.sigma_1 = p.category_params.sigma_1;
     category_params.sigma_2 = p.category_params.sigma_2;
-%else
-%    category_params.sigma_1 = 3; % defaults for qamar distributions
-%    category_params.sigma_2 = 12;
 end
-
-% category_params.sigma_1 = category_params.sigma_1;
-% category_params.sigma_2 = category_params.sigma_2;
-% category_params.overlap = a;
-% category_params.uniform_range = uniform_range;
-% category_params.sigma_s = sigma_s;
-% category_params.mu_1 = mu_1;
-% category_params.mu_2 = mu_2;
 
 
 if isempty(model_fitting_data)
@@ -52,7 +41,7 @@ if isempty(model_fitting_data)
         raw.probe = randsample([-1 0 1], n_samples, 'true');
         raw.cue = raw.probe;
         
-        flip_idx = rand(1, n_trials) > cue_validity;
+        flip_idx = rand(1, n_samples) > cue_validity;
         raw.cue(flip_idx) = -raw.cue(flip_idx);
         
         neutral_cue_idx = raw.cue == 0;
@@ -83,6 +72,7 @@ end
 
 if ~model.attention1
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
+    
     c_low = min(raw.contrast_values);
     c_hi = max(raw.contrast_values);
     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
@@ -90,15 +80,18 @@ if ~model.attention1
     raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
 elseif model.attention1
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity, 'sig_levels', 3); % contrast = cue_validity in this case.
+    raw.cue_validity_id = 2 - raw.cue_validity; % maps [-1 0 1] onto [3 2 1];
+
     raw.sig(raw.cue_validity  == -1) = p.sigma_c_low; % invalid cue -> high sigma (c_low means low "contrast")
     raw.sig(raw.cue_validity  ==  0) = p.sigma_c_mid;
-    raw.sig(raw.cue_validitiy ==  1) = p.sigma_c_hi;
+    raw.sig(raw.cue_validity ==  1) = p.sigma_c_hi;
 end
 raw.sig = reshape(raw.sig,1,length(raw.sig)); % make sure it's a row.
 
 if model.ori_dep_noise
     pre_sig = raw.sig;
-    raw.sig = pre_sig + abs(sin(raw.s*pi/90))*p.sig_amplitude;
+    ODN = @(s) abs(sin(s * pi / 90)) * p.sig_amplitude;
+    raw.sig = pre_sig + ODN(raw.s);
 end
 
 if strcmp(model.family, 'neural1')
@@ -117,6 +110,21 @@ else
     raw.x = raw.s + randn(size(raw.sig)) .* raw.sig; % add noise to s. this line is the same in both tasks
 end
 
+if model.ori_dep_noise && strcmp(model.family, 'opt')
+    ds = 1;
+    sVec = -90:ds:90;
+    s_mat = repmat(sVec',1, n_samples);
+    x_mat = repmat(raw.x,length(sVec),1);
+    sig_mat=repmat(pre_sig, length(sVec), 1); % nTrials vector of sigma levels repeated some number of rows defined by ds
+    
+    sig_plusODN_mat = sig_mat + ODN(s_mat);
+    
+    % p(x|C). see conf data likelihood my task.pages>orientation dependent noise
+    likelihood = @(sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./sig_plusODN_mat .*exp(-(x_mat-s_mat).^2 ./ (2*sig_plusODN_mat.^2) - (s_mat - mu_cat).^2 ./ (2*sigma_cat^2)));
+end
+    
+
+
 % calculate d(x)
 if strcmp(model.family,'opt')
     switch category_params.category_type
@@ -129,15 +137,7 @@ if strcmp(model.family,'opt')
                     raw.d(raw.sig==cursig) = trun_da(raw.x(raw.sig==cursig), s);
                 end
             elseif model.ori_dep_noise
-                ds = 1;
-                sVec = -90:ds:90;
-                s_mat = repmat(sVec',1,length(raw.x));
-                x_mat = repmat(raw.x,length(sVec),1);
-                sig_mat=repmat(pre_sig, length(sVec), 1);
-                raw.d = log((1/category_params.sigma_1 * sum((1./(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude)).*exp(-((x_mat-s_mat).^2)./(2*(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude).^2) - s_mat.^2 ./ (2*category_params.sigma_1^2)))) ./ ...
-                    (1/category_params.sigma_2 * sum((1./(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude)).*exp(-((x_mat-s_mat).^2)./(2*(sig_mat+abs(sin(s_mat*pi/90))*p.sig_amplitude).^2) - s_mat.^2 ./ (2*category_params.sigma_2^2)))));
-                %                 raw.d = log((1/category_params.sigma_1 * sum((1./sig_mat).*exp(-((x_mat-s_mat).^2)./(2*sig_mat.^2) - s_mat.^2 ./ (2*category_params.sigma_1^2)))) ./ ...
-                %                             (1/category_params.sigma_2 * sum((1./sig_mat).*exp(-((x_mat-s_mat).^2)./(2*sig_mat.^2) - s_mat.^2 ./ (2*category_params.sigma_2^2)))));
+                raw.d = log(likelihood(category_params.sigma_1, 0) ./ likelihood(category_params.sigma_2, 0));
             else
                 raw.k1 = .5 * log( (raw.sig.^2 + category_params.sigma_2^2) ./ (raw.sig.^2 + category_params.sigma_1^2));% + p.b_i(5);
                 raw.k2 = (category_params.sigma_2^2 - category_params.sigma_1^2) ./ (2 .* (raw.sig.^2 + category_params.sigma_1^2) .* (raw.sig.^2 + category_params.sigma_2^2));
@@ -156,16 +156,9 @@ if strcmp(model.family,'opt')
             
         case 'diff_mean_same_std'
             
-            if model.ori_dep_noise
-                ds = 1;
-                sVec = -90:ds:90;
-                s_mat = repmat(sVec', 1, length(raw.x));
-                x_mat = repmat(raw.x, length(sVec), 1);
-                sig_mat = repmat(pre_sig, length(sVec), 1);
-                raw.d = something...;%%%%
-                
+            if model.ori_dep_noise % very redundant with the above. refactor
+                raw.d = log(likelihood(category_params.sigma_s, category_params.mu_1) ./ likelihood(category_params.sigma_s, category_params.mu_2));
             else
-                % did i never do ori_dep_noise here for task A trial generation??
                 raw.d = (2*raw.x * (category_params.mu_1 - category_params.mu_2) - category_params.mu_1^2 + category_params.mu_2^2) ./ ...
                     (2*(raw.sig.^2 + category_params.sigma_s^2));
             end

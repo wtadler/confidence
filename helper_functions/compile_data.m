@@ -132,6 +132,8 @@ for subject = 1 : length(names)
                     raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
                     raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
                     
+                    raw.cue_validity_id = 2 - raw.cue_validity; % maps [-1 0 1] onto [3 2 1]
+                    
                     [contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity, 'sig_levels', 3, 'flipsig', flipsig);
 
                     % vector of order of trials. eg, [1 2 3 2] indicates that trial 2 was repeated. nothing is recorded for the first attempt at trial 2

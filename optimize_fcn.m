@@ -2,18 +2,27 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'fixed';
-opt_models(1).multi_lapse = 1;
-opt_models(1).partial_lapse = 1;
-opt_models(1).repeat_lapse = 1;
+opt_models(1).family = 'opt';
+opt_models(1).multi_lapse = 0;
+opt_models(1).partial_lapse = 0;
+opt_models(1).repeat_lapse = 0;
 opt_models(1).choice_only = 0;
+opt_models(1).d_noise = 1;
 opt_models(1).ori_dep_noise = 1;
-opt_models(1).diff_mean_same_std = 1;
+opt_models(1).diff_mean_same_std = 0;
 opt_models(1).joint_task_fit = 0;
 opt_models(1).attention1 = 1;
 
 opt_models = parameter_constraints(opt_models);
 
+% opt : choice_only : ori_dep_noise WORKS
+% opt : choice_only : ori_dep_noise : attention1 WORKS
+% opt : choice_only : ori_dep_noise : diff_mean_same_std WORKS.
+% opt : choice_only : ori_dep_noise : diff_mean_same_std : attention1 WORKS
+% opt : choice_only : ori_dep_noise : diff_mean_same_std : attention1 : symmetric WORKS
+% opt : choice_only : diff_mean_same_std : symmetric WORKS
+% opt : choice_only : diff_mean_same_std : attention1 : symmetric WORKS
+% opt : d_noise : ori_dep_noise : attention1 WORKS
 %%
 hpc = false;
 assignopts(who,varargin);
@@ -120,8 +129,8 @@ else
 end
 
 log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
-my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
-% my_print = @fprintf;
+% my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
+my_print = @fprintf;
 cd(savedir)
 filename = sprintf('%s.mat',job_id);
 
@@ -149,7 +158,6 @@ if strcmp(data_type, 'fake')
                         g.beq(fixed_params_gen) = fixed_params_gen_values;
                     end
                 end
-                
                 gen(gen_model_id).p = random_param_generator(nDatasets, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
                 gen(gen_model_id).p
 
@@ -172,20 +180,22 @@ if strcmp(data_type, 'fake')
             gen(gen_model_id).data(dataset).raw = d;
             gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), d, g, nDNoiseSets, category_params);
             gen(gen_model_id).data(dataset).true_logposterior = -gen(gen_model_id).data(dataset).true_nll + log_prior(gen(gen_model_id).p(:,dataset)');
-            figure(dataset)
-            subplot(1,2,1)
-            plot(d.s,d.x,'.')
-            subplot(1,2,2)
-            if g.choice_only
-                plot(d.x,d.Chat,'.')
-            else
-                plot(d.x,d.resp,'.')
-            end
+%             figure(dataset)
+%             subplot(1,2,1)
+%             plot(d.s,d.x,'.')
+%             subplot(1,2,2)
+%             if g.choice_only
+%                 plot(d.x,d.Chat,'.')
+%             else
+%                 plot(d.x,d.resp,'.')
+%             end
             %save after
         end
-        pause(1)
+        pause(.1)
 %         return
     end
+    
+    genB = gen; % this is how task B data gets loaded. dirty
 elseif strcmp(data_type, 'fake_pre_generated')
     for gen_model_id = active_gen_models;
         g = gen_models(gen_model_id);
@@ -291,7 +301,7 @@ for gen_model_id = active_gen_models
                 
                 logprior_wrapper = @log_prior;
                 
-                nloglik_wrapper = @(p) -loglik_wrapper(p) -logprior_wrapper(p); % this is actually the nlogposterior wrapper.
+                nloglik_wrapper = @(p) -loglik_wrapper(p);% -logprior_wrapper(p); % uncomment this for log posterior
                 
                 % possible outputs
                 % fmincon only
@@ -563,7 +573,7 @@ if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && leng
         plot(gen(active_gen_models).p(parameter,:), extracted_params(parameter,:), '.','markersize',10);
         hold on
         xlim([g.lb_gen(parameter) g.ub_gen(parameter)]);
-        ylim([g.lb_gen(parameter)     g.ub_gen(parameter)]);
+        ylim([g.lb(parameter)     g.ub(parameter)]);
         
         %axis square;
         plot([g.lb(parameter) g.ub(parameter)], [g.lb(parameter) g.ub(parameter)], '--');
