@@ -129,8 +129,8 @@ else
 end
 
 log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
-% my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
-my_print = @fprintf;
+my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
+% my_print = @fprintf;
 cd(savedir)
 filename = sprintf('%s.mat',job_id);
 

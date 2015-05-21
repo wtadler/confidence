@@ -20,10 +20,6 @@ end
 Screen('Preference', 'SkipSyncTests', 1);
 Screen('Preference', 'VisualDebuglevel', 3);
 
-dir = pwd;
-datadir = [dir '/data'];
-addpath(genpath(dir))
-
 % eye tracking params
 eye_data_dir = 'eyedata';
 eye_file = sprintf('%s%s', subject_name([1:2 end-1:end]), datestr(now, 'mmdd'));
@@ -58,6 +54,7 @@ switch room_letter
         
         f_c_size = 37; % length and width. must be even.
         fw = 1; % line thickness = 2+2*fw pixels
+        dir = ''; % fill me out
 
     case 'Carrasco_L1'
         screen_width = 40;
@@ -67,6 +64,8 @@ switch room_letter
         
         f_c_size = 28; % length and width. must be even.
         fw = 0; % line thickness = 2+2*fw pixels
+        
+        dir = ''; % fill me out
 end
 
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
@@ -79,6 +78,12 @@ if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter
     %scr.keyx=27; %x
     %scr.keyz=29; %z
 end
+
+dir = pwd;
+datadir = [dir '/data'];
+addpath(genpath(dir))
+
+
 
 close all;
 %%

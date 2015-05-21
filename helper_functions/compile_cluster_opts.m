@@ -6,7 +6,8 @@ datadir='/Users/will/Google Drive/Ma lab/output/v3_joint_feb28';
 rawdatadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA/'; % for computing DIC
 rawdatadirB='/Users/will/Google Drive/Will - Confidence/Data/v3/taskB/'; % for computing DIC
 
-toss_bad_samples = false;
+toss_bad_samples = true;
+extraburn_prop = 0;
 
 jobid = 'ab';
 hpc = true;
@@ -148,12 +149,18 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
     for fid = 1:length(job_files);
         fid
         tmp = load(job_files{fid});
+        
         if isfield(tmp,'ex_p')
             tmp = end_early_routine(tmp);
-            %e_fields = fieldnames(tmp.gen.opt(tmp.active_opt_models).extracted(tmp.dataset));
+            e_fields = fieldnames(tmp.gen.opt(tmp.active_opt_models).extracted(tmp.dataset));
+            e_fields = setdiff(e_fields,'name'); % don't want to append names later
         end
         m = tmp.active_opt_models;
         d = tmp.dataset;
+        
+%         e_fields = fieldnames(tmp.gen.opt(m).extracted(d));
+%         e_fields = setdiff(e_fields,'name'); % don't want to append names later
+
         
         if isempty(model(m).name) % initialize model details if they are not there
             for f = 1:length(m_fields)
@@ -166,11 +173,11 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
             %             model(m).extracted(d) = tmp.gen.opt(m).extracted(d);
             model(m).extracted(d).name = tmp.gen.opt(m).extracted(d).name;
             for f = 1:length(e_fields)
-                model(m).extracted(d).(e_fields{f}) = {tmp.gen.opt(m).extracted(d).(e_fields{f})};
+                    model(m).extracted(d).(e_fields{f}) = {tmp.gen.opt(m).extracted(d).(e_fields{f})};
             end
         else % go through and append the different chain data
             for f = 1:length(e_fields)
-                model(m).extracted(d).(e_fields{f}) = cat(2,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
+                    model(m).extracted(d).(e_fields{f}) = cat(2,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
             end
             
         end
@@ -183,14 +190,15 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                 ex = model(m).extracted(d);
                 if ~isempty(ex.p) % if there's data here
                     nChains = length(ex.nll);
-                    %extraburn_prop = 0;
                     for c = 1:nChains
-                        %nSamples = length(ex.nll{c});
-                        %burn_start = max(1,round(nSamples*extraburn_prop));
-                        %ex.p{c} = ex.p{c}(burn_start:end,:);
-                        %ex.nll{c} = ex.nll{c}(burn_start:end,:);
+                        nSamples = length(ex.nll{c});
+                        burn_start = max(1,round(nSamples*extraburn_prop));
+                        ex.p{c} = ex.p{c}(burn_start:end,:);
+                        ex.nll{c} = ex.nll{c}(burn_start:end,:);
+                        ex.logprior{c} = ex.logprior{c}(burn_start:end,:);
                         ex.logposterior{c} = -ex.nll{c} + ex.logprior{c};
-                        %logposterior{c} = -o.extracted(d).nll(burn_start:end,c) + o.extracted(d).logprior(burn_start:end,c);
+                        
+%                         logposterior{c} = -o.extracted(d).nll(burn_start:end,c) + o.extracted(d).logprior(burn_start:end,c);
                     end
                     
                     all_samples = [];
@@ -203,6 +211,7 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                             keepers = ex.logposterior{c} > max_logpost-threshold;
                             ex.p{c} = ex.p{c}(keepers,:);
                             ex.nll{c} = ex.nll{c}(keepers);
+                            ex.logprior{c} = ex.logprior{c}(keepers);
                             ex.logposterior{c} = ex.logposterior{c}(keepers);
                         end
                         all_samples = cat(1,all_samples,ex.p{c});

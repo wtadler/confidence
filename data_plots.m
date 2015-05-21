@@ -55,8 +55,8 @@ nBins = 9; %13 for cosyne poster
 [bins, axis] = bin_generator(nBins);
 % [real_bins_rt, real_axis_rt] = bin_generator(n_bins_real,'binstyle','rt');
 
-ori_labels = [-16 -8 -4 -2 -1 0 1 2 4 8 16]; % make sure that this isn't larger than real_axis...
-ori_label_bin_value = interp1(axis, 1:length(axis), ori_labels);
+ori_labels = [-16 -8 -4 -2 -1 0 1 2 4 8 16]; % make sure that this only has nBins entries or fewer
+ori_label_bin_value = interp1(axis, 1:nBins, ori_labels);
 % o_bound = [1 nBins]; % does this make any sense?????
 o_bound = [-20 20];
 

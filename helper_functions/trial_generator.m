@@ -3,7 +3,11 @@ function raw = trial_generator(p_in, model, varargin)
 % define defaults
 n_samples = 2160;
 % contrasts  = exp(-4:.5:-1.5);%[.125 .25 .5 1 2 4];
-contrasts = exp(linspace(-5.5,-2,6));
+if ~model.attention1
+    contrasts = exp(linspace(-5.5,-2,6));
+else
+    contrasts = .08;
+end
 
 model_fitting_data = [];
 conf_levels = 4;
@@ -38,9 +42,10 @@ if isempty(model_fitting_data)
     if model.attention1
         cue_validity = .7;
         
-        raw.probe = randsample([-1 0 1], n_samples, 'true');
-        raw.cue = raw.probe;
+        raw.cue = randsample([-1 0 1], n_samples, 'true');
+        raw.probe = raw.cue;
         
+        % make 30% of cues invalid
         flip_idx = rand(1, n_samples) > cue_validity;
         raw.cue(flip_idx) = -raw.cue(flip_idx);
         

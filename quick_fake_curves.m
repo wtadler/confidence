@@ -1,3 +1,5 @@
+%% examine fake data quickly
+
 % this is a good script to make sure that lb_gen and ub_gen are well chosen before parameter recovery.
 % it doesn't help much with ub and lb because you dont know what parameters subjects might be using.
 
