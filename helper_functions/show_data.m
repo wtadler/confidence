@@ -1,6 +1,6 @@
-function show_data(varargin)
+function show_data(datadir, varargin)
 
-datadir = '/Users/will/Google Drive/Will - Confidence/Data/attention1';
+% datadir = '/Users/will/Google Drive/Will - Confidence/Data/attention1';
 dep_vars = {'tf',       'g',        'Chat',     'resp',     'rt'};
 ylims    = [.5 1;       1 4;        0 1;        1 8;        .3 4];
 nBins = 7; % make this odd
@@ -58,7 +58,7 @@ nDepVars = length(dep_vars);
 dep_var_labels = rename_var_labels(dep_vars); % translate from variable names to something other people can understand.
 
 
-figure(1)
+figure
 clf
 
 for subject = 1:nSubjects
@@ -71,7 +71,7 @@ for subject = 1:nSubjects
     stats = indiv_analysis_fcn(raw, edges);
     
     for dep_var = 1:nDepVars
-        tight_subplot(nDepVars, nSubjects, dep_var, subject, [.03 .03]);
+        tight_subplot(nDepVars, nSubjects, dep_var, subject, [.05 .03]);
         hold on
         for c = 1:nReliabilities
             color = colors(c,:);
@@ -89,7 +89,7 @@ for subject = 1:nSubjects
                 m   = stats.all.mean_marg_over_s.(dep_vars{dep_var})(c);
                 sem = stats.all.sem_marg_over_s. (dep_vars{dep_var})(c);
                 
-                errorbarwidth = .3; % matlab errorbar is silly. errorbar width can't be set, is 2% of total range. so we make a dummy point.
+                errorbarwidth = .5; % matlab errorbar is silly. errorbar width can't be set, is 2% of total range. so we make a dummy point.
                 dummy_point = xticklabels(c) + errorbarwidth*50;
                 
                 errorbar([dummy_point xticklabels(c)], [0 m], [0 sem], '.', 'linewidth', linewidth, 'color', color)

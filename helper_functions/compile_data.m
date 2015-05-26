@@ -31,7 +31,7 @@ session_files = session_files.mat;
 % to do but having problems with regexp below
 
 % find unique subject names
-names = regexp(session_files,'^[a-z]+(?=_)','match'); % find characters before _ in session_files
+names = regexp(session_files,'^[a-z]+(?=_)','match'); % find characters before _ in session_files. make this accept caps
 names = unique(cat(1,names{:}));
 
 

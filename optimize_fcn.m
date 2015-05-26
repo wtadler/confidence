@@ -6,12 +6,13 @@ opt_models(1).family = 'opt';
 opt_models(1).multi_lapse = 0;
 opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
-opt_models(1).choice_only = 0;
+opt_models(1).choice_only = 1;
 opt_models(1).d_noise = 1;
 opt_models(1).ori_dep_noise = 1;
-opt_models(1).diff_mean_same_std = 0;
+opt_models(1).diff_mean_same_std = 1;
 opt_models(1).joint_task_fit = 0;
 opt_models(1).attention1 = 1;
+opt_models(1).symmetric = 1;
 
 opt_models = parameter_constraints(opt_models);
 
@@ -23,6 +24,9 @@ opt_models = parameter_constraints(opt_models);
 % opt : choice_only : diff_mean_same_std : symmetric WORKS
 % opt : choice_only : diff_mean_same_std : attention1 : symmetric WORKS
 % opt : d_noise : ori_dep_noise : attention1 WORKS
+% opt : ori_dep_noise : attention1 WORKS
+% Everything works???
+
 %%
 hpc = false;
 assignopts(who,varargin);
@@ -53,7 +57,7 @@ data_type = 'fake'; % 'real' or 'fake'
 
 %% fake data generation parameters
 fake_data_params =  'random'; % 'extracted' or 'random'
-category_params.category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
+category_params.category_type = 'diff_mean_same_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 
 category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
 category_params.a = 0; % overlap for sym_uniform
@@ -82,15 +86,31 @@ end
 
 nll_tolerance = 1e-3; % this is for determining what "good" parameters are.
 
+
+job_id = datetimefcn;
+assignopts(who,varargin);
+filename = sprintf('%s.mat',job_id);
+
 if hpc
     datadir='/home/wta215/data/v3/taskA';
     datadirB='/home/wta215/data/v3/taskB';
+    savedir = '/home/wta215/Analysis/output/';
+
+    log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
+
+    my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
 else
     datadir = '/Users/will/Google Drive/Will - Confidence/Data/v3/taskA';
     datadirB = '/Users/will/Google Drive/Will - Confidence/Data/v3/taskB';
+    savedir = '/Users/will/Google Drive/Ma lab/output/';
+
+    log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
+    
+    my_print = @fprintf;
 end
 
-assignopts(who,varargin);
+cd(savedir)
+
 
 if strcmp(optimization_method,'fmincon')
     fmincon_opts = optimoptions(@fmincon,'Algorithm','interior-point', 'display', 'off', 'UseParallel', 'never');
@@ -117,22 +137,7 @@ elseif strcmp(data_type,'fake_pre_generated')
     datasets = 1:nDatasets;
 end
 
-job_id = datetimefcn;
 assignopts(who,varargin); % reassign datasets (for multiple jobs)
-
-
-
-if hpc
-    savedir = '/home/wta215/Analysis/output/';
-else
-    savedir = '/Users/will/Google Drive/Ma lab/output/';
-end
-
-log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
-my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
-% my_print = @fprintf;
-cd(savedir)
-filename = sprintf('%s.mat',job_id);
 
 %% GENERATE FAKE DATA %%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -175,7 +180,7 @@ if strcmp(data_type, 'fake')
         end
         for dataset = datasets;
             % generate data from parameters
-            %save before
+%             save before
             d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'contrasts', exp(linspace(-5.5,-2,6)));
             gen(gen_model_id).data(dataset).raw = d;
             gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), d, g, nDNoiseSets, category_params);
@@ -189,7 +194,8 @@ if strcmp(data_type, 'fake')
 %             else
 %                 plot(d.x,d.resp,'.')
 %             end
-            %save after
+%             save after
+%             return
         end
         pause(.1)
 %         return

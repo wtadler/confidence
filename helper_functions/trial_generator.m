@@ -161,7 +161,7 @@ if strcmp(model.family,'opt')
             
         case 'diff_mean_same_std'
             
-            if model.ori_dep_noise % very redundant with the above. refactor
+            if model.ori_dep_noise
                 raw.d = log(likelihood(category_params.sigma_s, category_params.mu_1) ./ likelihood(category_params.sigma_s, category_params.mu_2));
             else
                 raw.d = (2*raw.x * (category_params.mu_1 - category_params.mu_2) - category_params.mu_1^2 + category_params.mu_2^2) ./ ...
