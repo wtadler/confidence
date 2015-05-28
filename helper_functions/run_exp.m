@@ -36,6 +36,9 @@ end
         case 'PreTest'
             str='Now for some practice trials...\n\nReport category 1 or 2 using the confidence scale.';
     end
+    
+        
+        Eyelink('message', 'Subject code: %s', subject_name);
     [~,ny]=center_print(str,'center');
     Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
     flip_key_flip(scr,'begin',ny,color, false);
@@ -44,15 +47,18 @@ end
     %%%Run trials %%%
 try
     for section = 1:n.sections
+        if P.eye_tracking
+            block = [type ' Block ' num2str(blok) ', Section ' num2str(section)];
+            Eyelink('message', str);
+        end
+
+
         n_trials = n.trials; 
         trial_order = 1:n.trials;
         trial_counter = 1;
         
         % for trial = 1:n.trials;
-        while trial_counter <= n_trials
-            % Initialize for eye tracking trial breaks
-            stop_trial = 0;
-            
+        while trial_counter <= n_trials            
 %             responses.c %%% print for debugging
 %             trial_order
             
@@ -71,6 +77,7 @@ try
             
             % Check fixation hold
             if P.eye_tracking
+                % prints EyeLink message TRIAL_START, SYNC_TIME
                 drift_corrected = rd_eyeLink('trialstart', scr.win, {scr.el, i_trial, scr.cx, scr.cy, scr.rad});
                 
                 if drift_corrected
@@ -105,13 +112,14 @@ try
                 
                 %%% should make this timing exact by interfacing with grate
                 if P.eye_tracking
-                    while GetSecs - t_cue_off < t.cue_target_isi/1000 - P.eye_slack && ~stop_trial
+                    fixation = 1;
+                    while GetSecs - t_cue_off < t.cue_target_isi/1000 - P.eye_slack && fixation
                         WaitSecs(.01);
+                        % prints EyeLink message FIX_CHECK, and potentially BROKE_FIXATION
                         fixation = rd_eyeLink('fixcheck', scr.win, {scr.cx, scr.cy, scr.rad});
-                        [stop_trial, trial_order, n_trials] = fixationBreakTasks(...
-                            fixation, scr.win, color.bg, trial_order, i_trial, n_trials);
                     end
-                    if stop_trial
+                    if ~fixation
+                        [trial_order, n_trials] = fixationBreakTasks(scr.win, color.bg, trial_order, i_trial, n_trials);
                         continue
                     end
                 else
@@ -145,13 +153,15 @@ try
                 end
                 
                 if P.eye_tracking
-                    while GetSecs - t_target_off < t.cue_target_isi/1000 - P.eye_slack && ~stop_trial
+                    fixation = 1;
+                    while GetSecs - t_target_off < t.cue_target_isi/1000 - P.eye_slack && fixation
                         WaitSecs(.01);
+                        % prints EyeLink message FIX_CHECK, and potentially BROKE_FIXATION
                         fixation = rd_eyeLink('fixcheck', scr.win, {scr.cx, scr.cy, scr.rad});
-                        [stop_trial, trial_order, n_trials] = fixationBreakTasks(...
-                            fixation, scr.win, color.bg, trial_order, i_trial, n_trials);
                     end
-                    if stop_trial
+                    if ~fixation
+                        [trial_order, n_trials] = fixationBreakTasks(...
+                            scr.win, color.bg, trial_order, i_trial, n_trials);
                         continue
                     end
                 end

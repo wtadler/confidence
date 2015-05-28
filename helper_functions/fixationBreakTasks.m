@@ -1,9 +1,10 @@
-function [stopThisTrial, trialOrder, nTrials] = fixationBreakTasks(...
-    fixation, window, fillColor, trialOrder, iTrial, nTrials)
+function [trialOrder, nTrials] = fixationBreakTasks(...
+    window, fillColor, trialOrder, iTrial, nTrials)
 
-fixBreakSound = soundFreqSweep(100,500,.1221);
-if fixation==0
-    stopThisTrial = 1;
+% if fixation==0
+    fixBreakSound = soundFreqSweep(100,500,.1221);
+
+%     stopThisTrial = 1;
     
     % blank the screen, make a sound, and give a time out
     soundsc(fixBreakSound)
@@ -21,6 +22,6 @@ if fixation==0
         trialOrder(end+1) = trialOrder(iTrial);
     end
     nTrials = nTrials + 1;
-else
-    stopThisTrial = 0;
-end
+% else
+%     stopThisTrial = 0;
+% end

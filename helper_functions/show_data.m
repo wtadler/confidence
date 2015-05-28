@@ -7,11 +7,10 @@ nBins = 7; % make this odd
 % plot_error_bars = true; % could eventually add functionality to just show means. or to not show means
 symmetrify = false;
 marg_over_s = false; %marginalize over s to just show effects of reliability
+task = 'B';
 linewidth = 2;
 
 assignopts(who, varargin);
-
-
 
 st = compile_data('datadir',datadir);
 
@@ -42,10 +41,10 @@ else
 end
 
 
-[edges, centers] = bin_generator(nBins);
+[edges, centers] = bin_generator(nBins, 'task', task);
 if ~marg_over_s
     % tick mark placement
-    ori_labels = [-10 -5 0 5 10]; % make sure that this only has nBins entries or fewer
+    ori_labels = [-8 -5 0 5 8]; % make sure that this only has nBins entries or fewer. also has to have smaller absolute values than centers
     xticklabels = interp1(centers, 1:nBins, ori_labels);
     if symmetrify
         ori_labels = abs(ori_labels);
