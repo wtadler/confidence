@@ -9,7 +9,8 @@ symmetrify = false;
 marg_over_s = false; %marginalize over s to just show effects of reliability
 task = 'B';
 linewidth = 2;
-
+ticklength = .025;
+gutter = [.0175 .025];
 assignopts(who, varargin);
 
 st = compile_data('datadir',datadir);
@@ -44,7 +45,7 @@ end
 [edges, centers] = bin_generator(nBins, 'task', task);
 if ~marg_over_s
     % tick mark placement
-    ori_labels = [-8 -5 0 5 8]; % make sure that this only has nBins entries or fewer. also has to have smaller absolute values than centers
+    ori_labels = [-14 -5 -2 0 2 5 14]; % make sure that this only has nBins entries or fewer. also has to have smaller absolute values than centers
     xticklabels = interp1(centers, 1:nBins, ori_labels);
     if symmetrify
         ori_labels = abs(ori_labels);
@@ -70,7 +71,7 @@ for subject = 1:nSubjects
     stats = indiv_analysis_fcn(raw, edges);
     
     for dep_var = 1:nDepVars
-        tight_subplot(nDepVars, nSubjects, dep_var, subject, [.05 .03]);
+        tight_subplot(nDepVars, nSubjects, dep_var, subject, gutter);
         hold on
         for c = 1:nReliabilities
             color = colors(c,:);
@@ -95,7 +96,7 @@ for subject = 1:nSubjects
             end
             
             % axes stuff for every plot
-            set(gca,'box', 'off', 'ylim', ylims(dep_var,:), 'tickdir','out', 'xtick', xticklabels, 'xticklabel', '', 'yticklabel', '')
+            set(gca,'box', 'off', 'ylim', ylims(dep_var,:), 'ticklength', [ticklength ticklength], 'tickdir','out', 'xtick', xticklabels, 'xticklabel', '', 'yticklabel', '')
             if ~marg_over_s
                 xlim([0 nBins+1])
             else

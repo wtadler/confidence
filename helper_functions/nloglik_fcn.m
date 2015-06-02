@@ -45,6 +45,8 @@ elseif model.attention1
     raw.contrast_id = raw.cue_validity_id;
 end
 
+nContrasts = length(unique_sigs);
+
 nTrials = length(raw.s);
 if ~model.d_noise
     nDNoiseSets = 1;

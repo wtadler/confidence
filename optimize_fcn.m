@@ -16,17 +16,6 @@ opt_models(1).symmetric = 1;
 
 opt_models = parameter_constraints(opt_models);
 
-% opt : choice_only : ori_dep_noise WORKS
-% opt : choice_only : ori_dep_noise : attention1 WORKS
-% opt : choice_only : ori_dep_noise : diff_mean_same_std WORKS.
-% opt : choice_only : ori_dep_noise : diff_mean_same_std : attention1 WORKS
-% opt : choice_only : ori_dep_noise : diff_mean_same_std : attention1 : symmetric WORKS
-% opt : choice_only : diff_mean_same_std : symmetric WORKS
-% opt : choice_only : diff_mean_same_std : attention1 : symmetric WORKS
-% opt : d_noise : ori_dep_noise : attention1 WORKS
-% opt : ori_dep_noise : attention1 WORKS
-% Everything works???
-
 %%
 hpc = false;
 assignopts(who,varargin);
