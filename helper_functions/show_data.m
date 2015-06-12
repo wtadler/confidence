@@ -35,7 +35,7 @@ else
     contrasts = unique(st.data(1).raw.contrast);
     strings = strsplit(sprintf('%.1f%% ', contrasts*100), ' ');
     labels = fliplr(strings(1:end-1));
-    xl = 'contrast';
+    xl = 'contrast/eccentricity';
     
     hhh = hot;
     colors = hhh(round(linspace(1,40,nReliabilities)),:); % black to orange indicate high to low contrast
@@ -78,7 +78,12 @@ for subject = 1:nSubjects
             
             if ~marg_over_s
                 m = stats.all.mean.(dep_vars{dep_var})(c,:);
-                sem = stats.all.sem.(dep_vars{dep_var})(c,:);
+                if ~strcmp(dep_vars{dep_var}, 'tf') && ~strcmp(dep_vars{dep_var}, 'Chat')
+                    sem = stats.all.sem.(dep_vars{dep_var})(c,:);
+                else
+                    sem = stats.all.std_beta_dist.(dep_vars{dep_var})(c,:);
+                end
+                
                 if symmetrify
                     m(1:ceil(nBins/2)-1) = fliplr(m(ceil(nBins/2)+1:end));
                     sem(1:ceil(nBins/2)-1) = fliplr(sem(ceil(nBins/2)+1:end));
@@ -87,7 +92,11 @@ for subject = 1:nSubjects
                 errorbar(1:nBins, m, sem, 'linewidth', linewidth, 'color', color)
             elseif marg_over_s
                 m   = stats.all.mean_marg_over_s.(dep_vars{dep_var})(c);
-                sem = stats.all.sem_marg_over_s. (dep_vars{dep_var})(c);
+                if ~strcmp(dep_vars{dep_var}, 'tf') && ~strcmp(dep_vars{dep_var}, 'Chat')
+                    sem = stats.all.sem_marg_over_s.(dep_vars{dep_var})(c);
+                else
+                    sem = stats.all.std_beta_dist_over_s.(dep_vars{dep_var})(c);
+                end
                 
                 errorbarwidth = .5; % matlab errorbar is silly. errorbar width can't be set, is 2% of total range. so we make a dummy point.
                 dummy_point = xticklabels(c) + errorbarwidth*50;

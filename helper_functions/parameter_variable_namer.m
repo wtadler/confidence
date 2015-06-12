@@ -1,4 +1,4 @@
-function p = parameter_variable_namer(p_in, parameter_names, model)
+function p = parameter_variable_namer(p_in, parameter_names, model, contrasts)
 % this gets called by nloglikfcn as well as trial_generator
 % parameter_names is an input so that you don't have to run
 % parameter_constraints
@@ -6,7 +6,7 @@ function p = parameter_variable_namer(p_in, parameter_names, model)
 logparams = strncmpi(parameter_names,'log',3);
 p_in(logparams) = exp(p_in(logparams)); % exponentiate the log params
 for l = find(logparams)'
-    parameter_names{l} = parameter_names{l}(4:end);
+    parameter_names{l} = parameter_names{l}(4:end); % chop off the 'log' in the name
 end
 
 if ~isfield(model, 'term_params')
@@ -26,7 +26,26 @@ for i = 1 : length(parameter_names)
     p.(parameter_names{i}) = p_in(i);
 end
 
-% do special stuff for variables that go in vectors, such as boundaries...
+% do special stuff for variables that go in vectors, such as sigma...
+if model.nFreesigs == 0
+    if ~exist('contrasts', 'var')
+        contrasts = exp(linspace(-5.5,-2,6));
+    else
+        contrasts = sort(contrasts); % to ensure that it is low to high contrast.
+    end
+    c_low = min(contrasts);
+    c_hi = max(contrasts);
+    alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
+    p.unique_sigs = fliplr(sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta)); % low to high sigma. should line up with contrast id
+
+else
+    p.unique_sigs = [];
+    for sig_id = 1:model.nFreesigs
+        p.unique_sigs = [p.(['sigma_c' num2str(sig_id)]) p.unique_sigs];
+    end
+end
+
+% and boundaries...
 if model.choice_only
     if strcmp(model.family, 'opt')
         p.b_i = [-Inf -Inf -Inf -Inf p.b_0_d Inf Inf Inf Inf];

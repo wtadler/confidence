@@ -99,6 +99,9 @@ for type = 1 : length(trial_types)
         [n, st.bin_index] = histc(sr.s, [-Inf, bins, Inf]);
         st.bin_counts (contrast,:) = n(1 : end - 1); % number in each s bin, at this contrast level
         output_fields = {'tf','resp','g','rt'};
+
+        std_beta_dist = @(a,b) sqrt(a*b/((a+b)^2*(a+b+1)));
+
         for bin = 1 : length(bins) + 1; % calc stats for each bin over s
             for f = 1:length(output_fields)
                 if isfield(sr,output_fields{f})
@@ -110,6 +113,15 @@ for type = 1 : length(trial_types)
             st.mean.Chat(contrast,bin) = .5 - .5 * mean(sr.Chat(st.bin_index == bin)); % this is actually chat prop
             st.std.Chat(contrast,bin) = .5 * std(sr.Chat(st.bin_index == bin));
             st.sem.Chat(contrast,bin) = st.std.Chat(contrast,bin) / sqrt(st.bin_counts(contrast,bin)); % this is sem chat prop
+            
+            nChatn1 = sum(sr.Chat(st.bin_index == bin)==-1);
+            nChat1 = sum(sr.Chat(st.bin_index == bin)==1);
+            st.std_beta_dist.Chat(contrast, bin) = std_beta_dist(nChatn1, nChat1);
+            
+            nHits = sum(sr.tf(st.bin_index == bin) == 1);
+            nMisses = sum(sr.tf(st.bin_index == bin) == 0);
+            st.std_beta_dist.tf(contrast, bin) = std_beta_dist(nHits, nMisses);
+            
             % might want to do sem of beta dist for binary vars like choice or tf??
             %                             if strcmp(dep_vars{dep_var}, 'tf') % standard deviation of the beta distribution instead of SEM
 %                 nHits = sum(raw.(dep_vars{dep_var})(idx));
@@ -129,6 +141,13 @@ for type = 1 : length(trial_types)
             st.std_marg_over_s.Chat(contrast) = .5 * std(sr.Chat);
             st.sem_marg_over_s.Chat(contrast) = st.std_marg_over_s.Chat(contrast)/sqrt(sum(st.bin_counts(contrast,:)));
 
+            nChatn1 = sum(sr.Chat==-1);
+            nChat1 = sum(sr.Chat==1);
+            st.std_beta_dist_over_s.Chat(contrast) = std_beta_dist(nChatn1, nChat1);
+            
+            nHits = sum(sr.tf == 1);
+            nMisses = sum(sr.tf == 0);
+            st.std_beta_dist_over_s.tf(contrast) = std_beta_dist(nHits, nMisses);
         end
 
         

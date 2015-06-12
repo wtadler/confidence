@@ -21,8 +21,8 @@ for k = 1:n.blocks
     classtwos = (R.trial_order{k} == 2); % index of class 2 trials
     R.phase{k} = 360*rand(n.sections,n.trials); % random phase draws
     
-    R.draws{k}= reshape(stimulus_orientations(category_params, 1, n.sections*n.trials), n.sections, n.trials);
-    R.draws{k}(classtwos) = stimulus_orientations(category_params, 2, nnz(classtwos));
+    R.draws{k}= reshape(stimulus_orientations(category_params, 1, n.sections*n.trials), n.sections, n.trials, category_params.category_type);
+    R.draws{k}(classtwos) = stimulus_orientations(category_params, 2, nnz(classtwos), category_params.category_type);
     
     if attention_manipulation
         R.probe{k} = reshape(randsample([-1 0 1],n.trials*n.sections,true), n.sections, n.trials);

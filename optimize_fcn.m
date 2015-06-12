@@ -3,16 +3,16 @@ function [gen, aborted]=optimize_fcn(varargin)
 opt_models = struct;
 
 opt_models(1).family = 'opt';
-opt_models(1).multi_lapse = 0;
-opt_models(1).partial_lapse = 0;
-opt_models(1).repeat_lapse = 0;
-opt_models(1).choice_only = 1;
-opt_models(1).d_noise = 1;
-opt_models(1).ori_dep_noise = 1;
-opt_models(1).diff_mean_same_std = 1;
-opt_models(1).joint_task_fit = 0;
-opt_models(1).attention1 = 1;
-opt_models(1).symmetric = 1;
+opt_models(1).multi_lapse = 1;
+opt_models(1).partial_lapse = 1;
+opt_models(1).repeat_lapse = 1;
+opt_models(1).choice_only = 0;
+opt_models(1).d_noise = 0;
+opt_models(1).ori_dep_noise = 0;
+opt_models(1).diff_mean_same_std = 0;
+opt_models(1).joint_task_fit = 1;
+opt_models(1).nFreesigs = 6;
+opt_models(1).symmetric = 0;
 
 opt_models = parameter_constraints(opt_models);
 
@@ -40,13 +40,14 @@ nKeptSamples = 1e4; % for mcmc_slice
 nChains = 4;
 aborted = false;
 
-data_type = 'fake'; % 'real' or 'fake'
+data_type = 'real'; % 'real' or 'fake'
 % 'fake' generates trials and responses, to do parameter/model recovery
 % 'real' takes real trials and real responses, to extract parameters
 
 %% fake data generation parameters
 fake_data_params =  'random'; % 'extracted' or 'random'
-category_params.category_type = 'diff_mean_same_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
+% category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
+attention_manipulation = false;
 
 category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
 category_params.a = 0; % overlap for sym_uniform
@@ -81,20 +82,23 @@ assignopts(who,varargin);
 filename = sprintf('%s.mat',job_id);
 
 if hpc
-    datadir='/home/wta215/data/v3/taskA';
-    datadirB='/home/wta215/data/v3/taskB';
+    datadir_joint='/home/wta215/data/v3';
     savedir = '/home/wta215/Analysis/output/';
+else
+    datadir_joint = '/Users/will/Google Drive/Will - Confidence/Data/v3b_ellipse';
+    savedir = '/Users/will/Google Drive/Ma lab/output/';
+end
 
-    log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
+log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
+assignopts(who,varargin);
 
+datadirA = [datadir_joint '/taskA'];
+datadirB = [datadir_joint '/taskB'];
+assignopts(who,varargin);
+
+if hpc
     my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
 else
-    datadir = '/Users/will/Google Drive/Will - Confidence/Data/v3/taskA';
-    datadirB = '/Users/will/Google Drive/Will - Confidence/Data/v3/taskB';
-    savedir = '/Users/will/Google Drive/Ma lab/output/';
-
-    log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
-    
     my_print = @fprintf;
 end
 
@@ -106,7 +110,7 @@ if strcmp(optimization_method,'fmincon')
 end
 
 if strcmp(data_type, 'real')
-    gen = compile_data('datadir', datadir, 'crossvalidate', crossvalidate, 'k', k);
+    gen = compile_data('datadir', datadirA, 'crossvalidate', crossvalidate, 'k', k);
     if ~isempty(datadirB)
         genB = compile_data('datadir', datadirB, 'crossvalidate', crossvalidate, 'k', k);
     end
@@ -137,10 +141,16 @@ if strcmp(data_type, 'fake')
         g = gen_models(gen_model_id);
         o = g; % this is for log_posterior function
         
-        if (g.diff_mean_same_std && ~strcmp(category_params.category_type, 'diff_mean_same_std')) || (~g.diff_mean_same_std && strcmp(category_params.category_type, 'diff_mean_same_std'))
-            warning('category mismatch')
+        if g.diff_mean_same_std
+            category_type = 'diff_mean_same_std';
+        elseif ~g.diff_mean_same_std
+            category_type = 'same_mean_diff_std';
         end
         
+        if attention_manipulation && g.nFreesigs ~= 3
+            error('attention_manipulation is indicated, but you don''t have nFreesigs equal to 3.')
+        end
+            
         % generate parameters, or use previously extracted parameters
         switch fake_data_params
             case 'random'
@@ -170,10 +180,27 @@ if strcmp(data_type, 'fake')
         for dataset = datasets;
             % generate data from parameters
 %             save before
-            d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'contrasts', exp(linspace(-5.5,-2,6)));
-            gen(gen_model_id).data(dataset).raw = d;
-            gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), d, g, nDNoiseSets, category_params);
-            gen(gen_model_id).data(dataset).true_logposterior = -gen(gen_model_id).data(dataset).true_nll + log_prior(gen(gen_model_id).p(:,dataset)');
+            while true
+                d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'attention_manipulation', attention_manipulation, 'category_type', category_type);
+                gen(gen_model_id).data(dataset).raw = d;
+                gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), d, g, nDNoiseSets, category_params);
+                gen(gen_model_id).data(dataset).true_logposterior = -gen(gen_model_id).data(dataset).true_nll + log_prior(gen(gen_model_id).p(:,dataset)');
+                
+                % if the dataset doesn't just make the same choice for every trial, accept dataset by breaking while loop, and generate next one
+                if g.choice_only
+                    if length(unique(d.Chat))==2
+                        break
+                    else % if the dataset is the same choice for every trial, generate new parameters and try again
+                        gen(gen_model_id).p(:,dataset) = random_param_generator(1, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
+                    end
+                else
+                    if length(unique(d.resp))==8
+                        break
+                    else
+                        gen(gen_model_id).p(:,dataset) = random_param_generator(1, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
+                    end
+                end
+            end
 %             figure(dataset)
 %             subplot(1,2,1)
 %             plot(d.s,d.x,'.')
@@ -183,10 +210,9 @@ if strcmp(data_type, 'fake')
 %             else
 %                 plot(d.x,d.resp,'.')
 %             end
-%             save after
-%             return
         end
-        pause(.1)
+%         pause(.1)
+%         save after
 %         return
     end
     
@@ -514,7 +540,7 @@ for gen_model_id = active_gen_models
                     ex.dic = [];
                     ex.best_params          = ex.p(:, ex.min_idx);
                     ex.n_good_params                          = sum(ex.nll < ex.min_nll + nll_tolerance & ex.nll > 10);
-                    paramprior      = o.param_prior;
+                    paramprior      = prod(1 ./ (o.ub - o.lb));
                     ex.best_hessian = ex.hessian(:,:,ex.min_idx);
                     h               = ex.best_hessian;
                     ex.laplace = -ex.min_nll + log(paramprior) +  (nParams/2)*log(2*pi) - .5 * log(det(h));

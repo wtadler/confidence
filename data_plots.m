@@ -414,7 +414,7 @@ for task = 1:2
 end
 
 
-%% model comparison square grid
+%% model comparison square grid. now replaced by compare_models.m
 
 %close all
 figure(1)
@@ -430,8 +430,8 @@ for m = 1:nModels
         dic(d,m) = model(m).extracted(d).dic;
     end
 end
-models = [5 4 3 1 2];
-model_names = {'Linear','Fixed','Bayes_{Free}','Bayes_{Sym}','Bayes_{Sym,Joint}'}; % these correspond with model(1:5)
+models = 1:length(model);%[5 4 3 1 2];
+model_names = {'lin A', 'fixed A', 'bayes A', 'lin B', 'fixed B', 'bayes B free', 'bayes B sym'};%{model.name};%{'Linear','Fixed','Bayes_{Free}','Bayes_{Sym}','Bayes_{Sym,Joint}'}; % these correspond with model(1:5)
 [~,sort_idx] = sort(mean(dic,2)); % sort by best overall fit subject
 dic = dic(sort_idx,models);
 
@@ -443,7 +443,7 @@ for m = 1:nModels
     end
 end
 pbaspect([nModels nDatasets 1])
-set(gca,'box','on','xaxislocation','top','xtick',1:5,'xticklabel',{model_names{models}},'ticklength',[0 0],'linewidth',1,'ytick',1:nDatasets)
+set(gca,'box','on','xaxislocation','top','xtick',1:length(model),'xticklabel',{model_names{models}},'ticklength',[0 0],'linewidth',1,'ytick',1:nDatasets)
 ylabel('Subject','interpreter','none')
 
 c=colorbar;

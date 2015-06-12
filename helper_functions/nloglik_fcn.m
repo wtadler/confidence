@@ -30,22 +30,20 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SETUP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p = parameter_variable_namer(p_in, model.parameter_names, model);
 
-if ~model.attention1
-    nContrasts = 6;
-    contrasts = exp(linspace(-5.5, -2, nContrasts)); % THIS IS HARD CODED
-    c_low = min(contrasts);
-    c_hi = max(contrasts);
-    alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
-    unique_sigs = fliplr(sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta)); % low to high sigma. should line up with contrast id
-elseif model.attention1
-    nContrasts = 3;
-    unique_sigs = [p.sigma_c_hi p.sigma_c_mid p.sigma_c_low];
-    raw.contrast_id = raw.cue_validity_id;
+if ~model.nFreesigs
+    p = parameter_variable_namer(p_in, model.parameter_names, model, raw.contrast_values);
+else
+    p = parameter_variable_namer(p_in, model.parameter_names, model);
 end
 
-nContrasts = length(unique_sigs);
+if isfield(raw, 'cue_validity_id')
+    raw.contrast_id = raw.cue_validity_id;
+    if isfield(raw, 'cue_validity_values')
+        raw.contrast_values = raw.cue_validity_values;
+    end
+end
+nContrasts = length(raw.contrast_values);
 
 nTrials = length(raw.s);
 if ~model.d_noise
@@ -94,10 +92,10 @@ end
 if model.ori_dep_noise
     ODN = @(s) abs(sin(s * pi / 90)) * p.sig_amplitude;
     if ~strcmp(model.family, 'opt')
-        sig = unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
+        sig = p.unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
         sig = sig + ODN(raw.s); % add orientation dependent noise to each sigma.
     else
-        sig = unique_sigs;
+        sig = p.unique_sigs;
         
         sSteps = 200;
         sVec = linspace(-100,100,sSteps)';
@@ -108,18 +106,18 @@ if model.ori_dep_noise
         s_mat = repmat(sVec,1, xSteps);
         ODN_s_mat = ODN(s_mat);
         x_mat = repmat(xVec', sSteps,1);
-        k = zeros(nDNoiseSets,nContrasts);
+        x_dec_bound = zeros(nDNoiseSets,nContrasts);
         
         likelihood = @(sigma, sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./ sigma .*exp(-(x_mat-s_mat).^2 ./ (2*sigma.^2) - (s_mat - mu_cat) .^2 ./ (2*sigma_cat^2)));        
         
     end
 else
-    sig = unique_sigs;
+    sig = p.unique_sigs;
 end
 
     function [d_lookup_table, k] = d_table_and_choice_bound(sig_cat1, sig_cat2, mu_cat1, mu_cat2)
         for c = 1:nContrasts
-            cur_sig = unique_sigs(c);
+            cur_sig = p.unique_sigs(c);
             sig_plusODN = cur_sig + ODN_s_mat;
             d_lookup_table(c,:) = log(likelihood(sig_plusODN, sig_cat1, mu_cat1) ./ likelihood(sig_plusODN, sig_cat2, mu_cat2));
             
@@ -133,7 +131,7 @@ end
         x_bounds = zeros(nContrasts, nBounds, nDNoiseSets);
         
         for c = 1:nContrasts
-            for r = -(conf_levels-1):(conf_levels-1)%1:7
+            for r = -(conf_levels-1):(conf_levels-1)%1:7 problem at r = 1:3
                 x_bounds(nContrasts+1-c,conf_levels-r,:) = lininterp1_multiple(bsxfun(@plus, fliplr(d_lookup_table(c,:)), d_noise_draws'), fliplr(xVec'), bf(r));
             end
         end
@@ -156,15 +154,21 @@ end
         
         % this takes those vectors, and turns them back into a matrix.
         if ~model.diff_mean_same_std
-            x_lb = bsxfun(@times, raw.Chat', x_bounds_squash(bsxfun(@plus, start_pts_lb, (0:nDNoiseSets-1))))';
-            x_ub = bsxfun(@times, raw.Chat', x_bounds_squash(bsxfun(@plus, start_pts_ub, (0:nDNoiseSets-1))))';
+%             x_lb = bsxfun(@times, raw.Chat', x_bounds_squash(bsxfun(@plus, start_pts_lb, (0:nDNoiseSets-1))))';
+%             x_ub = bsxfun(@times, raw.Chat', x_bounds_squash(bsxfun(@plus, start_pts_ub, (0:nDNoiseSets-1))))';
+            
+            a = x_bounds_squash(bsxfun(@plus, start_pts_lb, (0:nDNoiseSets-1)))';
+            b = x_bounds_squash(bsxfun(@plus, start_pts_ub, (0:nDNoiseSets-1)))';
+
         elseif model.diff_mean_same_std
             a = x_bounds_squash(bsxfun(@plus, start_pts_lb, (0:nDNoiseSets-1)))';
             b = x_bounds_squash(bsxfun(@plus, start_pts_ub, (0:nDNoiseSets-1)))';
             
-            x_lb = min(cat(3,a,b), [], 3); % this is a hack. try to fix the above part
-            x_ub = max(cat(3,a,b), [], 3);
         end
+        
+        x_lb = min(cat(3,a,b), [], 3); % this is a hack. try to fix the above part
+        x_ub = max(cat(3,a,b), [], 3);
+
     end
 
 
@@ -179,41 +183,41 @@ if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian
         x_bounds = find_intersect_truncated_cats(p, sig1, sig2, contrasts, d_noise_big, raw);
         
         if ~model.d_noise
-            k = fliplr(x_bounds(:,4)');
+            x_dec_bound = fliplr(x_bounds(:,4)');
             x_bounds = [zeros(nContrasts,1) x_bounds inf(nContrasts,1)]; % this is for confidence
         elseif model.d_noise
             % for d noise, need long noisesets x trials matrix
-            k = permute(x_bounds(3,:,:),[3 2 1]);
+            x_dec_bound = permute(x_bounds(3,:,:),[3 2 1]);
         end
         
     elseif model.ori_dep_noise
-        [d_lookup_table, k] = d_table_and_choice_bound(sig1, sig2, 0, 0);        
+        [d_lookup_table, x_dec_bound] = d_table_and_choice_bound(sig1, sig2, 0, 0);        
     else
 %         sq_flag = 1; % this is because f gets passed a square root that can be negative. causes f to ignore the resulting imaginaries
         k1 = .5 * log( (sig.^2 + sig2^2) ./ (sig.^2 + sig1^2)); %log(prior / (1 - prior));
         k2 = (sig2^2 - sig1^2) ./ (2 .* (sig.^2 + sig1^2) .* (sig.^2 + sig2^2));
-        k  = sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - bf(0)) ./ repmat(k2, nDNoiseSets, 1));
+        x_dec_bound  = sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - bf(0)) ./ repmat(k2, nDNoiseSets, 1));
         % equivalently: k= sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'),bf(0)),k2));
     end
 elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
     
-    if model.ori_dep_noise % nearly identical to the above. refactor if possible
-        [d_lookup_table, k] = d_table_and_choice_bound(category_params.sigma_s, category_params.sigma_s, category_params.mu_1, category_params.mu_2);        
+    if model.ori_dep_noise
+        [d_lookup_table, x_dec_bound] = d_table_and_choice_bound(category_params.sigma_s, category_params.sigma_s, category_params.mu_1, category_params.mu_2);        
     else
-        k = (2*(bf(0)+d_noise).*(repmat(sig, nDNoiseSets, 1).^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
+        x_dec_bound = (2*(bf(0)+d_noise).*(repmat(sig, nDNoiseSets, 1).^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
             / (2*(category_params.mu_1 - category_params.mu_2)); % ADAPT FOR D NOISE? does this d noise work?
     end
 elseif strcmp(model.family, 'lin') && ~model.diff_mean_same_std
-    k = max(bf(0) + mf(0) * sig, 0);
+    x_dec_bound = max(bf(0) + mf(0) * sig, 0);
 elseif strcmp(model.family, 'lin') && model.diff_mean_same_std
-    k = bf(0) + mf(0) * sig;
+    x_dec_bound = bf(0) + mf(0) * sig;
 elseif strcmp(model.family, 'quad') && ~model.diff_mean_same_std
-    k = max(bf(0) + mf(0) * sig.^2, 0);
+    x_dec_bound = max(bf(0) + mf(0) * sig.^2, 0);
 elseif strcmp(model.family, 'quad') && model.diff_mean_same_std
-    k = bf(0) + mf(0) * sig.^2;
+    x_dec_bound = bf(0) + mf(0) * sig.^2;
     
 elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1')
-    k = bf(0)*ones(1,nContrasts);
+    x_dec_bound = bf(0)*ones(1,nContrasts);
     
 elseif strcmp(model.family, 'MAP')
     %     zoomgrid = false;
@@ -263,12 +267,12 @@ elseif strcmp(model.family, 'MAP')
     %
     %             k(i) = lininterp1(fine_lookup_table, x_fine, bf(0));
     %         end
-    k = lininterp1_multiple(shat_lookup_table, xVec, bf(0)*ones(1,len)); % find the x values corresponding to the MAP criterion, for each contrast level (or, if doing ODN where each trial has a different sigma, for every trial/sigma)
+    x_dec_bound = lininterp1_multiple(shat_lookup_table, xVec, bf(0)*ones(1,len)); % find the x values corresponding to the MAP criterion, for each contrast level (or, if doing ODN where each trial has a different sigma, for every trial/sigma)
 end
 
 if numel(sig) == nContrasts
     %if ~(model.ori_dep_noise && ~strcmp(model.family, 'opt'))
-    sig = unique_sigs(raw.contrast_id); % re-arrange sigs if it hasn't been done yet
+    sig = p.unique_sigs(raw.contrast_id); % re-arrange sigs if it hasn't been done yet
     if model.ori_dep_noise
         sig = sig + p.sig_amplitude*abs(sin(raw.s*pi/90));
     end
@@ -276,8 +280,8 @@ end
 
 %if ~(model.non_overlap && model.d_noise)
 % do this for all models except nonoverlap+d noise, where k is already in this form.
-if any(size(k) == nContrasts) % k needs to be expanded for each trial
-    k = k(:,raw.contrast_id);
+if any(size(x_dec_bound) == nContrasts) % k needs to be expanded for each trial
+    x_dec_bound = x_dec_bound(:,raw.contrast_id);
 end
 
 if ~strcmp(model.family, 'neural1')
@@ -290,9 +294,9 @@ else
 end
 
 if ~model.diff_mean_same_std
-    p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) - repmat(raw.Chat, nDNoiseSets, 1) .* symmetric_normcdf(k, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1));
+    p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) - repmat(raw.Chat, nDNoiseSets, 1) .* symmetric_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1));
 elseif model.diff_mean_same_std
-    p_choice = 0.5 + repmat(raw.Chat, nDNoiseSets, 1) .* (0.5 - my_normcdf(k, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1)));
+    p_choice = 0.5 + repmat(raw.Chat, nDNoiseSets, 1) .* (0.5 - my_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1)));
 end
 
 p_choice = normalized_weights*p_choice;
@@ -326,46 +330,36 @@ if ~model.choice_only
         else
             k1 = k1(raw.contrast_id);
             k2 = k2(raw.contrast_id);
-            bound1=bf((raw.Chat - 1)./2 - raw.Chat .* raw.g);
-            bound2=bf((raw.Chat + 1)./2 - raw.Chat .* raw.g);
+
+            d_lb=p.b_i(2*conf_levels+1-raw.resp);
+            d_ub=p.b_i(2*conf_levels+2-raw.resp);
             
-            %  a = sqrt(repmat(k1 - bf((raw.Chat - 1)./2 - raw.Chat .* raw.g), nDNoiseSets, 1) + d_noise_big) ./ repmat(sqrt(k2), nDNoiseSets, 1);
-            x_lb = sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), bound1), k2));
-            %  b = sqrt(repmat(k1 - bf((raw.Chat + 1)./2 - raw.Chat .* raw.g), nDNoiseSets, 1) + d_noise_big) ./ repmat(sqrt(k2), nDNoiseSets, 1);
-            x_ub = sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), bound2), k2));
-            
+            x_lb = sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_ub), k2));
+            x_ub = sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_lb), k2));
+
         end
     elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
-        if model.ori_dep_noise % this is redundant with the above, except for the asterisked lines. merge them
+        if model.ori_dep_noise
             [x_lb, x_ub] = x_bounds_by_trial();
         else
-            
-            bound1 = bf(-raw.Chat .* raw.g + .5*(raw.Chat+1));
-            bound2 = bf(-raw.Chat .* raw.g + .5*(raw.Chat-1));
-            
-            x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, bound1, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
-            x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, bound2, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+            d_lb = p.b_i(2*conf_levels+1-raw.resp);
+            d_ub = p.b_i(2*conf_levels+2-raw.resp); % this is the same as doing fliplr on p.b_i first
+                        
+            x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+            x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
         end
-    elseif strcmp(model.family, 'lin') && ~model.diff_mean_same_std
-        x_lb = raw.Chat .* max(bf(raw.Chat .* (raw.g    )) + sig .* mf(raw.Chat .* (raw.g    )), 0); %Chat multiplier here is to make sure that a is less than b, i think
-        x_ub = raw.Chat .* max(bf(raw.Chat .* (raw.g - 1)) + sig .* mf(raw.Chat .* (raw.g - 1)), 0);
-    elseif strcmp(model.family, 'lin') && model.diff_mean_same_std
-        x_lb = bf(raw.Chat .* raw.g - .5*(raw.Chat+1)) + sig .* mf(raw.Chat .* raw.g - .5*(raw.Chat+1));
-        x_ub = bf(raw.Chat .* raw.g - .5*(raw.Chat-1)) + sig .* mf(raw.Chat .* raw.g - .5*(raw.Chat-1));
         
-    elseif strcmp(model.family, 'quad') && ~model.diff_mean_same_std
-        x_lb = raw.Chat .* max(bf(raw.Chat .* (raw.g    )) + sig.^2 .* mf(raw.Chat .* (raw.g    )), 0);
-        x_ub = raw.Chat .* max(bf(raw.Chat .* (raw.g - 1)) + sig.^2 .* mf(raw.Chat .* (raw.g - 1)), 0);
-    elseif strcmp(model.family, 'quad') && model.diff_mean_same_std
-        x_lb = bf(raw.Chat .* raw.g - .5*(raw.Chat+1)) + sig.^2 .* mf(raw.Chat .* raw.g - .5*(raw.Chat+1));
-        x_ub = bf(raw.Chat .* raw.g - .5*(raw.Chat-1)) + sig.^2 .* mf(raw.Chat .* raw.g - .5*(raw.Chat-1));
+    elseif strcmp(model.family, 'lin')
+        x_lb = p.b_i(raw.resp)   + sig    .* p.m_i(raw.resp);
+        x_ub = p.b_i(raw.resp+1) + sig    .* p.m_i(raw.resp+1);
         
-    elseif (strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1')) && ~model.diff_mean_same_std
-        x_lb = raw.Chat .* bf(raw.Chat .* (raw.g)    );
-        x_ub = raw.Chat .* bf(raw.Chat .* (raw.g - 1));
-    elseif (strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1')) && model.diff_mean_same_std
-        x_lb = bf(raw.Chat .* raw.g - .5*(raw.Chat+1));
-        x_ub = bf(raw.Chat .* raw.g - .5*(raw.Chat-1));
+    elseif strcmp(model.family, 'quad')
+        x_lb = p.b_i(raw.resp)   + sig.^2 .* p.m_i(raw.resp);
+        x_ub = p.b_i(raw.resp+1) + sig.^2 .* p.m_i(raw.resp+1);
+        
+    elseif (strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1'))% && ~model.diff_mean_same_std
+        x_lb = p.b_i(raw.resp); 
+        x_ub = p.b_i(raw.resp+1);
         
     elseif strcmp(model.family, 'MAP')
         
@@ -373,7 +367,7 @@ if ~model.choice_only
             x_bounds = zeros(nContrasts, nBounds);
             
             for c = 1:nContrasts
-                %cur_sig = unique_sigs(c);
+                %cur_sig = p.unique_sigs(c);
                 for r = -(conf_levels-1):(conf_levels-1)
                     x_bounds(c,r+conf_levels) = lininterp1(shat_lookup_table(c,:), xVec, bf(r));
                     %                     if zoomgrid
@@ -504,22 +498,22 @@ end
     function mval = mf(name)
         mval = p.m_i(name + conf_levels + 1);
     end
-
-    function aval = af(name)
-        aval = p.a_i(name + conf_levels + 1);
-    end
-
-    function d_boundsval = d_boundsf(name)
-        d_boundstmp = [Inf d_bounds 0];
-        d_boundsval = d_boundstmp(name + conf_levels + 1);
-    end
+% 
+%     function aval = af(name)
+%         aval = p.a_i(name + conf_levels + 1);
+%     end
+% 
+%     function d_boundsval = d_boundsf(name)
+%         d_boundstmp = [Inf d_bounds 0];
+%         d_boundsval = d_boundstmp(name + conf_levels + 1);
+%     end
 end
 
-function y = my_normcdf(x, mu, sigma)
-y = 0.5 * (1 + erf((x-mu)./(sigma*sqrt(2))));
+function y = my_normcdf(k, mu, sigma)
+y = 0.5 * (1 + erf((k-mu)./(sigma*sqrt(2))));
 end
 
-function retval = symmetric_normcdf(k, mu, sig)
+function retval = symmetric_normcdf(k, mu, sigma)
 % this returns the probability mass from -k to k of N(x; mu, sig).
 % symmetric_normcdf(k_big) - symmetric_normcdf(k_small) will give you the
 % sum of the two probability bands, which are symmetric across x=0
@@ -529,10 +523,10 @@ function retval = symmetric_normcdf(k, mu, sig)
 % y is the x_lb or x_ub
 
 retval              = zeros(size(mu)); % length of all trials
-idx           = find(k>0);      % find all trials where y is greater than 0. y is either positive or imaginary. so a non-positive y would indicate negative a or b
+idx           = find(k>0);      % find all trials where k is greater than 0. k is either positive or imaginary. so a non-positive k would indicate negative bounds, which can be dropped?
 mu                   = mu(idx);
-sig               = sig(idx);
+sigma               = sigma(idx);
 k                   = k(idx);
 
-retval(idx)   = my_normcdf(k, mu, sig) - my_normcdf(-k, mu, sig);
+retval(idx)   = my_normcdf(k, mu, sigma) - my_normcdf(-k, mu, sigma);
 end

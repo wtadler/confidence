@@ -1,4 +1,6 @@
+show_cornerplot = false;
 gen.opt=model; % this is for after CCO
+
 if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
     % COMPARE TRUE AND FITTED PARAMETERS IN SUBPLOTS
     figure;
@@ -37,7 +39,7 @@ elseif strcmp(optimization_method,'mcmc_slice')
                         true_logposterior = gen(gen_model_id).data(dataset_id).true_logposterior;
                     end
                     tic
-                    [fh,ah]=mcmcdiagnosis(ex.p,'logposterior',ex.logposterior,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',ex.dic,'gen_model',g);
+                    [fh,ah]=mcmcdiagnosis(ex.p,'logposterior',ex.logposterior,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',ex.dic,'gen_model',g, 'show_cornerplot', show_cornerplot);
                     toc
                     pause(.00001); % to plot
                 end

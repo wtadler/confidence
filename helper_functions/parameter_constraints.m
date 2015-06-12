@@ -4,7 +4,7 @@ nModels = length(models);
 for m_id = 1 : nModels
     c = models(m_id);
     
-    options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only','symmetric','d_noise','free_cats','non_overlap','ori_dep_noise','diff_mean_same_std','joint_task_fit','joint_d', 'attention1'};
+    options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only','symmetric','d_noise','free_cats','non_overlap','ori_dep_noise','diff_mean_same_std','joint_task_fit','joint_d', 'nFreesigs'};
     for o = 1:length(options)
         if ~isfield(c,options{o}) || isempty(c.(options{o}))
             c.(options{o}) = 0;
@@ -47,12 +47,12 @@ for m_id = 1 : nModels
             str = [str c.(fields{f})];
         elseif isa(c.(fields{f}), 'double') && all(size(c.(fields{f})) == [1 1]) && c.(fields{f})==1
             str = [str ' : ' fields{f}];
+        elseif isa(c.(fields{f}), 'double') && all(size(c.(fields{f})) == [1 1]) && c.(fields{f})~=0
+            str = [str ' : ' fields{f} num2str(c.(fields{f}))];
         end
     end
     c.name = str; % model name
     %%
-    % change alpha, beta, logsigma_0 to logsigma_c_low, logsigma_c_hi, beta
-    % beta: -25:10; -2:2
     
     c.parameter_names = {
         'logsigma_c_low'
@@ -120,16 +120,15 @@ for m_id = 1 : nModels
         'b_2_neural1Term_TaskA'
         'b_3_neural1Term_TaskA'
         'b_0_neural1Choice_TaskA'
-        'logsigma_c_mid'
         };
 
-    %               scl sch betabn3dbn2dbn1db0d b1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA  sig_tc  bn3n1   bn2n1   bn1n1   b0n1    b1n1    b2n1    b3n1    b0n1c   b0n1_TA     b1n1_TA     b2n1_TA     b3n1_TA     b0n1c_TA    scm
-    c.lb       = [  0   -5  -10 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30     0       0       0       0       0       0       0       0       0       -50         0           0           0           -50         -5]';
-    c.ub       = [  10  10  10  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   .25 .2  .2  .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30      10      150     150     150     150     150     200     300     200     50          200         200         200         50          10]';
-    c.lb_gen   = [  1   .5  -2  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  -3   0   0   0   0   0   2   8  2   -2  3   0       -.3     .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5      0       0       0       0       0       0       0       0       10      -10         0           0           0           -10         1]';
-    c.ub_gen   = [  3.5 1   2   1.2 1.2 1.2 1.2 1.2 1.2 1.2 3   5   5   5   5   5   5   1   1   1   1   1   1   1   2   .1  .1  .1  .2  .1  4   10  10  2   8   2       .3      1.2     1.2     2       2       5       5       30      2       1       1       1       2       3       5       1.7     15      15      15      15      15      15      15      20      10          15          15          15          1           3.5]';
+    %               scl sch betabn3dbn2dbn1db0d b1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA  sig_tc  bn3n1   bn2n1   bn1n1   b0n1    b1n1    b2n1    b3n1    b0n1c   b0n1_TA     b1n1_TA     b2n1_TA     b3n1_TA     b0n1c_TA
+    c.lb       = [  0   -5  -10 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30     0       0       0       0       0       0       0       0       0       -50         0           0           0           -50     ]';
+    c.ub       = [  10  10  10  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   1   .25 .25 .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30      10      150     150     150     150     150     200     300     200     50          200         200         200         50      ]';
+    c.lb_gen   = [  1   .5  -2  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  -3  0   0   0   0   0   2   8  2   -2  3   0       -.3     .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5      0       0       0       0       0       0       0       0       10      -10         0           0           0           -10     ]';
+    c.ub_gen   = [  3.5 1   2   -.5 .2  .2  .2  .2  .2  .2  3   5   5   5   5   5   5   1   1   1   1   1   1   1   2   .1  .1  .1  .2  .1  4   10  10  2   8   2       .3      1.2     1.2     2       2       5       5       30      2       1       1       1       2       3       5       1.7     15      15      15      15      15      15      15      20      10          15          15          15          1       ]';
     
-    c.beq      = [  1   1   1   -2  .7  .7  .7  .7  .7  .7  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0       3       10      10      20      20      20      50      50      15      0           10          10          10          0           1]';
+    c.beq      = [  1   1   1   -2  .15 .15 .15 .15 .15 .15  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0       3       10      10      20      20      20      50      50      15      0           10          10          10          0       ]';
 
     %log_params = strncmpi(c.parameter_names,'log',3);
 
@@ -150,7 +149,7 @@ for m_id = 1 : nModels
     c = symmetricizer(c);
     c = choiceizer(c);
     c = d_noiseizer(c);
-    c = attention1izer(c);
+    c = free_sigsizer(c);
     c = neural1izer(c);
     c = partial_lapseizer(c);
     c = multi_lapseizer(c);
@@ -159,7 +158,7 @@ for m_id = 1 : nModels
     c = sig_ampizer(c);
     
     % calculate uniform param prior
-    c.param_prior = prod(1 ./ (c.ub - c.lb)); % this is not great. lapse param should be a beta dist, not uniform. but only applies when doing hessian, which we've moved on from.
+%     c.param_prior = prod(1 ./ (c.ub - c.lb)); % this is not great. lapse param should be a beta dist, not uniform. but only applies when doing hessian, which we've moved on from.
     
     % indicate which are lapse and Term params, so that you don't have to do this every sample in parameter_variable_namer
     c.term_params = find(~cellfun(@isempty, strfind(c.parameter_names,'Term')));
@@ -176,27 +175,28 @@ end
 function c = taskizer(c)
 if ~c.joint_task_fit && c.diff_mean_same_std==1
     % TASK A
-    otherbounds = find(~cellfun(@isempty, regexp(c.parameter_names, '^[bm]_(.(?!TaskA))*$'))); % this regular expression says that all characters after ^[bm]_ must be a character that is not followed by 'TaskA'
+    otherbounds = find_parameter('^[bm]_(.(?!TaskA))*$', c); % this regular expression says that all characters after ^[bm]_ must be a character that is not followed by 'TaskA'
     c = p_stripper(c,otherbounds);
     
     % chop TaskA off the end
-    TaskA_bounds = find(~cellfun(@isempty, regexp(c.parameter_names, 'TaskA$')));
+    TaskA_bounds = find_parameter('TaskA$', c);
     for tb = TaskA_bounds'
-        c.parameter_names{tb} = c.parameter_names{tb}(1:end-6);
+        c.parameter_names{tb} = strrep(c.parameter_names{tb}, '_TaskA', '');
+%         c.parameter_names{tb} = c.parameter_names{tb}(1:end-6);
     end
 elseif (~c.joint_task_fit && c.diff_mean_same_std==0) || c.joint_d
     % TASK B or shared
-    otherbounds = find(~cellfun(@isempty, regexp(c.parameter_names, '[bm]_.*TaskA')));
+    otherbounds = find_parameter('[bm]_.*TaskA', c);
     c = p_stripper(c,otherbounds);
 end
 end
 
 function c = familyizer(c)
 % strip out bound parameters from families other than the specified one
-optbounds = find(~cellfun(@isempty, regexp(c.parameter_names, 'b_.*d')));
-xbounds   = find(~cellfun(@isempty, regexp(c.parameter_names,'b_.*x')));
-slopebounds=find(~cellfun(@isempty, regexp(c.parameter_names, 'm_[n0-9]')));
-neural1bounds = find(~cellfun(@isempty, regexp(c.parameter_names, 'b_.*neural1')));
+optbounds = find_parameter('b_.*d', c);
+xbounds   = find_parameter('b_.*x', c);
+slopebounds=find_parameter('m_[n0-9]', c);
+neural1bounds = find_parameter('b_.*neural1', c);
 
 if strcmp(c.family, 'quad') || strcmp(c.family, 'lin')
     otherbounds = {optbounds, neural1bounds};
@@ -215,7 +215,7 @@ function c = symmetricizer(c)
 if c.symmetric && ~c.diff_mean_same_std %(~c.joint_task_fit && c.symmetric && ~c.diff_mean_same_std)% || (c.joint_task_fit && c.symmetric)
     % if doing symmetric (opt) model and task B, strip out negative D parameters. Task A doesn't have any neg D params because thye are all symmetric.
     % also strip if doing symmetric and joint task fit. in the latter case, the diffmeansamestd parameter is set to 0. 
-    b0term = find(~cellfun(@isempty, regexp(c.parameter_names,'b_0_dTerm')));
+    b0term = find_parameter('b_0_dTerm', c);
     c.parameter_names{b0term} = 'b_0_d';
     fields = {'lb','ub','lb_gen','ub_gen'};
     for f = 1:length(fields)
@@ -232,13 +232,14 @@ function c = choiceizer(c)
 choice_bounds = find(~cellfun(@isempty,regexp(c.parameter_names, 'Choice')));
 if c.choice_only
     % if only doing choice, strip out extra bound parameters
-    all_bounds = find(~cellfun(@isempty, regexp(c.parameter_names, '[bm]_')));
+    all_bounds = find_parameter('[bm]_', c);
     extra_bounds = setdiff(all_bounds, choice_bounds);
     c = p_stripper(c,extra_bounds);
     % chop Choice off the end
     choice_bounds = find(~cellfun(@isempty,regexp(c.parameter_names, 'Choice'))); % find params again
     for cb = choice_bounds'
-        c.parameter_names{cb} = c.parameter_names{cb}(1:end-6);
+        c.parameter_names{cb} = strrep(c.parameter_names{cb}, 'Choice', '');
+%         c.parameter_names{cb} = c.parameter_names{cb}(1:end-6);
     end
     
 elseif ~c.choice_only
@@ -249,18 +250,31 @@ end
 function c = d_noiseizer(c)
 % if not doing d noise, strip out d noise parameter
 if ~c.d_noise
-    d_noiseP = find(~cellfun(@isempty, regexp(c.parameter_names, 'sigma_d')));
+    d_noiseP = find_parameter('sigma_d', c);
     c = p_stripper(c,d_noiseP);
 end
 end
 
-function c = attention1izer(c)
-% if not attention1, strip out mid_sig. if three_free_sigs, strip out beta
-if ~c.attention1
-    midsigP = find(~cellfun(@isempty, regexp(c.parameter_names, 'logsigma_c_mid')));
-    c = p_stripper(c, midsigP);
-else
-    betaP = find(~cellfun(@isempty, regexp(c.parameter_names, 'beta')));
+function c = free_sigsizer(c)
+if c.nFreesigs ~= 0
+    lowsigP = find_parameter('logsigma_c_hi', c);
+    
+    
+    for contrast_id = 1:c.nFreesigs
+        c.parameter_names = cat(1, c.parameter_names, sprintf('logsigma_c%i', contrast_id));
+        
+        fields = {'lb', 'ub', 'lb_gen', 'ub_gen', 'beq'};
+        for l = 1:length(fields)
+            c.(fields{l}) = cat(1, c.(fields{l}), c.(fields{l})(lowsigP));
+        end
+            
+    end
+    c = p_stripper(c, lowsigP);
+    
+    hisigP = find_parameter('logsigma_c_low', c);
+    c = p_stripper(c, hisigP);
+    
+    betaP = find_parameter('beta', c);
     c = p_stripper(c, betaP);
 end
 end
@@ -268,7 +282,7 @@ end
 function c = neural1izer(c)
 % if not neural1, strip out sigma_tc parameter
 if ~strcmp(c.family, 'neural1')
-    sig_tcP = find(~cellfun(@isempty, regexp(c.parameter_names, 'sigma_tc')));
+    sig_tcP = find_parameter('sigma_tc', c);
     c = p_stripper(c, sig_tcP);
 end
 end
@@ -276,7 +290,7 @@ end
 function c = partial_lapseizer(c)
 % if not doing partial lapse, strip out partial lapse parameter
 if ~c.partial_lapse
-    partial_lapseP = find(~cellfun(@isempty, regexp(c.parameter_names, 'lambda_g')));
+    partial_lapseP = find_parameter('lambda_g', c);
     c = p_stripper(c,partial_lapseP);
 end
 end
@@ -285,9 +299,9 @@ function c = multi_lapseizer(c)
 % if doing multilapse, strip out the single full lapse and leave the multilapse
 % if not doing multilapse, strip out the multilapse and leave the full lapse
 if c.multi_lapse
-    unwantedLapseP = find(~cellfun(@isempty, regexp(c.parameter_names, 'lambda$')));
+    unwantedLapseP = find_parameter('lambda$', c);
 elseif ~c.multi_lapse % strike the two multilapses
-    unwantedLapseP = find(~cellfun(@isempty, regexp(c.parameter_names, 'lambda_[14]')));
+    unwantedLapseP = find_parameter('lambda_[14]', c);
 end
 c = p_stripper(c,unwantedLapseP);
 end
@@ -295,14 +309,14 @@ end
 function c = repeat_lapseizer(c)
 % if not doing repeat lapse, strip out repeat lapse parameter
 if ~c.repeat_lapse
-    repeat_lapseP = find(~cellfun(@isempty, regexp(c.parameter_names, 'lambda_r')));
+    repeat_lapseP = find_parameter('lambda_r', c);
     c = p_stripper(c,repeat_lapseP);
 end
 end
 
 function c = free_catsizer(c)
 % if not doing free cats, strip out sig1 and sig2
-free_catsP = find(~cellfun(@isempty, regexp(c.parameter_names, 'sig[12]')));
+free_catsP = find_parameter('sig[12]', c);
 if ~c.free_cats
     c = p_stripper(c,free_catsP);
 end
@@ -312,11 +326,10 @@ end
 function c = sig_ampizer(c)
 % if not doing ori dep noise, strip out sig_amplitude
 if ~c.ori_dep_noise
-    sig_ampP = find(~cellfun(@isempty, regexp(c.parameter_names, 'sig_amplitude')));
+    sig_ampP = find_parameter('sig_amplitude', c);
     c = p_stripper(c, sig_ampP);
 end
 end
-
 
 
 function c = p_stripper(c, p_to_remove)

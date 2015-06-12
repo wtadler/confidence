@@ -3,7 +3,7 @@ function st = compile_data(varargin)
 % should be left out.
 % define defaults
 sig_levels = 6; % defines by how much we group the sigma values. 6 is no grouping. can do 1,2,3,6
-flipsig = 1;
+% flipsig = true;
 n_bins=19; % must be odd to plot a point at 0.
 binstyle = 'quantile';
 o_boundary=25;
@@ -71,8 +71,8 @@ for subject = 1 : length(names)
         
         for block = 1:Test.n.blocks
             for section = 1:Test.n.sections
-%                 start_trial = (session - 1) * Test.n.blocks * Test.n.sections * Test.n.trials + (block - 1) * Test.n.sections * Test.n.trials + (section - 1) * Test.n.trials + 1;
-%                 end_trial   = (session - 1) * Test.n.blocks * Test.n.sections * Test.n.trials + (block - 1) * Test.n.sections * Test.n.trials + (section - 1) * Test.n.trials + Test.n.trials;
+                %                 start_trial = (session - 1) * Test.n.blocks * Test.n.sections * Test.n.trials + (block - 1) * Test.n.sections * Test.n.trials + (section - 1) * Test.n.trials + 1;
+                %                 end_trial   = (session - 1) * Test.n.blocks * Test.n.sections * Test.n.trials + (block - 1) * Test.n.sections * Test.n.trials + (section - 1) * Test.n.trials + Test.n.trials;
                 nTrials = length(Test.R.draws{block}(section,:));
                 st.data(subject).name = names{subject};
                 
@@ -86,7 +86,7 @@ for subject = 1 : length(names)
 %                 raw.contrast   (start_trial:end_trial) = Test.R.sigma      {block}(section,:);
                 
                 if ~attention_manipulation
-                    [contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast,'sig_levels',sig_levels,'flipsig',flipsig);
+                    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);%,'flipsig',flipsig);
                 elseif attention_manipulation
                     raw.probe = [raw.probe Test.R2.probe{block}(section,:)];
                     raw.cue   = [raw.cue   Test.R2.cue{block}(section,:)];
@@ -133,7 +133,7 @@ for subject = 1 : length(names)
                     
                     raw.cue_validity_id = 2 - raw.cue_validity; % maps [-1 0 1] onto [3 2 1]
                     
-                    [contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity, 'sig_levels', 3, 'flipsig', flipsig);
+                    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity);%, 'flipsig', flipsig);
 
                     % vector of order of trials. eg, [1 2 3 2] indicates that trial 2 was repeated. nothing is recorded for the first attempt at trial 2
                     trial_order = Test.responses{block}.trial_order{section};
@@ -150,7 +150,7 @@ for subject = 1 : length(names)
                     trial_order = fliplr(trials);
                     
                     % re-order all trial info.
-                    fields = fieldnames(raw);
+                    fields = setdiff(fieldnames(raw), 'contrast_values'); % because contrast_values is not a nTrials list
                     for f = 1:length(fields)
                         cur_trials = raw.(fields{f})(end-nTrials+1:end);
                         raw.(fields{f})(end-nTrials+1:end) = cur_trials(trial_order);

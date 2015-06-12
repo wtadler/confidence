@@ -3,16 +3,10 @@ function raw = trial_generator(p_in, model, varargin)
 % define defaults
 n_samples = 2160;
 % contrasts  = exp(-4:.5:-1.5);%[.125 .25 .5 1 2 4];
-if ~model.attention1
-    contrasts = exp(linspace(-5.5,-2,6));
-else
-    contrasts = .08;
-end
 
 model_fitting_data = [];
 conf_levels = 4;
 
-category_params.category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 category_params.sigma_1 = 3;
 category_params.sigma_2 = 12;
 category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
@@ -21,7 +15,17 @@ category_params.mu_1 = -4; % mean for 'diff_mean_same_std'
 category_params.mu_2 = 4;
 category_params.uniform_range = 1;
 
+category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
+
+attention_manipulation = false;
+
 assignopts(who,varargin);
+
+if ~attention_manipulation
+    contrasts = exp(linspace(-5.5,-2,6));
+else
+    contrasts = .08;
+end
 
 nContrasts = length(contrasts);
 
@@ -36,10 +40,10 @@ end
 if isempty(model_fitting_data)
     raw.C         = randsample([-1 1], n_samples, 'true');
     raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
-    raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1));
-    raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1));
+    raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);
+    raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1), category_type);
     
-    if model.attention1
+    if attention_manipulation
         cue_validity = .7;
         
         raw.cue = randsample([-1 0 1], n_samples, 'true');
@@ -62,7 +66,7 @@ else % take real data
     raw.contrast    = model_fitting_data.contrast;
     raw.s           = model_fitting_data.s;
     
-    if model.attention1
+    if attention_manipulation
         raw.probe        = model_fitting_data.probe;
         raw.cue          = model_fitting_data.cue;
         raw.cue_validity = model_fitting_data.cue_validity;
@@ -75,23 +79,24 @@ if ~model.choice_only
     raw.g = zeros(1, n_samples);
 end
 
-if ~model.attention1
-    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
-    
-    c_low = min(raw.contrast_values);
-    c_hi = max(raw.contrast_values);
-    alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
-    sigs =    sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast_values .^ -p.beta); % the list of possible sigma values
-    raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
-elseif model.attention1
-    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity, 'sig_levels', 3); % contrast = cue_validity in this case.
-    raw.cue_validity_id = 2 - raw.cue_validity; % maps [-1 0 1] onto [3 2 1];
-
-    raw.sig(raw.cue_validity  == -1) = p.sigma_c_low; % invalid cue -> high sigma (c_low means low "contrast")
-    raw.sig(raw.cue_validity  ==  0) = p.sigma_c_mid;
-    raw.sig(raw.cue_validity ==  1) = p.sigma_c_hi;
+if ~attention_manipulation
+    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast, 'flipsig', true); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
+    raw.sig = p.unique_sigs(raw.contrast_id);
+%     c_low = min(raw.contrast_values);
+%     c_hi = max(raw.contrast_values);
+%     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
+%     sigs =    sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast_values .^ -p.beta); % the list of possible sigma values
+%     raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
+elseif attention_manipulation
+    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
+    [raw.cue_validity_values, raw.cue_validity_id] = unique_contrasts(raw.cue_validity);
+    raw.sig = p.unique_sigs(raw.cue_validity_id);
+%     raw.sig(raw.cue_validity  == -1) = p.sigma_c_low; % invalid cue -> high sigma (c_low means low "contrast")
+%     raw.sig(raw.cue_validity  ==  0) = p.sigma_c_mid;
+%     raw.sig(raw.cue_validity ==  1) = p.sigma_c_hi;
 end
 raw.sig = reshape(raw.sig,1,length(raw.sig)); % make sure it's a row.
+
 
 if model.ori_dep_noise
     pre_sig = raw.sig;
@@ -132,7 +137,7 @@ end
 
 % calculate d(x)
 if strcmp(model.family,'opt')
-    switch category_params.category_type
+    switch category_type
         case 'same_mean_diff_std'
             if model.non_overlap
                 raw.d = zeros(1, n_samples);
@@ -198,7 +203,7 @@ elseif strcmp(model.family, 'MAP')
         sig = sigs(i);
         idx = find(raw.contrast_id==i);
 
-        switch category_params.category_type
+        switch category_type
             case 'same_mean_diff_std'
                 k1 = sqrt(1/(sig^-2 + category_params.sigma_1^-2));
                 mu1 = raw.x(idx)*sig^-2 * k1^2;
@@ -237,9 +242,9 @@ elseif strcmp(model.family, 'MAP')
     end    
     b = p.b_i(5);
     
-    if strcmp(category_params.category_type, 'same_mean_diff_std')
+    if strcmp(category_type, 'same_mean_diff_std')
         shat_tmp = abs(raw.shat);
-    elseif strcmp(category_params.category_type, 'diff_mean_same_std')
+    elseif strcmp(category_type, 'diff_mean_same_std')
         shat_tmp = raw.shat;
     end
     raw.Chat(shat_tmp <= b) = -1;
@@ -261,15 +266,15 @@ else % all non-Bayesian models
         b = p.b_i(5);
     end
     
-    if strcmp(category_params.category_type, 'same_mean_diff_std')
+    if strcmp(category_type, 'same_mean_diff_std')
         x_tmp=abs(raw.x);
-    elseif strcmp(category_params.category_type, 'diff_mean_same_std')
+    elseif strcmp(category_type, 'diff_mean_same_std')
         x_tmp=raw.x;
     end
     
     raw.Chat(x_tmp <= b)   = -1;
     raw.Chat(x_tmp >  b)   =  1;
-%     if strcmp(category_params.category_type, 'diff_mean_same_std')
+%     if strcmp(category_type, 'diff_mean_same_std')
 %        raw.Chat = -raw.Chat;
 %     end
     
@@ -335,8 +340,11 @@ else
 end
 
 if ~model.choice_only
-    raw.resp  = raw.g + conf_levels + ... % combine conf and class to give resp on 8 point scale
-        (raw.Chat * .5 -.5) .* (2 * raw.g - 1);
+     % combine conf and class to give resp on 8 point scale
+    raw.resp  = raw.Chat .* raw.g - .5 * (raw.Chat+1) + conf_levels + 1; 
+%     
+%     raw.g + conf_levels + ...
+%         (raw.Chat * .5 -.5) .* (2 * raw.g - 1);
 end
 
 raw.tf = raw.Chat == raw.C;

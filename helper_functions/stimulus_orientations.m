@@ -1,6 +1,6 @@
-function s = stimulus_orientations(category_params, category, nStimuli)
+function s = stimulus_orientations(category_params, category, nStimuli, category_type)
 
-switch category_params.category_type
+switch category_type
     case 'same_mean_diff_std'
         if category==1
             s = category_params.sigma_1 * randn(1,nStimuli);
