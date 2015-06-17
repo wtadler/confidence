@@ -11,6 +11,8 @@ extraburn_prop = 0;
 
 jobid = 'ab';
 hpc = true;
+
+include_aborted_jobs = false;
 assignopts(who,varargin)
 
 st = compile_data('datadir',rawdatadir);
@@ -29,6 +31,23 @@ files = what(datadir);
 mat_files = files.mat;
 job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%s.*\\.mat', jobid))));
 
+% load aborted chains
+if include_aborted_jobs
+    aborted_files = what([datadir '/aborted']);
+    aborted_mat_files = aborted_files.mat;
+    aborted_job_files = aborted_mat_files(~cellfun(@isempty, regexp(aborted_mat_files, sprintf('^aborted_%s.*\\.mat', jobid))));
+    for f = 1:length(aborted_job_files);
+        aborted_file = regexp(aborted_job_files{f}, '^aborted_(.*)', 'tokens'); % a{1}{1} is a filename string without ('aborted_')
+        aborted_file = aborted_file{1}{1};
+        if ~any(cellfun(@(s) ~isempty(strfind(aborted_file, s)), job_files))
+            job_files = [job_files;strcat('aborted/aborted_', aborted_file)];
+        end
+    end
+        
+    
+%     job_files = [job_files;strcat('aborted/', aborted_job_files)];
+end
+        
 newjob = zeros(1,length(job_files));
 for j = 1:length(job_files)
     t = regexp(job_files{j},'\.(.*?)\.','tokens');

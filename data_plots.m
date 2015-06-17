@@ -1,3 +1,5 @@
+% replace this by model_fit_plot
+
 clear all
 tstart=tic;
 tic
