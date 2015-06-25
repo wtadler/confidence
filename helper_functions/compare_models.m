@@ -5,8 +5,8 @@ figure
 MCM = 'dic';
 sort_subjects = true;
 fontsize = 10;
-mark_best_and_worst = false;
-color_switch_threshold = .5;
+mark_best_and_worst = true;
+color_switch_threshold = .5; % point in the MCM range where the text color switches from black to white
 assignopts(who, varargin)
 
 nModels = length(models)

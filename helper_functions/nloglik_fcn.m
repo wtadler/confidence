@@ -234,7 +234,7 @@ elseif strcmp(model.family, 'MAP')
     shat_lookup_table = zeros(len,xSteps);
     niter = 4;
     
-    if ~model.diff_mean_same_std
+    if ~model.diff_mean_same_std % task B
         ksq1 = sqrt(1./(sig.^-2 + sig1^-2)); % like k1 in trial_generator
         ksq2 = sqrt(1./(sig.^-2 + sig2^-2)); % like k2 in trial_generator
         for i = 1:len
@@ -245,13 +245,13 @@ elseif strcmp(model.family, 'MAP')
             w2 = normpdf(xVec,0,sqrt(sig2^2 + cur_sig^2));
             shat_lookup_table(i,:) = gmm1max_n2_fast([w1 w2], [mu1 mu2], repmat([ksq1(i) ksq2(i)],xSteps,1),niter);
         end
-    elseif model.diff_mean_same_std
+    elseif model.diff_mean_same_std % task A
         ksq = sqrt(1./(sig.^-2 + category_params.sigma_s^-2));
         for i = 1:len
             cur_sig = sig(i);
-            mu1 = (xVec*cur_sig^-2 + category_params.mu_1*category_params.sigma_s^-2) * ksq(i)^2; % not sure about the minus sign here.
+            mu1 = (xVec*cur_sig^-2 + category_params.mu_1*category_params.sigma_s^-2) * ksq(i)^2;
             mu2 = (xVec*cur_sig^-2 + category_params.mu_2*category_params.sigma_s^-2) * ksq(i)^2;
-            w1 = exp(xVec*category_params.mu_1./(category_params.sigma_s^2+cur_sig^2)); % not sure about minus sign here either.
+            w1 = exp(xVec*category_params.mu_1./(category_params.sigma_s^2+cur_sig^2));
             w2 = exp(xVec*category_params.mu_2./(category_params.sigma_s^2+cur_sig^2));
             shat_lookup_table(i,:) = gmm1max_n2_fast([w1 w2], [mu1 mu2], repmat([ksq(i) ksq(i)],xSteps,1),niter);
         end
@@ -267,6 +267,7 @@ elseif strcmp(model.family, 'MAP')
     %
     %             k(i) = lininterp1(fine_lookup_table, x_fine, bf(0));
     %         end
+    
     x_dec_bound = lininterp1_multiple(shat_lookup_table, xVec, bf(0)*ones(1,len)); % find the x values corresponding to the MAP criterion, for each contrast level (or, if doing ODN where each trial has a different sigma, for every trial/sigma)
 end
 
@@ -380,20 +381,38 @@ if ~model.choice_only
                     %                     end
                 end
             end
-            if ~model.diff_mean_same_std
+            
+            rows = nContrasts + 1 - raw.contrast_id;
+            
+            if ~model.diff_mean_same_std % task B
                 x_bounds = [zeros(nContrasts,1) flipud(x_bounds) inf(nContrasts,1)];
-                x_lb = raw.Chat .* x_bounds((5 + raw.Chat .* raw.g) * nContrasts + 1 - raw.contrast_id);
-                x_ub = raw.Chat .* x_bounds((5 + raw.Chat .* (raw.g - 1)) * nContrasts + 1 - raw.contrast_id);
-                %a = raw.Chat .* x_bounds(sub2ind([nContrasts conf_levels*2+1], nContrasts + 1 - raw.contrast_id, 5 + raw.Chat .* raw.g)); % equivalent, but 3x slower
-                %b = raw.Chat .* x_bounds(sub2ind([nContrasts conf_levels*2+1], nContrasts + 1 - raw.contrast_id, 5 + raw.Chat .* (raw.g - 1)));
-            else
+
+                lb_cols = raw.resp;
+                lb_cols(lb_cols >= 5) = lb_cols(lb_cols >= 5) + 1;
+                lb_index = my_sub2ind(nContrasts, rows, lb_cols);
+                a = x_bounds(lb_index);
+                
+                ub_cols = raw.resp;
+                ub_cols(ub_cols <= 4) = ub_cols(ub_cols <= 4) + 1;
+                ub_index = my_sub2ind(nContrasts, rows, ub_cols);
+                b = x_bounds(ub_index);
+                
+                x_lb = min(cat(3,a,b), [], 3); % this is a hack. try to fix the above part
+                x_ub = max(cat(3,a,b), [], 3);
+
+            else % task A
                 x_bounds = [-inf(nContrasts,1) flipud(x_bounds) inf(nContrasts,1)]; % -inf instead of zero, because Task A is asymmetric
-                %a = x_bounds((5 + raw.Chat .* (raw.g - 1)) * nContrasts + 1 - raw.contrast_id);
-                %                 b = x_bounds((5 + raw.Chat .* raw.g) * nContrasts + 1 - raw.contrast_id);
-                x_lb = x_bounds((5 + raw.Chat .* raw.g - .5*(raw.Chat+1)) * nContrasts + 1 - raw.contrast_id);
-                x_ub = x_bounds((5 + raw.Chat .* raw.g - .5*(raw.Chat-1)) * nContrasts + 1 - raw.contrast_id);
+                
+                lb_cols = raw.resp;
+                lb_index = my_sub2ind(nContrasts, rows, lb_cols);
+                x_lb = x_bounds(lb_index);
+                
+                ub_cols = raw.resp + 1;
+                ub_index = my_sub2ind(nContrasts, rows, ub_cols);
+                x_ub = x_bounds(ub_index);
             end
             
+            % OLD NOTE:
             % The following is cleaner than the above approach, and it matches more with the below ori_dep_noise version, but it's 2x slower:
             %             a = zeros(1,nTrials);
             %             b = zeros(1,nTrials);
@@ -507,10 +526,6 @@ end
 %         d_boundstmp = [Inf d_bounds 0];
 %         d_boundsval = d_boundstmp(name + conf_levels + 1);
 %     end
-end
-
-function y = my_normcdf(k, mu, sigma)
-y = 0.5 * (1 + erf((k-mu)./(sigma*sqrt(2))));
 end
 
 function retval = symmetric_normcdf(k, mu, sigma)

@@ -2,7 +2,7 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'opt';
+opt_models(1).family = 'MAP';
 opt_models(1).multi_lapse = 0;
 opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
@@ -11,10 +11,19 @@ opt_models(1).d_noise = 0;
 opt_models(1).ori_dep_noise = 0;
 opt_models(1).diff_mean_same_std = 0;
 opt_models(1).joint_task_fit = 0;
-opt_models(1).nFreesigs = 3;
+opt_models(1).nFreesigs = 0;
 opt_models(1).symmetric = 0;
 
 opt_models = parameter_constraints(opt_models);
+
+% MAP choice_only, A/B work
+% MAP conf A works
+% MAP conf B DOESN'T WORK
+
+% MAP choice_only ODN A
+% MAP choice_only ODN B
+% MAP conf ODN A
+% MAP conf ODN B
 
 %%
 hpc = false;
@@ -304,11 +313,17 @@ for gen_model_id = active_gen_models
                     if o.joint_task_fit
                         data_taskA = gen (gen_model_id).data(dataset).raw;
                         data_taskB = genB(gen_model_id).data(dataset).raw;
+                        
+                        if strcmp(data_type, 'real'); dataset_name = gen(gen_model_id).data(dataset).name; end
                     elseif ~o.joint_task_fit
                         if ~o.diff_mean_same_std % task B
                             data =       genB(gen_model_id).data(dataset).raw;
+                            
+                            if strcmp(data_type, 'real'); dataset_name = genB(gen_model_id).data(dataset).name; end
                         elseif o.diff_mean_same_std % task A
                             data =       gen (gen_model_id).data(dataset).raw;
+                            
+                            if strcmp(data_type, 'real'); dataset_name = gen(gen_model_id).data(dataset).name; end
                         end
                     end
                 end
@@ -548,7 +563,7 @@ for gen_model_id = active_gen_models
                 [ex.aic, ex.bic, ex.aicc] = aicbic(-ex.min_nll, nParams, gen_nSamples);
                 
                 if strcmp(data_type, 'real')
-                    gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = gen(gen_model_id).data(dataset).name;
+                    gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = dataset_name;
                 end
                 if slimdown
                     fields = {'p','nll','logprior','hessian','min_nll','min_idx','best_params','n_good_params','aic','bic','aicc','dic','best_hessian','laplace'};

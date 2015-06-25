@@ -39,7 +39,7 @@ if include_aborted_jobs
     for f = 1:length(aborted_job_files);
         aborted_file = regexp(aborted_job_files{f}, '^aborted_(.*)', 'tokens'); % a{1}{1} is a filename string without ('aborted_')
         aborted_file = aborted_file{1}{1};
-        if ~any(cellfun(@(s) ~isempty(strfind(aborted_file, s)), job_files))
+        if ~any(cellfun(@(s) ~isempty(strfind(aborted_file, s)), job_files)) % if aborted_file is not already in job_files
             job_files = [job_files;strcat('aborted/aborted_', aborted_file)];
         end
     end

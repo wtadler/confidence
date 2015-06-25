@@ -200,7 +200,7 @@ if strcmp(model.family,'opt') % for all opt family models
 elseif strcmp(model.family, 'MAP')
     raw.shat = zeros(1,n_samples);
     for i = 1:nContrasts
-        sig = sigs(i);
+        sig = p.unique_sigs(i);
         idx = find(raw.contrast_id==i);
 
         switch category_type
