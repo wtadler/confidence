@@ -10,17 +10,24 @@ marg_over_s = false; %marginalize over s to just show effects of reliability
 task = 'B';
 linewidth = 2;
 ticklength = .025;
+errorbarwidth = .5; % matlab errorbar is silly. errorbar width can't be set, is 2% of total range. so we make a dummy point. only applies to marg_over_s case
 gutter = [.0175 .025];
+fake_st = [];
 assignopts(who, varargin);
 
-st = compile_data('datadir',datadir);
+if ~isempty(fake_st)
+    show_fits = true;
+else
+    show_fits = false;
+end
+real_st = compile_data('datadir',datadir);
 
-nSubjects = length(st.data);
+nSubjects = length(real_st.data);
 
 % attention and confidence experiment
-if isfield(st.data(1).raw, 'cue_validity') && ~isempty(st.data(1).raw.cue_validity)
+if isfield(real_st.data(1).raw, 'cue_validity') && ~isempty(real_st.data(1).raw.cue_validity)
     attention_task = true;
-    nReliabilities = length(unique(st.data(1).raw.cue_validity_id));
+    nReliabilities = length(unique(real_st.data(1).raw.cue_validity_id));
     
     labels = {'valid', 'neutral', 'invalid'};
     xl = 'cue validity';
@@ -30,9 +37,9 @@ if isfield(st.data(1).raw, 'cue_validity') && ~isempty(st.data(1).raw.cue_validi
     %confidence only experiment
 else
     attention_task = false;
-    nReliabilities = length(unique(st.data(1).raw.contrast_id));
+    nReliabilities = length(unique(real_st.data(1).raw.contrast_id));
     
-    contrasts = unique(st.data(1).raw.contrast);
+    contrasts = unique(real_st.data(1).raw.contrast);
     strings = strsplit(sprintf('%.1f%% ', contrasts*100), ' ');
     labels = fliplr(strings(1:end-1));
     xl = 'contrast/eccentricity';
@@ -62,60 +69,34 @@ figure
 clf
 
 for subject = 1:nSubjects
-    raw = st.data(subject).raw;
-    
+    real_raw = real_st.data(subject).raw;
     if symmetrify
-        raw.s = abs(raw.s);
+        real_raw.s = abs(real_raw.s);
     end
+    real_stats = indiv_analysis_fcn(real_raw, edges);
     
-    stats = indiv_analysis_fcn(raw, edges);
+    if show_fits
+        fake_raw = fake_st.data(subject).raw;
+        if symmetrify
+            fake_raw.s = abs(fake_raw.s);
+        end
+        fake_stats = indiv_analysis_fcn(fake_raw, edges);
+    end
     
     for dep_var = 1:nDepVars
         tight_subplot(nDepVars, nSubjects, dep_var, subject, gutter);
-        hold on
-        for c = 1:nReliabilities
-            color = colors(c,:);
-            
-            if ~marg_over_s
-                m = stats.all.mean.(dep_vars{dep_var})(c,:);
-                if ~strcmp(dep_vars{dep_var}, 'tf') && ~strcmp(dep_vars{dep_var}, 'Chat')
-                    sem = stats.all.sem.(dep_vars{dep_var})(c,:);
-                else
-                    sem = stats.all.std_beta_dist.(dep_vars{dep_var})(c,:);
-                end
-                
-                if symmetrify
-                    m(1:ceil(nBins/2)-1) = fliplr(m(ceil(nBins/2)+1:end));
-                    sem(1:ceil(nBins/2)-1) = fliplr(sem(ceil(nBins/2)+1:end));
-                end
-                
-                errorbar(1:nBins, m, sem, 'linewidth', linewidth, 'color', color)
-            elseif marg_over_s
-                m   = stats.all.mean_marg_over_s.(dep_vars{dep_var})(c);
-                if ~strcmp(dep_vars{dep_var}, 'tf') && ~strcmp(dep_vars{dep_var}, 'Chat')
-                    sem = stats.all.sem_marg_over_s.(dep_vars{dep_var})(c);
-                else
-                    sem = stats.all.std_beta_dist_over_s.(dep_vars{dep_var})(c);
-                end
-                
-                errorbarwidth = .5; % matlab errorbar is silly. errorbar width can't be set, is 2% of total range. so we make a dummy point.
-                dummy_point = xticklabels(c) + errorbarwidth*50;
-                
-                errorbar([dummy_point xticklabels(c)], [0 m], [0 sem], '.', 'linewidth', linewidth, 'color', color)
-            end
-            
-            % axes stuff for every plot
-            set(gca,'box', 'off', 'ylim', ylims(dep_var,:), 'ticklength', [ticklength ticklength], 'tickdir','out', 'xtick', xticklabels, 'xticklabel', '', 'yticklabel', '')
-            if ~marg_over_s
-                xlim([0 nBins+1])
-            else
-                xlim([xticklabels(1)-.5 xticklabels(end)+.5])
-            end
+        
+        if show_fits
+            single_dataset_plot(fake_stats.all, dep_vars{dep_var}, marg_over_s, xticklabels, ylims(dep_var,:), 'fill_instead_of_errorbar', true, ...
+                'symmetrify', symmetrify, 'colors', colors, 'linewidth', linewidth, 'errorbarwidth', errorbarwidth, 'ticklength', ticklength)
         end
         
+        single_dataset_plot(real_stats.all, dep_vars{dep_var}, marg_over_s, xticklabels, ylims(dep_var,:), 'fill_instead_of_errorbar', false, ...
+            'symmetrify', symmetrify, 'colors', colors, 'linewidth', linewidth, 'errorbarwidth', errorbarwidth, 'ticklength', ticklength)
+
         % title (and maybe legend) for top row
         if dep_var == 1
-            title(st.data(subject).name)
+            title(real_st.data(subject).name)
             if subject == 1
                 if ~marg_over_s
                     legend(labels)

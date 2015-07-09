@@ -116,23 +116,23 @@ else
 end
 
     function [d_lookup_table, k] = d_table_and_choice_bound(sig_cat1, sig_cat2, mu_cat1, mu_cat2)
-        for c = 1:nContrasts
-            cur_sig = p.unique_sigs(c);
+        for contrast = 1:nContrasts
+            cur_sig = p.unique_sigs(contrast);
             sig_plusODN = cur_sig + ODN_s_mat;
-            d_lookup_table(c,:) = log(likelihood(sig_plusODN, sig_cat1, mu_cat1) ./ likelihood(sig_plusODN, sig_cat2, mu_cat2));
+            d_lookup_table(contrast,:) = log(likelihood(sig_plusODN, sig_cat1, mu_cat1) ./ likelihood(sig_plusODN, sig_cat2, mu_cat2));
             
             %k(:, c) = lininterp1m(repmat(fliplr(d_lookup_table(c,:)),nDNoiseSets,1)+repmat(d_noise_draws',1,xSteps), fliplr(xVec'), p.b_i(5))'; % take this out of the loop?
             % would be faster to take this out of the loop for the models without d_noise. but we're not really using models w/o d noise
-            k(:, c) = lininterp1_multiple(bsxfun(@plus, fliplr(d_lookup_table(c,:)), d_noise_draws'), fliplr(xVec'), bf(0)); % take this out of the loop?
+            k(:, contrast) = lininterp1_multiple(bsxfun(@plus, fliplr(d_lookup_table(contrast,:)), d_noise_draws'), fliplr(xVec'), bf(0)); % take this out of the loop?
         end
     end
 
     function [x_lb, x_ub] = x_bounds_by_trial()
         x_bounds = zeros(nContrasts, nBounds, nDNoiseSets);
         
-        for c = 1:nContrasts
-            for r = -(conf_levels-1):(conf_levels-1)%1:7 problem at r = 1:3
-                x_bounds(nContrasts+1-c,conf_levels-r,:) = lininterp1_multiple(bsxfun(@plus, fliplr(d_lookup_table(c,:)), d_noise_draws'), fliplr(xVec'), bf(r));
+        for contrast = 1:nContrasts
+            for response = -(conf_levels-1):(conf_levels-1)%1:7 problem at r = 1:3
+                x_bounds(nContrasts+1-contrast,conf_levels-response,:) = lininterp1_multiple(bsxfun(@plus, fliplr(d_lookup_table(contrast,:)), d_noise_draws'), fliplr(xVec'), bf(response));
             end
         end
         if ~model.diff_mean_same_std

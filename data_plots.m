@@ -1,5 +1,3 @@
-% replace this by model_fit_plot
-
 clear all
 tstart=tic;
 tic
@@ -68,6 +66,8 @@ n_samples = 2160; % 1e7
 % n_bins_model = nBins; %45
 % [model_bins, model_axis] = bin_generator(n_bins_model);
 
+% EVERYTHING BELOW THIS needs to be a separate function, to make plotting easier.
+
 nPlotSamples = 100; % for MCMC fits. number of parameter values to generate datasets from. 100 might be enough. used 100 for cosyne poster
 
 nHyperPlots = 1000; % number of times to take a random dataset from each subject. has only small effect on computation time.
@@ -108,11 +108,12 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%% GENERATE FAKE DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% generate fake trials based on extracted params, bin/analyze
+% generate fake trials based on extracted params, bin/analyze.
 for model_id = plot_model;
     for dataset = 1 : nDatasets;
         ex = model(model_id).extracted(dataset);
-        % BIN/ANALYZE REAL DATA
+        
+        % BIN/ANALYZE REAL DATA (leave this out of the function that should replace this)
         if opt_models(model_id).joint_task_fit
             for task = 1:length(tasks)
                 [streal.(tasks{task}).data(dataset).stats, streal.(tasks{task}).data(dataset).sorted_raw] = indiv_analysis_fcn(streal.(tasks{task}).data(dataset).raw, bins);
@@ -237,7 +238,6 @@ for o = 2
                     fliplr(hyperplot.mean.(outputs{o})(c,:)) - hyperplot.std.(outputs{o})(c,:)];
                 f = fill(x,y,contrast_colors(loopvar,:));
                 set(f,'edgecolor','none','facealpha',alpha);
-                
                 
             end
             

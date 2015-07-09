@@ -70,7 +70,7 @@ else
     end
     [ex.aic, ex.bic, ex.aicc] = aicbic(-ex.min_nll, nParams, gen_nSamples);
     if strcmp(data_type, 'real')
-        gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = gen.data(dataset).name;%data.name;
+        gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = gen.data(dataset).name; % need to change this to genB when just fitting task B data
     end
     if slimdown
         fields = {'p','nll','logprior','hessian','min_nll','min_idx','best_params','n_good_params','aic','bic','aicc','best_hessian','laplace'};%,'dic'};

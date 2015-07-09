@@ -1,3 +1,141 @@
+function diagnosis_plots(model_struct, varargin)
+
+fig_type = 'mcmc_grid'; % 'mcmc_figures' or 'mcmc_grid' or 'parameter_recovery'
+    gen_struct = []; % just needs to contain true parameters, and match model_struct in length if doing parameter recovery
+    show_cornerplot = true;
+
+assignopts(who,varargin);
+
+if strcmp(fig_type, 'parameter_recovery')
+    % COMPARE TRUE AND FITTED PARAMETERS IN SUBPLOTS
+
+    if length(gen_struct) ~= length(model_struct) || isempty(gen_struct)
+        error('gen_struct and model_struct need to have the same length.')
+    end
+
+    % for each model plot a figure
+    for model_id = 1:length(model_struct)
+        figure;
+
+        g = gen_struct(model_id);
+        m = model_struct(model_id);
+        if length(m.parameter_names) ~= length(g.parameter_names)
+            error('generating and fitting models need to have the same numbers of parameters')
+        end
+        
+        % for each parameter, plot all datasets
+        for parameter = 1:length(m.parameter_names)
+            subplot(5,5,parameter);
+            extracted_params = [m.extracted.best_params];
+            plot(g.p(parameter,:), extracted_params(parameter,:), '.','markersize',10);
+            hold on
+            xlim([g.lb_gen(parameter) g.ub_gen(parameter)]);
+            ylim([g.lb_gen(parameter) g.ub_gen(parameter)]);
+            
+            %axis square;
+            plot([g.lb(parameter) g.ub(parameter)], [g.lb(parameter) g.ub(parameter)], '--');
+            
+            title(g.parameter_names{parameter});
+        end
+        suplabel(m.name, 't')
+        suplabel('true parameter', 'x');
+        suplabel('extracted parameter', 'y');
+
+    end
+elseif strcmp(fig_type, 'mcmc_figures')
+    % DIAGNOSE MCMC
+    % open windows for every model/dataset combo.
+    if ~isempty(gen_struct) && length(gen_struct) ~= length(model_struct)
+        error('gen_struct and model_struct need to have the same length.')
+    end
+    
+    for model_id = 1:length(model_struct)
+        m = model_struct(model_id);
+        if ~isempty(gen_struct)
+            g = gen_struct(model_id);
+            if length(m.parameter_names) ~= length(g.parameter_names)
+                error('generating and fitting models need to have the same numbers of parameters')
+            end
+        else
+            g = [];
+        end
+        for dataset_id = 1:length(m.extracted)
+            ex = m.extracted(dataset_id);
+            
+            [true_p, true_logposterior] = deal([]);
+            if ~isempty(gen_struct) % if this is mcmc recovery
+                true_p = g.p(:, dataset_id);
+                true_logposterior = g.data(dataset_id).true_logposterior;
+            end
+            
+            tic
+            mcmcdiagnosis(ex.p, 'logposterior', ex.logposterior, 'fit_model', m, ...
+                'true_p', true_p, 'true_logposterior', true_logposterior, 'dataset', dataset_id, ...
+                'dic', ex.dic, 'gen_model', g, 'show_cornerplot', show_cornerplot);
+            toc
+            pause(1e-3); % to plot
+        end
+    end
+elseif strcmp(fig_type, 'mcmc_grid')
+    if ~isempty(gen_struct) && length(gen_struct) ~= length(model_struct)
+        error('gen_struct and model_struct need to have the same length.')
+    end
+    
+    show_legend = false;
+    
+    for model_id = 1:length(model_struct)
+        m = model_struct(model_id);
+        if ~isempty(gen_struct)
+            g = gen_struct(model_id);
+            if length(m.parameter_names) ~= length(g.parameter_names)
+                error('generating and fitting models need to have the same numbers of parameters')
+            end
+        else
+            g = [];
+        end
+        
+        for dataset_id = 1:length(m.extracted)
+            ex = m.extracted(dataset_id);
+            
+            [true_p, true_logposterior] = deal([]);
+            if ~isempty(gen_struct) % if this is mcmc recovery
+                true_p = g.p(:, dataset_id);
+                true_logposterior = g.data(dataset_id).true_logposterior;
+            end
+            
+
+            if dataset_id == length(m.extracted) && model_id == length(model_struct)
+                show_legend = true;
+            end
+            
+            tight_subplot(length(model_struct), 2*length(m.extracted), model_id, 2*dataset_id-1, [], [.06 .01 .04 .06]);
+            plot_logposterior_over_samples(ex.logposterior, 'true_logposterior', true_logposterior', 'show_legend', false, 'show_labels', false)
+            if model_id == 1
+                set(gca, 'visible', 'on')
+                title(sprintf('%i %s', dataset_id, upper(m.extracted(dataset_id).name)))
+            end
+            if dataset_id == 1
+                set(gca, 'visible', 'on')
+                ylabel(num2str(model_id))
+            end
+            tight_subplot(length(model_struct), 2*length(m.extracted), model_id, 2*dataset_id, [], [.06 .01 .04 .06]);
+            plot_logposterior_hist(ex.logposterior, 'true_logposterior', true_logposterior, 'show_legend', show_legend, 'show_labels', false)
+            view(90,-90)
+
+        end
+    end
+end
+
+
+
+return
+
+
+
+
+
+
+
 show_cornerplot = false;
 gen.opt=model; % this is for after CCO
 
@@ -47,3 +185,4 @@ elseif strcmp(optimization_method,'mcmc_slice')
         end
     end
 end
+

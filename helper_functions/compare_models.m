@@ -3,11 +3,17 @@ function compare_models(models, varargin)
 figure
 
 MCM = 'dic';
-sort_subjects = true;
+sort_subjects = false;
 fontsize = 10;
 mark_best_and_worst = true;
 color_switch_threshold = .5; % point in the MCM range where the text color switches from black to white
 assignopts(who, varargin)
+
+if strcmp(MCM, 'laplace')
+    flip_sign = true; % if higher number indicates better fit
+else
+    flip_sign = false; % if lower number indicates better fit (most MCMs)
+end
 
 nModels = length(models)
 nDatasets = length(models(1).extracted);
@@ -17,6 +23,14 @@ for m = 1:nModels
     for d = 1:nDatasets
         score(m,d) = models(m).extracted(d).(MCM);
     end
+end
+
+if flip_sign
+    score = -score;
+end
+
+if ~isreal(score)
+    score = real(score);
 end
 
 range = max(max(score))-min(min(score));
@@ -41,7 +55,12 @@ for m = 1:nModels
     for d = 1:nDatasets
         Lmargin = -.45;
         Tmargin = -.3;
-        t=text(d+Lmargin,m+Tmargin,num2str(score(m,d),'%.0f'),'fontsize',fontsize,'horizontalalignment','left');
+        if ~flip_sign
+            score_string = num2str(score(m,d),'%.0f');
+        else
+            score_string = num2str(-score(m,d), '%.0f');
+        end
+        t=text(d+Lmargin,m+Tmargin, score_string,'fontsize',fontsize,'horizontalalignment','left');
         if score(m,d)>color_threshold, set(t,'color','white'), end
     end
 end

@@ -8,7 +8,7 @@ opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
 opt_models(1).choice_only = 1;
 opt_models(1).d_noise = 0;
-opt_models(1).ori_dep_noise = 0;
+opt_models(1).ori_dep_noise = 1;
 opt_models(1).diff_mean_same_std = 0;
 opt_models(1).joint_task_fit = 0;
 opt_models(1).nFreesigs = 0;
@@ -16,9 +16,8 @@ opt_models(1).symmetric = 0;
 
 opt_models = parameter_constraints(opt_models);
 
-% MAP choice_only, A/B work
-% MAP conf A works
-% MAP conf B DOESN'T WORK
+% MAP choice_only A/B works
+% MAP conf A/B works
 
 % MAP choice_only ODN A
 % MAP choice_only ODN B

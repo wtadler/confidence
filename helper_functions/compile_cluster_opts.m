@@ -59,7 +59,6 @@ job_files = job_files(sort_idx)
 
 load(job_files{1}) % load first file to get nDatasets
 
-
 if any(strfind(job_files{1},'model')) && any(regexp(job_files{1},'m[0-9]*.'))% new model recovery
     
     for fid = 2:length(job_files);
@@ -129,7 +128,7 @@ elseif strfind(job_files{1},'model') % old model recovery
     end
     
 elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates single chain real data
-    tmp=load(job_files{1}); % to get nDatasets
+    tmp=load(job_files{1});
     
 %     if exist('ex_p','var') % indicates aborted file
 %         end_early_routine
@@ -236,20 +235,33 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                         all_samples = cat(1,all_samples,ex.p{c});
                         all_nll = cat(1,all_nll,ex.nll{c});
                     end
+
+%                     ex.mean_params = mean(all_samples)';
+%                     dbar = 2*mean(all_nll);
                     
-                    ex.mean_params = mean(all_samples)';
-                    dbar = 2*mean(all_nll);
                     if ~model(m).joint_task_fit
-                        dtbar= 2*nloglik_fcn(ex.mean_params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
+                        loglik_fcn = @(params) -nloglik_fcn(params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
+
+%                         dtbar= 2*nloglik_fcn(ex.mean_params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
+                        
                     elseif model(m).joint_task_fit
-
                         sm=prepare_submodels(model(m));
-
-                        dtbar=-2*two_task_ll_wrapper(ex.mean_params, st.data(d).raw, stB.data(d).raw, sm, nDNoiseSets, category_params, true);
-
+                        loglik_fcn = @(params) two_task_ll_wrapper(params, st.data(d).raw, stB.data(d).raw, sm, nDNoiseSets, category_params, true);
+                        
+%                         dtbar=-2*two_task_ll_wrapper(ex.mean_params, st.data(d).raw, stB.data(d).raw, sm, nDNoiseSets, category_params, true);
                     end
                     
-                    ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
+%                     old_dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
+                    
+                    ex.dic = dic(all_samples, -all_nll, loglik_fcn);
+                    
+%                     if abs(old_dic-ex.dic) > .1
+%                         error('old and new DIC methods don''t seem to be equivalent.')
+%                     else
+%                         fprintf(['success!  ' num2str(old_dic) ' = ' num2str(ex.dic) '\n'])
+%                     end
+                    
+                    
                     
                     [~,chain_idx] = min([ex.min_nll{:}]);
                     fields = {'min_nll','aic','bic','aicc','best_params'};
