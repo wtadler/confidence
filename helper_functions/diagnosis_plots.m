@@ -2,8 +2,9 @@ function diagnosis_plots(model_struct, varargin)
 
 fig_type = 'mcmc_grid'; % 'mcmc_figures' or 'mcmc_grid' or 'parameter_recovery'
     gen_struct = []; % just needs to contain true parameters, and match model_struct in length if doing parameter recovery
+    only_good_fits = true; % in parameter recovery, only show datasets that were fit well
     show_cornerplot = true;
-
+    
 assignopts(who,varargin);
 
 if strcmp(fig_type, 'parameter_recovery')
@@ -19,23 +20,37 @@ if strcmp(fig_type, 'parameter_recovery')
 
         g = gen_struct(model_id);
         m = model_struct(model_id);
-        if length(m.parameter_names) ~= length(g.parameter_names)
+        nParams = length(m.parameter_names);
+        if nParams ~= size(g.p, 1)
             error('generating and fitting models need to have the same numbers of parameters')
+        end
+        nRows = 4;
+        nCols = ceil(nParams/nRows);
+
+        
+        if only_good_fits
+            good_fits = [m.extracted.min_nll]-[g.data.true_nll] < 0;
+        else
+            good_fits = 1:length(m.extracted);
         end
         
         % for each parameter, plot all datasets
         for parameter = 1:length(m.parameter_names)
-            subplot(5,5,parameter);
+            row = ceil(parameter/nCols);
+            col = rem(parameter, nCols);
+            col(col==0) = nCols;
+            tight_subplot(nRows, nCols, row, col, [.05 .07], [.1 .02 .1 .1]);
             extracted_params = [m.extracted.best_params];
-            plot(g.p(parameter,:), extracted_params(parameter,:), '.','markersize',10);
+            plot(g.p(parameter, good_fits), extracted_params(parameter,good_fits), '.','markersize',12);
             hold on
-            xlim([g.lb_gen(parameter) g.ub_gen(parameter)]);
-            ylim([g.lb_gen(parameter) g.ub_gen(parameter)]);
+            xlim([m.lb_gen(parameter) m.ub_gen(parameter)]);
+            ylim([m.lb_gen(parameter) m.ub_gen(parameter)]);
             
-            %axis square;
-            plot([g.lb(parameter) g.ub(parameter)], [g.lb(parameter) g.ub(parameter)], '--');
+            plot([m.lb(parameter) m.ub(parameter)], [m.lb(parameter) m.ub(parameter)], '--', 'linewidth', .5);
             
-            title(g.parameter_names{parameter});
+            xlabel(m.parameter_names{parameter});
+            set(gca, 'tickdir','out','box','off')
+
         end
         suplabel(m.name, 't')
         suplabel('true parameter', 'x');

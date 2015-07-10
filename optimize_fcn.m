@@ -9,7 +9,7 @@ opt_models(1).repeat_lapse = 0;
 opt_models(1).choice_only = 1;
 opt_models(1).d_noise = 0;
 opt_models(1).ori_dep_noise = 1;
-opt_models(1).diff_mean_same_std = 0;
+opt_models(1).diff_mean_same_std = 1;
 opt_models(1).joint_task_fit = 0;
 opt_models(1).nFreesigs = 0;
 opt_models(1).symmetric = 0;
@@ -19,9 +19,9 @@ opt_models = parameter_constraints(opt_models);
 % MAP choice_only A/B works
 % MAP conf A/B works
 
-% MAP choice_only ODN A
-% MAP choice_only ODN B
-% MAP conf ODN A
+% MAP choice_only ODN A works
+% MAP choice_only ODN B underestimates b_shat
+% MAP conf ODN A maybe works? underestimates sig_amp
 % MAP conf ODN B
 
 %%
@@ -188,6 +188,7 @@ if strcmp(data_type, 'fake')
         for dataset = datasets;
             % generate data from parameters
 %             save before
+dataset
             while true
                 d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'attention_manipulation', attention_manipulation, 'category_type', category_type);
                 gen(gen_model_id).data(dataset).raw = d;
@@ -599,24 +600,8 @@ if ~hpc
     %diagnosis_plots
 % gen.opt=model; % this is for after CCO
 if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
-    % COMPARE TRUE AND FITTED PARAMETERS IN SUBPLOTS
-    figure;
-    % for each parameter, plot all datasets
-    for parameter = 1 : nParams
-        subplot(5,5,parameter);
-        extracted_params = [gen(active_gen_models).opt(active_opt_models).extracted.best_params];
-        plot(gen(active_gen_models).p(parameter,:), extracted_params(parameter,:), '.','markersize',10);
-        hold on
-        xlim([g.lb_gen(parameter) g.ub_gen(parameter)]);
-        ylim([g.lb(parameter)     g.ub(parameter)]);
-        
-        %axis square;
-        plot([g.lb(parameter) g.ub(parameter)], [g.lb(parameter) g.ub(parameter)], '--');
-        
-        title(g.parameter_names{parameter});
-    end
-    %         suplabel('true parameter', 'x');
-    %         suplabel('extracted parameter', 'y');
+    diagnosis_plots(gen(active_gen_models).opt(active_opt_models), 'gen_struct', gen(active_gen_models), 'fig_type', 'parameter_recovery')
+    
 elseif strcmp(optimization_method,'mcmc_slice')
     % DIAGNOSE MCMC
     % open windows for every model/dataset combo.

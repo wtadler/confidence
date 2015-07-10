@@ -59,8 +59,8 @@ if isempty(model_fitting_data)
         raw.cue_validity(raw.probe == raw.cue)                  =  1;  % valid cues
         raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
         raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
-    end 
-        
+    end
+    
 else % take real data
     raw.C           = model_fitting_data.C;
     raw.contrast    = model_fitting_data.contrast;
@@ -82,18 +82,18 @@ end
 if ~attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast, 'flipsig', true); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
     raw.sig = p.unique_sigs(raw.contrast_id);
-%     c_low = min(raw.contrast_values);
-%     c_hi = max(raw.contrast_values);
-%     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
-%     sigs =    sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast_values .^ -p.beta); % the list of possible sigma values
-%     raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
+    %     c_low = min(raw.contrast_values);
+    %     c_hi = max(raw.contrast_values);
+    %     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
+    %     sigs =    sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast_values .^ -p.beta); % the list of possible sigma values
+    %     raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
 elseif attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
     [raw.cue_validity_values, raw.cue_validity_id] = unique_contrasts(raw.cue_validity);
     raw.sig = p.unique_sigs(raw.cue_validity_id);
-%     raw.sig(raw.cue_validity  == -1) = p.sigma_c_low; % invalid cue -> high sigma (c_low means low "contrast")
-%     raw.sig(raw.cue_validity  ==  0) = p.sigma_c_mid;
-%     raw.sig(raw.cue_validity ==  1) = p.sigma_c_hi;
+    %     raw.sig(raw.cue_validity  == -1) = p.sigma_c_low; % invalid cue -> high sigma (c_low means low "contrast")
+    %     raw.sig(raw.cue_validity  ==  0) = p.sigma_c_mid;
+    %     raw.sig(raw.cue_validity ==  1) = p.sigma_c_hi;
 end
 raw.sig = reshape(raw.sig,1,length(raw.sig)); % make sure it's a row.
 
@@ -106,16 +106,16 @@ end
 
 if strcmp(model.family, 'neural1')
     %%
-%     figure
-%     nTrials = 10000; %%%%%
-%     p.sigma_tc = exp(2.5); %%%%%
-%     raw.s = randn(1,nTrials)*12; %%%%%
-%     raw.sig = 1*ones(1, nTrials); %%%%%
+    %     figure
+    %     nTrials = 10000; %%%%%
+    %     p.sigma_tc = exp(2.5); %%%%%
+    %     raw.s = randn(1,nTrials)*12; %%%%%
+    %     raw.sig = 1*ones(1, nTrials); %%%%%
     g = 1./(raw.sig.^2);
     neural_mu = g .* raw.s .* sqrt(2*pi*p.sigma_tc^2);
     neural_sig = sqrt(g .* (p.sigma_tc^2 + raw.s.^2) * sqrt(2*pi*p.sigma_tc^2));
     raw.x = neural_mu + neural_sig .* randn(size(raw.sig));
-%     plot(raw.s, raw.x, '.') %%%%%
+    %     plot(raw.s, raw.x, '.') %%%%%
 else
     raw.x = raw.s + randn(size(raw.sig)) .* raw.sig; % add noise to s. this line is the same in both tasks
 end
@@ -132,7 +132,7 @@ if model.ori_dep_noise && strcmp(model.family, 'opt')
     % p(x|C). see conf data likelihood my task.pages>orientation dependent noise
     likelihood = @(sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./sig_plusODN_mat .*exp(-(x_mat-s_mat).^2 ./ (2*sig_plusODN_mat.^2) - (s_mat - mu_cat).^2 ./ (2*sigma_cat^2)));
 end
-    
+
 
 
 % calculate d(x)
@@ -186,60 +186,94 @@ if strcmp(model.family,'opt') % for all opt family models
     end
     raw.d(raw.d==Inf)  =  1e6;
     raw.d(raw.d==-Inf) = -1e6;
-
+    
     raw.Chat(raw.d >= p.b_i(5)) = -1;
     raw.Chat(raw.d < p.b_i(5)) = 1;
-
+    
     if ~model.choice_only
         for g = 1 : conf_levels * 2;
             raw.g( p.b_i(g) <= raw.d ...
-                 & raw.d    <= p.b_i(g+1)) = confidences(g);
+                & raw.d    <= p.b_i(g+1)) = confidences(g);
         end
     end
     
 elseif strcmp(model.family, 'MAP')
-    raw.shat = zeros(1,n_samples);
-    for i = 1:nContrasts
-        sig = p.unique_sigs(i);
-        idx = find(raw.contrast_id==i);
-
+    
+    if ~model.ori_dep_noise
+        raw.shat = zeros(1,n_samples);
+        
         switch category_type
-            case 'same_mean_diff_std'
-                k1 = sqrt(1/(sig^-2 + category_params.sigma_1^-2));
-                mu1 = raw.x(idx)*sig^-2 * k1^2;
-                k2 = sqrt(1/(sig^-2 + category_params.sigma_2^-2));
-                mu2 = raw.x(idx)*sig^-2 * k2^2;
+            case 'same_mean_diff_std' % task B
+                k1sq = 1./(p.unique_sigs.^-2 + category_params.sigma_1^-2);
+                k2sq = 1./(p.unique_sigs.^-2 + category_params.sigma_2^-2);
+                k1 = sqrt(k1sq);
+                k2 = sqrt(k2sq);
                 
-                w1 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_1^2 + sig^2));
-                w2 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_2^2 + sig^2));
-                
-                raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k1 k2],length(idx),1));
-
-            case 'diff_mean_same_std'
-                k = sqrt(1/(sig^-2 + category_params.sigma_s^-2));
-                mu1 = (raw.x(idx)*sig^-2 + category_params.mu_1*category_params.sigma_s^-2) * k^2;
-                mu2 = (raw.x(idx)*sig^-2 + category_params.mu_2*category_params.sigma_s^-2) * k^2;
-                
-                w1 = exp(raw.x(idx)*category_params.mu_1./(category_params.sigma_s^2 + sig^2));
-                w2 = exp(raw.x(idx)*category_params.mu_2./(category_params.sigma_s^2 + sig^2)); % i got this order by fiddling. it might be better to indicate this as -mu_2 rather than +mu_1
-
-                raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k k],length(idx),1));
-% %%                
-%                 psx=normpdf(s,x,sig).*(normpdf(s,category_params.mu_1,category_params.sigma_s)+normpdf(s,category_params.mu_2,category_params.sigma_s));
-%                 plot(s,psx./sum(psx))
-%                 B = (x.^2*sig^-2 + category_params.mu_1^2 * category_params.sigma_s^-2) * k^2;
-%                 psx2=exp(-(s-mu1).^2./(2*k^2)).*exp(-(B-mu1^2)./(2*k^2)) + exp(-(s-mu2).^2./(2*k^2)).*exp(-(B-mu2^2)./(2*k^2))
-%                 hold on
-%                 plot(s,psx2./sum(psx2))
-%                 
-%                 psx3=normpdf(s,mu1,k).*exp(-(B-mu1^2)./(2*k^2)) + normpdf(s,mu2,k).*exp(-(B-mu2^2)./(2*k^2));
-%                 
-%                 psx4=normpdf(s,mu1,k).*exp(x*category_params.mu_1./(category_params.sigma_s^2 + sig^2)) + normpdf(s,mu2,k).*exp(x*category_params.mu_2./(category_params.sigma_s^2 + sig^2));
-%                 
-%                 
-                
+            case 'diff_mean_same_std' % task A
+                ksq = 1./(p.unique_sigs.^-2 + category_params.sigma_s^-2);
+                k = sqrt(ksq);
         end
-    end    
+        
+        for i = 1:nContrasts
+            cur_sig = p.unique_sigs(i);
+            idx = find(raw.contrast_id==i);
+            
+            switch category_type
+                case 'same_mean_diff_std'
+                    %                 k1 = sqrt(1/(sig^-2 + category_params.sigma_1^-2));
+                    mu1 = raw.x(idx)*cur_sig^-2 * k1sq(i);
+                    %                 k2 = sqrt(1/(sig^-2 + category_params.sigma_2^-2));
+                    mu2 = raw.x(idx)*cur_sig^-2 * k2sq(i);
+                    
+                    w1 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_1^2 + cur_sig^2));
+                    w2 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_2^2 + cur_sig^2));
+                    
+                    raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k1 k2],length(idx),1));
+                    
+                case 'diff_mean_same_std'
+                    %                 k = sqrt(1/(sig^-2 + category_params.sigma_s^-2));
+                    mu1 = (raw.x(idx)*cur_sig^-2 + category_params.mu_1*category_params.sigma_s^-2) * ksq(i);
+                    mu2 = (raw.x(idx)*cur_sig^-2 + category_params.mu_2*category_params.sigma_s^-2) * ksq(i);
+                    
+                    w1 = exp(raw.x(idx)*category_params.mu_1./(category_params.sigma_s^2 + cur_sig^2));
+                    w2 = exp(raw.x(idx)*category_params.mu_2./(category_params.sigma_s^2 + cur_sig^2));
+                    
+                    raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k(i) k(i)],length(idx),1));
+                    % %%
+                    %                 psx=normpdf(s,x,sig).*(normpdf(s,category_params.mu_1,category_params.sigma_s)+normpdf(s,category_params.mu_2,category_params.sigma_s));
+                    %                 plot(s,psx./sum(psx))
+                    %                 B = (x.^2*sig^-2 + category_params.mu_1^2 * category_params.sigma_s^-2) * k^2;
+                    %                 psx2=exp(-(s-mu1).^2./(2*k^2)).*exp(-(B-mu1^2)./(2*k^2)) + exp(-(s-mu2).^2./(2*k^2)).*exp(-(B-mu2^2)./(2*k^2))
+                    %                 hold on
+                    %                 plot(s,psx2./sum(psx2))
+                    %
+                    %                 psx3=normpdf(s,mu1,k).*exp(-(B-mu1^2)./(2*k^2)) + normpdf(s,mu2,k).*exp(-(B-mu2^2)./(2*k^2));
+                    %
+                    %                 psx4=normpdf(s,mu1,k).*exp(x*category_params.mu_1./(category_params.sigma_s^2 + sig^2)) + normpdf(s,mu2,k).*exp(x*category_params.mu_2./(category_params.sigma_s^2 + sig^2));
+                    %
+                    %
+                    
+            end
+        end
+    elseif model.ori_dep_noise
+        sSteps = 600;
+        sVec = reshape(linspace(-60,60,sSteps), 1, 1, sSteps);
+        
+        if ~model.diff_mean_same_std % task B
+            logprior = log(1/(2*sqrt(2*pi)) * (category_params.sigma_1^-1 * exp(-sVec.^2 / (2*category_params.sigma_1^2)) + category_params.sigma_2^-1 * exp(-sVec.^2 / (2*category_params.sigma_2^2))));
+        elseif model.diff_mean_same_std % task A
+            logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
+        end
+        
+        noise = bsxfun(@plus, p.unique_sigs(raw.contrast_id), ODN(sVec));
+        loglikelihood = bsxfun_normlogpdf(raw.x, sVec, noise);
+        
+        logposterior = bsxfun(@plus, loglikelihood, logprior);
+        
+        raw.shat = qargmax1(sVec, logposterior, 3);
+        
+    end
+    
     b = p.b_i(5);
     
     if strcmp(category_type, 'same_mean_diff_std')
@@ -274,9 +308,9 @@ else % all non-Bayesian models
     
     raw.Chat(x_tmp <= b)   = -1;
     raw.Chat(x_tmp >  b)   =  1;
-%     if strcmp(category_type, 'diff_mean_same_std')
-%        raw.Chat = -raw.Chat;
-%     end
+    %     if strcmp(category_type, 'diff_mean_same_std')
+    %        raw.Chat = -raw.Chat;
+    %     end
     
     if ~model.choice_only % all non-optimal confidence models
         for g = 1 : conf_levels * 2
@@ -300,11 +334,11 @@ randvals = rand(1, n_samples);
 
 if model.multi_lapse
     cuml=[0 cumsum(p.lambda_i)]; % cumulative confidence lapse rate
-    Chat_lapse_rate = cuml(end); 
+    Chat_lapse_rate = cuml(end);
     
     for l = 1 : conf_levels
         lapse_trials = randvals > cuml(l)...
-                     & randvals < cuml(l+1);
+            & randvals < cuml(l+1);
         raw.g(lapse_trials) = l;
     end
     
@@ -321,7 +355,7 @@ end
 if model.partial_lapse
     partial_lapse_rate = p.lambda_g;
     partial_lapse_trials = randvals > Chat_lapse_rate...
-                         & randvals < Chat_lapse_rate + p.lambda_g;
+        & randvals < Chat_lapse_rate + p.lambda_g;
     n_partial_lapse_trials = sum(partial_lapse_trials);
     raw.g(partial_lapse_trials) = randsample(conf_levels, n_partial_lapse_trials, 'true');
 else
@@ -340,11 +374,11 @@ else
 end
 
 if ~model.choice_only
-     % combine conf and class to give resp on 8 point scale
-    raw.resp  = raw.Chat .* raw.g - .5 * (raw.Chat+1) + conf_levels + 1; 
-%     
-%     raw.g + conf_levels + ...
-%         (raw.Chat * .5 -.5) .* (2 * raw.g - 1);
+    % combine conf and class to give resp on 8 point scale
+    raw.resp  = raw.Chat .* raw.g - .5 * (raw.Chat+1) + conf_levels + 1;
+    %
+    %     raw.g + conf_levels + ...
+    %         (raw.Chat * .5 -.5) .* (2 * raw.g - 1);
 end
 
 raw.tf = raw.Chat == raw.C;

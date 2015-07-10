@@ -81,7 +81,7 @@ else
     sig2 = 12;
 end
 
-xSteps = 90;
+xSteps = 200;
 if ~model.diff_mean_same_std
     xVec = linspace(0,90,xSteps)';
 else
@@ -220,55 +220,57 @@ elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1')
     x_dec_bound = bf(0)*ones(1,nContrasts);
     
 elseif strcmp(model.family, 'MAP')
-    %     zoomgrid = false;
-    %     if zoomgrid
-    %         dx_fine = .5;
-    %         fine_length = 2*dx / dx_fine + 1;
-    %     end
-    
-    if model.ori_dep_noise
-        len = nTrials;
-    elseif ~model.ori_dep_noise
-        len = nContrasts;
-    end
-    shat_lookup_table = zeros(len,xSteps);
-    niter = 4;
-    
-    if ~model.diff_mean_same_std % task B
-        ksq1 = sqrt(1./(sig.^-2 + sig1^-2)); % like k1 in trial_generator
-        ksq2 = sqrt(1./(sig.^-2 + sig2^-2)); % like k2 in trial_generator
-        for i = 1:len
-            cur_sig = sig(i);
-            mu1 = xVec*cur_sig^-2 * ksq1(i)^2;
-            mu2 = xVec*cur_sig^-2 * ksq2(i)^2;
-            w1 = normpdf(xVec,0,sqrt(sig1^2 + cur_sig^2));
-            w2 = normpdf(xVec,0,sqrt(sig2^2 + cur_sig^2));
-            shat_lookup_table(i,:) = gmm1max_n2_fast([w1 w2], [mu1 mu2], repmat([ksq1(i) ksq2(i)],xSteps,1),niter);
+    if ~model.ori_dep_noise
+        shat_lookup_table = zeros(nContrasts, xSteps);
+        niter = 4;
+        
+        if ~model.diff_mean_same_std % task B
+            k1sq = 1./(sig.^-2 + sig1^-2); % like k1 in trial_generator
+            k2sq = 1./(sig.^-2 + sig2^-2); % like k2 in trial_generator
+            k1 = sqrt(k1sq);
+            k2 = sqrt(k2sq);
+            
+        elseif model.diff_mean_same_std % task A
+            ksq = 1./(sig.^-2 + category_params.sigma_s^-2);
+            k = sqrt(ksq);
         end
-    elseif model.diff_mean_same_std % task A
-        ksq = sqrt(1./(sig.^-2 + category_params.sigma_s^-2));
-        for i = 1:len
+        
+        for i = 1:nContrasts
             cur_sig = sig(i);
-            mu1 = (xVec*cur_sig^-2 + category_params.mu_1*category_params.sigma_s^-2) * ksq(i)^2;
-            mu2 = (xVec*cur_sig^-2 + category_params.mu_2*category_params.sigma_s^-2) * ksq(i)^2;
-            w1 = exp(xVec*category_params.mu_1./(category_params.sigma_s^2+cur_sig^2));
-            w2 = exp(xVec*category_params.mu_2./(category_params.sigma_s^2+cur_sig^2));
-            shat_lookup_table(i,:) = gmm1max_n2_fast([w1 w2], [mu1 mu2], repmat([ksq(i) ksq(i)],xSteps,1),niter);
+            
+            if ~model.diff_mean_same_std
+                mu1 = xVec*cur_sig^-2 * k1sq(i);
+                mu2 = xVec*cur_sig^-2 * k2sq(i);
+                w1 = normpdf(xVec,0,sqrt(sig1^2 + cur_sig^2));
+                w2 = normpdf(xVec,0,sqrt(sig2^2 + cur_sig^2));
+                shat_lookup_table(i,:) = gmm1max_n2_fast([w1 w2], [mu1 mu2], repmat([k1(i) k2(i)],xSteps,1),niter);
+
+            elseif model.diff_mean_same_std
+                mu1 = (xVec*cur_sig^-2 + category_params.mu_1*category_params.sigma_s^-2) * ksq(i);
+                mu2 = (xVec*cur_sig^-2 + category_params.mu_2*category_params.sigma_s^-2) * ksq(i);
+                w1 = exp(xVec*category_params.mu_1./(category_params.sigma_s^2+cur_sig^2));
+                w2 = exp(xVec*category_params.mu_2./(category_params.sigma_s^2+cur_sig^2));
+                shat_lookup_table(i,:) = gmm1max_n2_fast([w1 w2], [mu1 mu2], repmat([k(i) k(i)],xSteps,1),niter);
+            end
         end
+    elseif model.ori_dep_noise
+        sVec(1,1,:) = xVec(:);
+        
+        if ~model.diff_mean_same_std % task B
+            logprior = log(1/(2*sqrt(2*pi)) * (sig1^-1 * exp(-sVec.^2 / (2*sig1^2)) + sig2^-1 * exp(-sVec.^2 / (2*sig2^2))));
+        elseif model.diff_mean_same_std % task A
+            logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
+        end
+        
+        noise = bsxfun(@plus, reshape(p.unique_sigs, 6, 1), ODN(sVec)); % 2d slice dependent on c and s;
+        loglikelihood = bsxfun_normlogpdf(xVec', sVec, noise);
+        
+        logposterior = bsxfun(@plus, loglikelihood, logprior); % 3d
+        
+        shat_lookup_table = qargmax1(sVec, logposterior, 3);
     end
-    %k(i) = lininterp1(shat_lookup_table(i,:), x, bf(0));
-    
-    %         if zoomgrid
-    %             x_fine = (k(i)-dx : dx_fine : k(i)+dx)';
-    %             mu1 = x_fine*cur_sig^-2 * ksq1(i)^2;
-    %             mu2 = x_fine*cur_sig^-2 * ksq2(i)^2;
-    %             fine_lookup_table = gmm1max_n2_fast([normpdf(x_fine,0,sqrt(sig1^2 + cur_sig^2)) normpdf(x_fine,0,sqrt(sig2^2 + cur_sig^2))],...
-    %                 [mu1 mu2], repmat([ksq1(i) ksq2(i)],fine_length,1));
-    %
-    %             k(i) = lininterp1(fine_lookup_table, x_fine, bf(0));
-    %         end
-    
-    x_dec_bound = lininterp1_multiple(shat_lookup_table, xVec, bf(0)*ones(1,len)); % find the x values corresponding to the MAP criterion, for each contrast level (or, if doing ODN where each trial has a different sigma, for every trial/sigma)
+
+    x_dec_bound = lininterp1_multiple(shat_lookup_table, xVec, bf(0)*ones(1,nContrasts)); % find the x values corresponding to the MAP criterion, for each contrast level (or, if doing ODN where each trial has a different sigma, for every trial/sigma)
 end
 
 if numel(sig) == nContrasts
@@ -364,72 +366,52 @@ if ~model.choice_only
         
     elseif strcmp(model.family, 'MAP')
         
-        if ~model.ori_dep_noise
-            x_bounds = zeros(nContrasts, nBounds);
-            
-            for c = 1:nContrasts
-                %cur_sig = p.unique_sigs(c);
-                for r = -(conf_levels-1):(conf_levels-1)
-                    x_bounds(c,r+conf_levels) = lininterp1(shat_lookup_table(c,:), xVec, bf(r));
-                    %                     if zoomgrid
-                    %                         x_fine = (x_bounds(c,r)-dx : dx_fine : x_bounds(c,r)+dx)';
-                    %                         mu1 = x_fine*cur_sig^-2 * ksq1(c)^2;
-                    %                         mu2 = x_fine*cur_sig^-2 * ksq2(c)^2;
-                    %                         fine_lookup_table = gmm1max_n2_fast([normpdf(x_fine,0,sqrt(sig1^2 + cur_sig^2)) normpdf(x_fine,0,sqrt(sig2^2 + cur_sig^2))],...
-                    %                             [mu1 mu2], repmat([ksq1(c) ksq2(c)],fine_length,1));
-                    %                         x_bounds(c,r) = lininterp1(fine_lookup_table, x_fine, p.b_i(1+r));
-                    %                     end
-                end
+        x_bounds = zeros(nContrasts, nBounds);
+        
+        for c = 1:nContrasts
+            %cur_sig = p.unique_sigs(c);
+            for r = -(conf_levels-1):(conf_levels-1)
+                x_bounds(c,r+conf_levels) = lininterp1(shat_lookup_table(c,:), xVec, bf(r));
+                %                     if zoomgrid
+                %                         x_fine = (x_bounds(c,r)-dx : dx_fine : x_bounds(c,r)+dx)';
+                %                         mu1 = x_fine*cur_sig^-2 * ksq1(c)^2;
+                %                         mu2 = x_fine*cur_sig^-2 * ksq2(c)^2;
+                %                         fine_lookup_table = gmm1max_n2_fast([normpdf(x_fine,0,sqrt(sig1^2 + cur_sig^2)) normpdf(x_fine,0,sqrt(sig2^2 + cur_sig^2))],...
+                %                             [mu1 mu2], repmat([ksq1(c) ksq2(c)],fine_length,1));
+                %                         x_bounds(c,r) = lininterp1(fine_lookup_table, x_fine, p.b_i(1+r));
+                %                     end
             end
-            
-            rows = nContrasts + 1 - raw.contrast_id;
-            
-            if ~model.diff_mean_same_std % task B
-                x_bounds = [zeros(nContrasts,1) flipud(x_bounds) inf(nContrasts,1)];
-
-                lb_cols = raw.resp;
-                lb_cols(lb_cols >= 5) = lb_cols(lb_cols >= 5) + 1;
-                lb_index = my_sub2ind(nContrasts, rows, lb_cols);
-                a = x_bounds(lb_index);
-                
-                ub_cols = raw.resp;
-                ub_cols(ub_cols <= 4) = ub_cols(ub_cols <= 4) + 1;
-                ub_index = my_sub2ind(nContrasts, rows, ub_cols);
-                b = x_bounds(ub_index);
-                
-                x_lb = min(cat(3,a,b), [], 3); % this is a hack. try to fix the above part
-                x_ub = max(cat(3,a,b), [], 3);
-
-            else % task A
-                x_bounds = [-inf(nContrasts,1) flipud(x_bounds) inf(nContrasts,1)]; % -inf instead of zero, because Task A is asymmetric
-                
-                lb_cols = raw.resp;
-                lb_index = my_sub2ind(nContrasts, rows, lb_cols);
-                x_lb = x_bounds(lb_index);
-                
-                ub_cols = raw.resp + 1;
-                ub_index = my_sub2ind(nContrasts, rows, ub_cols);
-                x_ub = x_bounds(ub_index);
-            end
-            
-            % OLD NOTE:
-            % The following is cleaner than the above approach, and it matches more with the below ori_dep_noise version, but it's 2x slower:
-            %             a = zeros(1,nTrials);
-            %             b = zeros(1,nTrials);
-            %             for i = 1:len
-            %                 a(raw.contrast_id==i) = lininterp1_multiple(shat_lookup_table(i,:), x, bf(raw.Chat(raw.contrast_id==i).*raw.g(raw.contrast_id==i)));
-            %                 b(raw.contrast_id==i) = lininterp1_multiple(shat_lookup_table(i,:), x, bf(raw.Chat(raw.contrast_id==i).*(raw.g(raw.contrast_id==i)-1)));
-            %             end
-            %             a(raw.Chat==1 & raw.g ==4) = Inf;
-            %             a = raw.Chat .* a;
-            %             b = raw.Chat .* b;
-            
-        elseif model.ori_dep_noise
-            x_lb = raw.Chat .* lininterp1_multiple(shat_lookup_table, xVec, bf(raw.Chat .* raw.g));
-            x_ub = raw.Chat .* lininterp1_multiple(shat_lookup_table, xVec, bf(raw.Chat .*(raw.g - 1)));
-            x_lb(raw.Chat==1 & raw.g==4) = Inf;
         end
         
+        rows = nContrasts + 1 - raw.contrast_id;
+        
+        if ~model.diff_mean_same_std % task B
+            x_bounds = [zeros(nContrasts,1) flipud(x_bounds) inf(nContrasts,1)];
+            
+            lb_cols = raw.resp;
+            lb_cols(lb_cols >= 5) = lb_cols(lb_cols >= 5) + 1;
+            lb_index = my_sub2ind(nContrasts, rows, lb_cols);
+            a = x_bounds(lb_index);
+            
+            ub_cols = raw.resp;
+            ub_cols(ub_cols <= 4) = ub_cols(ub_cols <= 4) + 1;
+            ub_index = my_sub2ind(nContrasts, rows, ub_cols);
+            b = x_bounds(ub_index);
+            
+            x_lb = min(cat(3,a,b), [], 3); % this is a hack. try to fix the above part
+            x_ub = max(cat(3,a,b), [], 3);
+            
+        else % task A
+            x_bounds = [-inf(nContrasts,1) flipud(x_bounds) inf(nContrasts,1)]; % -inf instead of zero, because Task A is asymmetric
+            
+            lb_cols = raw.resp;
+            lb_index = my_sub2ind(nContrasts, rows, lb_cols);
+            x_lb = x_bounds(lb_index);
+            
+            ub_cols = raw.resp + 1;
+            ub_index = my_sub2ind(nContrasts, rows, ub_cols);
+            x_ub = x_bounds(ub_index);
+        end
     end
     
     if ~strcmp(model.family, 'neural1')
