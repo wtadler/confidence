@@ -2,8 +2,10 @@ function diagnosis_plots(model_struct, varargin)
 
 fig_type = 'mcmc_grid'; % 'mcmc_figures' or 'mcmc_grid' or 'parameter_recovery'
     gen_struct = []; % just needs to contain true parameters, and match model_struct in length if doing parameter recovery
-    only_good_fits = true; % in parameter recovery, only show datasets that were fit well
+    only_good_fits = false; % in parameter recovery, only show datasets that were fit well
     show_cornerplot = true;
+    plot_datasets = [];
+    
     
 assignopts(who,varargin);
 
@@ -66,6 +68,13 @@ elseif strcmp(fig_type, 'mcmc_figures')
     
     for model_id = 1:length(model_struct)
         m = model_struct(model_id);
+        
+        if isempty(plot_datasets)
+            datasets = 1:length(m.extracted);
+        else
+            datasets = plot_datasets;
+        end
+        
         if ~isempty(gen_struct)
             g = gen_struct(model_id);
             if length(m.parameter_names) ~= length(g.parameter_names)
@@ -74,8 +83,9 @@ elseif strcmp(fig_type, 'mcmc_figures')
         else
             g = [];
         end
-        for dataset_id = 1:length(m.extracted)
+        for dataset_id = datasets
             ex = m.extracted(dataset_id);
+            dataset_name = upper(ex.name);
             
             [true_p, true_logposterior] = deal([]);
             if ~isempty(gen_struct) % if this is mcmc recovery
@@ -85,13 +95,14 @@ elseif strcmp(fig_type, 'mcmc_figures')
             
             tic
             mcmcdiagnosis(ex.p, 'logposterior', ex.logposterior, 'fit_model', m, ...
-                'true_p', true_p, 'true_logposterior', true_logposterior, 'dataset', dataset_id, ...
+                'true_p', true_p, 'true_logposterior', true_logposterior, 'dataset_name', dataset_name, ...
                 'dic', ex.dic, 'gen_model', g, 'show_cornerplot', show_cornerplot);
             toc
             pause(1e-3); % to plot
         end
     end
 elseif strcmp(fig_type, 'mcmc_grid')
+    figure;
     if ~isempty(gen_struct) && length(gen_struct) ~= length(model_struct)
         error('gen_struct and model_struct need to have the same length.')
     end
@@ -185,6 +196,7 @@ elseif strcmp(optimization_method,'mcmc_slice')
             o = gen(gen_model_id).opt(opt_model_id);
             for dataset_id = 1:length(o.extracted) % dataset
                 ex = o.extracted(dataset_id);
+                dataset_name = upper(ex.name);
                 if ~isempty(ex.p) % if there's data here                    
                     [true_p,true_logposterior]=deal([]);
                     if strcmp(data_type,'fake') && strcmp(o.name, g.name)
@@ -192,7 +204,7 @@ elseif strcmp(optimization_method,'mcmc_slice')
                         true_logposterior = gen(gen_model_id).data(dataset_id).true_logposterior;
                     end
                     tic
-                    [fh,ah]=mcmcdiagnosis(ex.p,'logposterior',ex.logposterior,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',ex.dic,'gen_model',g, 'show_cornerplot', show_cornerplot);
+                    [fh,ah]=mcmcdiagnosis(ex.p,'logposterior',ex.logposterior,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset_name',dataset_name,'dic',ex.dic,'gen_model',g, 'show_cornerplot', show_cornerplot);
                     toc
                     pause(.00001); % to plot
                 end

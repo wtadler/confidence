@@ -27,7 +27,7 @@ for i = 1 : length(parameter_names)
 end
 
 % do special stuff for variables that go in vectors, such as sigma...
-if model.nFreesigs == 0
+if ~isfield(model, 'nFreesigs') || model.nFreesigs == 0
     if ~exist('contrasts', 'var')
         contrasts = exp(linspace(-5.5,-2,6));
     else
@@ -38,10 +38,20 @@ if model.nFreesigs == 0
     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
     p.unique_sigs = fliplr(sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta)); % low to high sigma. should line up with contrast id
 
+    if model.separate_measurement_and_inference_noise
+        alpha_inference = (p.sigma_c_low_inference^2-p.sigma_c_hi_inference^2)/(c_low^-p.beta_inference - c_hi^-p.beta_inference);
+        p.unique_sigs_inference = fliplr(sqrt(p.sigma_c_low_inference^2 - alpha_inference * c_low^-p.beta_inference + alpha_inference*contrasts.^-p.beta_inference)); % low to high sigma. should line up with contrast id
+    end
 else
     p.unique_sigs = [];
+    if model.separate_measurement_and_inference_noise
+        p.unique_sigs_inference = [];
+    end
     for sig_id = 1:model.nFreesigs
         p.unique_sigs = [p.(['sigma_c' num2str(sig_id)]) p.unique_sigs];
+        if model.separate_measurement_and_inference_noise
+            p.unique_sigs_inference = [p.(['sigma_c' num2str(sig_id) '_inference']) p.unique_sigs_inference];
+        end
     end
 end
 

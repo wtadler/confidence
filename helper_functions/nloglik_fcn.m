@@ -81,7 +81,7 @@ else
     sig2 = 12;
 end
 
-xSteps = 200;
+xSteps = 200; %200 and 20 take about the same amount of time
 if ~model.diff_mean_same_std
     xVec = linspace(0,90,xSteps)';
 else
@@ -89,35 +89,86 @@ else
 end
 
 
+
+
+% % this is reversed from trial_generator. there, we generate x first, with regular sigs. here, we get the boundaries first, with sigs_inference
+% if model.separate_measurement_and_inference_noise
+%     sig = p.unique_sigs_inference;
+% else
+%     sig = p.unique_sigs;
+% end
+% 
+% if model.ori_dep_noise
+%     ODN = @(s, sig_amplitude) abs(sin(s * pi / 90)) * sig_amplitude;
+%     if ~strcmp(model.family, 'opt')
+%         sig = p.unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
+%         sig = sig + ODN(raw.s, p.sig_amplitude); % add orientation dependent noise to each sigma.
+%     elseif strcmp(model.family, 'opt')
+%         sSteps = 200;
+%         sVec = linspace(-100,100,sSteps)';
+%         % faster than meshgrid
+%         s_mat = repmat(sVec,1, xSteps);
+%         
+%         d_lookup_table = zeros(nContrasts,length(xVec));
+%         
+%         x_mat = repmat(xVec', sSteps,1);
+%         x_dec_bound = zeros(nDNoiseSets,nContrasts);
+%         
+%         likelihood = @(sigma, sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./ sigma .*exp(-(x_mat-s_mat).^2 ./ (2*sigma.^2) - (s_mat - mu_cat) .^2 ./ (2*sigma_cat^2)));
+%         
+%         if model.separate_measurement_and_inference_noise
+%             ODN_s_mat = ODN(s_mat, p.sig_amplitude_inference);
+%         else
+%             ODN_s_mat = ODN(s_mat, p.sig_amplitude);
+%         end
+%     end
+% end
+
+
 if model.ori_dep_noise
-    ODN = @(s) abs(sin(s * pi / 90)) * p.sig_amplitude;
+    ODN = @(s, sig_amplitude) abs(sin(s * pi / 90)) * sig_amplitude;
     if ~strcmp(model.family, 'opt')
         sig = p.unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
-        sig = sig + ODN(raw.s); % add orientation dependent noise to each sigma.
+        sig = sig + ODN(raw.s, p.sig_amplitude); % add orientation dependent noise to each sigma.
     else
-        sig = p.unique_sigs;
-        
         sSteps = 200;
         sVec = linspace(-100,100,sSteps)';
+        % faster than meshgrid
+        s_mat = repmat(sVec,1, xSteps);
         
         d_lookup_table = zeros(nContrasts,length(xVec));
         
-        % faster than meshgrid
-        s_mat = repmat(sVec,1, xSteps);
-        ODN_s_mat = ODN(s_mat);
         x_mat = repmat(xVec', sSteps,1);
         x_dec_bound = zeros(nDNoiseSets,nContrasts);
-        
-        likelihood = @(sigma, sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./ sigma .*exp(-(x_mat-s_mat).^2 ./ (2*sigma.^2) - (s_mat - mu_cat) .^2 ./ (2*sigma_cat^2)));        
-        
+
+        likelihood = @(sigma, sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./ sigma .*exp(-(x_mat-s_mat).^2 ./ (2*sigma.^2) - (s_mat - mu_cat) .^2 ./ (2*sigma_cat^2)));
+
+        % this is reversed from trial_generator. there, we generate x first, with regular sigs. here, we get the boundaries first, with sigs_inference
+        if model.separate_measurement_and_inference_noise
+            sig = p.unique_sigs_inference;
+            ODN_s_mat = ODN(s_mat, p.sig_amplitude_inference);
+        else
+            sig = p.unique_sigs;
+            ODN_s_mat = ODN(s_mat, p.sig_amplitude);
+        end
+                
     end
 else
-    sig = p.unique_sigs;
+    % this is reversed from trial_generator.m. there, we generate x first, with regular sigs. here, we get the boundaries first, with sigs_inference
+    if model.separate_measurement_and_inference_noise
+        sig = p.unique_sigs_inference;
+    else
+        sig = p.unique_sigs;
+    end
 end
 
     function [d_lookup_table, k] = d_table_and_choice_bound(sig_cat1, sig_cat2, mu_cat1, mu_cat2)
         for contrast = 1:nContrasts
-            cur_sig = p.unique_sigs(contrast);
+            if model.separate_measurement_and_inference_noise
+                cur_sig = p.unique_sigs_inference(contrast);
+            else
+                cur_sig = p.unique_sigs(contrast);
+            end
             sig_plusODN = cur_sig + ODN_s_mat;
             d_lookup_table(contrast,:) = log(likelihood(sig_plusODN, sig_cat1, mu_cat1) ./ likelihood(sig_plusODN, sig_cat2, mu_cat2));
             
@@ -262,7 +313,7 @@ elseif strcmp(model.family, 'MAP')
             logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
         
-        noise = bsxfun(@plus, reshape(p.unique_sigs, 6, 1), ODN(sVec)); % 2d slice dependent on c and s;
+        noise = bsxfun(@plus, reshape(p.unique_sigs, 6, 1), ODN(sVec, p.sig_amplitude)); % 2d slice dependent on c and s;
         loglikelihood = bsxfun_normlogpdf(xVec', sVec, noise);
         
         logposterior = bsxfun(@plus, loglikelihood, logprior); % 3d
@@ -273,33 +324,46 @@ elseif strcmp(model.family, 'MAP')
     x_dec_bound = lininterp1_multiple(shat_lookup_table, xVec, bf(0)*ones(1,nContrasts)); % find the x values corresponding to the MAP criterion, for each contrast level (or, if doing ODN where each trial has a different sigma, for every trial/sigma)
 end
 
-if numel(sig) == nContrasts
-    %if ~(model.ori_dep_noise && ~strcmp(model.family, 'opt'))
-    sig = p.unique_sigs(raw.contrast_id); % re-arrange sigs if it hasn't been done yet
-    if model.ori_dep_noise
-        sig = sig + p.sig_amplitude*abs(sin(raw.s*pi/90));
-    end
-end
-
 %if ~(model.non_overlap && model.d_noise)
 % do this for all models except nonoverlap+d noise, where k is already in this form.
 if any(size(x_dec_bound) == nContrasts) % k needs to be expanded for each trial
     x_dec_bound = x_dec_bound(:,raw.contrast_id);
 end
 
+% the following two if statements could be joined in some nice way eventually
+
+if numel(sig) == nContrasts % equivalently, if ~(model.ori_dep_noise && ~strcmp(model.family, 'opt'))
+    sig = sig(raw.contrast_id); % re-arrange sigs if it hasn't been done yet
+    if model.ori_dep_noise
+        if model.separate_measurement_and_inference_noise
+            sig = sig + ODN(raw.s, p.sig_amplitude_inference);
+        else
+            sig = sig + ODN(raw.s, p.sig_amplitude);
+        end
+    end
+end
+
+% define generative mu and sigma. get the cdf of this distribution that falls between bounds
 if ~strcmp(model.family, 'neural1')
     mu = raw.s;
-    sigma = sig;
+    if ~model.separate_measurement_and_inference_noise
+        measurement_sigma = sig;
+    elseif model.separate_measurement_and_inference_noise
+        measurement_sigma = p.unique_sigs(raw.contrast_id);
+        if model.ori_dep_noise
+            measurement_sigma = measurement_sigma + ODN(raw.s, p.sig_amplitude);
+        end
+    end
 else
     g = 1./(sig.^2);
     mu = g .* raw.s .* sqrt(2*pi) * p.sigma_tc;
-    sigma = sqrt(g .* (p.sigma_tc^2 + raw.s.^2) .* sqrt(2*pi) * p.sigma_tc);
+    measurement_sigma = sqrt(g .* (p.sigma_tc^2 + raw.s.^2) .* sqrt(2*pi) * p.sigma_tc);
 end
 
 if ~model.diff_mean_same_std
-    p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) - repmat(raw.Chat, nDNoiseSets, 1) .* symmetric_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1));
+    p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) - repmat(raw.Chat, nDNoiseSets, 1) .* symmetric_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
 elseif model.diff_mean_same_std
-    p_choice = 0.5 + repmat(raw.Chat, nDNoiseSets, 1) .* (0.5 - my_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1)));
+    p_choice = 0.5 + repmat(raw.Chat, nDNoiseSets, 1) .* (0.5 - my_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1)));
 end
 
 p_choice = normalized_weights*p_choice;
@@ -414,20 +478,20 @@ if ~model.choice_only
         end
     end
     
-    if ~strcmp(model.family, 'neural1')
-        mu = raw.s;
-        sigma = sig;
-    else
-        mu = sig.^-2 .* raw.s .* sqrt(2*pi) * p.sigma_tc;
-        sigma = sqrt(sig.^-2 .* (p.sigma_tc^2 + raw.s.^2) .* sqrt(2*pi) * p.sigma_tc);
-    end
+%     if ~strcmp(model.family, 'neural1')
+%         mu = raw.s;
+%         sigma = sig;
+%     else
+%         mu = sig.^-2 .* raw.s .* sqrt(2*pi) * p.sigma_tc;
+%         sigma = sqrt(sig.^-2 .* (p.sigma_tc^2 + raw.s.^2) .* sqrt(2*pi) * p.sigma_tc);
+%     end
     
     if ~model.diff_mean_same_std
-        cum_prob_lb = symmetric_normcdf(x_lb, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1));
-        cum_prob_ub = symmetric_normcdf(x_ub, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1));
+        cum_prob_lb = symmetric_normcdf(x_lb, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+        cum_prob_ub = symmetric_normcdf(x_ub, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
     else
-        cum_prob_lb = my_normcdf(x_lb, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1));
-        cum_prob_ub = my_normcdf(x_ub, repmat(mu, nDNoiseSets, 1), repmat(sigma, nDNoiseSets, 1));
+        cum_prob_lb = my_normcdf(x_lb, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+        cum_prob_ub = my_normcdf(x_ub, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
     end
     
     p_conf_choice = cum_prob_ub - cum_prob_lb;

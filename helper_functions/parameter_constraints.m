@@ -4,7 +4,8 @@ nModels = length(models);
 for m_id = 1 : nModels
     c = models(m_id);
     
-    options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only','symmetric','d_noise','free_cats','non_overlap','ori_dep_noise','diff_mean_same_std','joint_task_fit','joint_d', 'nFreesigs'};
+    options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only','symmetric','d_noise','free_cats','non_overlap',...
+        'ori_dep_noise','diff_mean_same_std','joint_task_fit','joint_d', 'nFreesigs', 'separate_measurement_and_inference_noise'};
     for o = 1:length(options)
         if ~isfield(c,options{o}) || isempty(c.(options{o}))
             c.(options{o}) = 0;
@@ -20,8 +21,9 @@ for m_id = 1 : nModels
     end
     
     if ~strcmp(c.family, 'opt')
-        % d noise is only for opt
+        % these options are only for bayesian models
         c.d_noise = 0;
+        c.separate_measurement_and_inference_noise = 0;
     end
     
     if c.joint_d
@@ -149,6 +151,7 @@ for m_id = 1 : nModels
     c = choiceizer(c);
     c = d_noiseizer(c);
     c = free_sigsizer(c);
+    c = separate_noiseizer(c);
     c = neural1izer(c);
     c = partial_lapseizer(c);
     c = multi_lapseizer(c);
@@ -277,6 +280,25 @@ if c.nFreesigs ~= 0
     c = p_stripper(c, betaP);
 end
 end
+
+function c = separate_noiseizer(c)
+if c.separate_measurement_and_inference_noise
+    fields = {'lb', 'ub', 'lb_gen', 'ub_gen', 'beq'};
+    params = {'logsigma_c', 'beta', 'sig_amplitude'};
+    params_to_duplicate = find(...
+        ~cellfun(@isempty, regexp(c.parameter_names, params{1})) + ...
+        ~cellfun(@isempty, regexp(c.parameter_names, params{2})) +...
+        ~cellfun(@isempty, regexp(c.parameter_names, params{3}))); % parameters that contain logsigma_c or beta in the name
+    for p = params_to_duplicate'
+        c.parameter_names = cat(1, c.parameter_names, sprintf('%s_inference', c.parameter_names{p}));
+        for l = 1:length(fields)
+            c.(fields{l}) = cat(1, c.(fields{l}), c.(fields{l})(p));
+        end
+    end
+end
+end
+
+    
 
 function c = neural1izer(c)
 % if not neural1, strip out sigma_tc parameter

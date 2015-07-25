@@ -26,6 +26,7 @@ for c = chains
         if ~isempty(true_logposterior)
             plot(xl, [true_logposterior true_logposterior],'k-')
         end
+        ylim([min(vertcat(logposterior{:})) max(vertcat(logposterior{:}))]);
         xlabel('sample')
         ylabel('log posterior')
         set(gca, 'box','off','tickdir','out')

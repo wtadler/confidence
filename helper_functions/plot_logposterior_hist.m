@@ -43,6 +43,7 @@ for c = chains
         if ~isempty(true_logposterior)
             plot([true_logposterior true_logposterior],yl,'k-')
         end
+        xlim([min(vertcat(logposterior{:})) max(vertcat(logposterior{:}))]);
         set(gca,'box','off','tickdir','out')
         
         if show_legend

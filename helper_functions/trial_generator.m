@@ -1,7 +1,7 @@
 function raw = trial_generator(p_in, model, varargin)
 
 % define defaults
-n_samples = 2160;
+n_samples = 2160; % might be overwritten by number of trials in model_fitting_data
 % contrasts  = exp(-4:.5:-1.5);%[.125 .25 .5 1 2 4];
 
 model_fitting_data = [];
@@ -20,6 +20,14 @@ category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_me
 attention_manipulation = false;
 
 assignopts(who,varargin);
+
+% updating category_type according to the model. not sure why i wasn''t doing this before
+if model.diff_mean_same_std
+    category_type = 'diff_mean_same_std';
+elseif ~model.diff_mean_same_std
+    category_type = 'same_mean_diff_std';
+end
+
 
 if ~attention_manipulation
     contrasts = exp(linspace(-5.5,-2,6));
@@ -82,6 +90,9 @@ end
 if ~attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast, 'flipsig', true); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
     raw.sig = p.unique_sigs(raw.contrast_id);
+    if model.separate_measurement_and_inference_noise
+        raw.sig_inference = p.unique_sigs_inference(raw.contrast_id);
+    end
     %     c_low = min(raw.contrast_values);
     %     c_hi = max(raw.contrast_values);
     %     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
@@ -91,17 +102,26 @@ elseif attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
     [raw.cue_validity_values, raw.cue_validity_id] = unique_contrasts(raw.cue_validity);
     raw.sig = p.unique_sigs(raw.cue_validity_id);
+    if model.separate_measurement_and_inference_noise
+        raw.sig_inference = p.unique_sigs_inference(raw.cue_validity_id);
+    end
     %     raw.sig(raw.cue_validity  == -1) = p.sigma_c_low; % invalid cue -> high sigma (c_low means low "contrast")
     %     raw.sig(raw.cue_validity  ==  0) = p.sigma_c_mid;
     %     raw.sig(raw.cue_validity ==  1) = p.sigma_c_hi;
 end
 raw.sig = reshape(raw.sig,1,length(raw.sig)); % make sure it's a row.
-
+if model.separate_measurement_and_inference_noise
+    raw.sig_inference = reshape(raw.sig_inference, 1, length(raw.sig_inference));
+end
 
 if model.ori_dep_noise
+    ODN = @(s, sig_amplitude) abs(sin(s * pi / 90)) * sig_amplitude;
     pre_sig = raw.sig;
-    ODN = @(s) abs(sin(s * pi / 90)) * p.sig_amplitude;
-    raw.sig = pre_sig + ODN(raw.s);
+    raw.sig = pre_sig + ODN(raw.s, p.sig_amplitude);
+    if model.separate_measurement_and_inference_noise
+        pre_sig_inference = raw.sig_inference;
+        raw.sig_inference = pre_sig_inference + ODN(raw.s, p.sig_amplitude_inference);
+    end
 end
 
 if strcmp(model.family, 'neural1')
@@ -125,9 +145,16 @@ if model.ori_dep_noise && strcmp(model.family, 'opt')
     sVec = -90:ds:90;
     s_mat = repmat(sVec',1, n_samples);
     x_mat = repmat(raw.x,length(sVec),1);
-    sig_mat=repmat(pre_sig, length(sVec), 1); % nTrials vector of sigma levels repeated some number of rows defined by ds
     
-    sig_plusODN_mat = sig_mat + ODN(s_mat);
+    if model.separate_measurement_and_inference_noise
+        sig_mat = repmat(pre_sig_inference, length(sVec), 1);
+        sig_plusODN_mat = sig_mat + ODN(s_mat, p.sig_amplitude_inference);
+    else
+        sig_mat=repmat(pre_sig, length(sVec), 1); % nTrials vector of sigma levels repeated some number of rows defined by ds
+        sig_plusODN_mat = sig_mat + ODN(s_mat, p.sig_amplitude);
+    end
+    
+    
     
     % p(x|C). see conf data likelihood my task.pages>orientation dependent noise
     likelihood = @(sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./sig_plusODN_mat .*exp(-(x_mat-s_mat).^2 ./ (2*sig_plusODN_mat.^2) - (s_mat - mu_cat).^2 ./ (2*sigma_cat^2)));
@@ -137,6 +164,12 @@ end
 
 % calculate d(x)
 if strcmp(model.family,'opt')
+    if model.separate_measurement_and_inference_noise
+        assumed_sig = raw.sig_inference; % assumed sig is not the same as the sig that generated the data
+    else
+        assumed_sig = raw.sig; % assumed sig is accurate, and the same as the generative sig
+    end
+    
     switch category_type
         case 'same_mean_diff_std'
             if model.non_overlap
@@ -144,24 +177,24 @@ if strcmp(model.family,'opt')
                 for c = 1 : nContrasts; % for each sigma level, generate d from the separate function
                     cursig = sqrt(p.sigma_0^2 + p.alpha .* contrasts(c) .^ - p.beta);
                     s=trun_sigstruct(cursig,category_params.sigma_1,category_params.sigma_2);
-                    raw.d(raw.sig==cursig) = trun_da(raw.x(raw.sig==cursig), s);
+                    raw.d(assumed_sig==cursig) = trun_da(raw.x(assumed_sig==cursig), s);
                 end
             elseif model.ori_dep_noise
                 raw.d = log(likelihood(category_params.sigma_1, 0) ./ likelihood(category_params.sigma_2, 0));
             else
-                raw.k1 = .5 * log( (raw.sig.^2 + category_params.sigma_2^2) ./ (raw.sig.^2 + category_params.sigma_1^2));% + p.b_i(5);
-                raw.k2 = (category_params.sigma_2^2 - category_params.sigma_1^2) ./ (2 .* (raw.sig.^2 + category_params.sigma_1^2) .* (raw.sig.^2 + category_params.sigma_2^2));
+                raw.k1 = .5 * log( (assumed_sig.^2 + category_params.sigma_2^2) ./ (assumed_sig.^2 + category_params.sigma_1^2));% + p.b_i(5);
+                raw.k2 = (category_params.sigma_2^2 - category_params.sigma_1^2) ./ (2 .* (assumed_sig.^2 + category_params.sigma_1^2) .* (assumed_sig.^2 + category_params.sigma_2^2));
                 raw.d = raw.k1 - raw.k2 .* raw.x.^2;
             end
             %raw.posterior = 1 ./ (1 + exp(-raw.d));
             
         case 'half_gaussian'
-            mu = (raw.x.* category_params.sigma_s^2)./(raw.sig.^2 + category_params.sigma_s^2);
-            k = raw.sig .* category_params.sigma_s ./ sqrt(raw.sig.^2 + category_params.sigma_s^2);
+            mu = (raw.x.* category_params.sigma_s^2)./(assumed_sig.^2 + category_params.sigma_s^2);
+            k = assumed_sig .* category_params.sigma_s ./ sqrt(assumed_sig.^2 + category_params.sigma_s^2);
             raw.d = log(normcdf(0,mu,k)./normcdf(0,-mu,k));
             
         case 'sym_uniform'
-            denom = raw.sig * sqrt(2);
+            denom = assumed_sig * sqrt(2);
             raw.d = log( (erf((raw.x-a)./denom) - erf((raw.x+1-a)./denom)) ./ (erf((raw.x-1+a)./denom) - erf((raw.x+a)./denom)));
             
         case 'diff_mean_same_std'
@@ -170,7 +203,7 @@ if strcmp(model.family,'opt')
                 raw.d = log(likelihood(category_params.sigma_s, category_params.mu_1) ./ likelihood(category_params.sigma_s, category_params.mu_2));
             else
                 raw.d = (2*raw.x * (category_params.mu_1 - category_params.mu_2) - category_params.mu_1^2 + category_params.mu_2^2) ./ ...
-                    (2*(raw.sig.^2 + category_params.sigma_s^2));
+                    (2*(assumed_sig.^2 + category_params.sigma_s^2));
             end
         otherwise
             error('DIST_TYPE is not valid.')
@@ -228,7 +261,7 @@ elseif strcmp(model.family, 'MAP')
                     w1 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_1^2 + cur_sig^2));
                     w2 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_2^2 + cur_sig^2));
                     
-                    raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k1 k2],length(idx),1));
+                    raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k1(i) k2(i)],length(idx),1));
                     
                 case 'diff_mean_same_std'
                     %                 k = sqrt(1/(sig^-2 + category_params.sigma_s^-2));
@@ -265,7 +298,7 @@ elseif strcmp(model.family, 'MAP')
             logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
         
-        noise = bsxfun(@plus, p.unique_sigs(raw.contrast_id), ODN(sVec));
+        noise = bsxfun(@plus, p.unique_sigs(raw.contrast_id), ODN(sVec, p.sig_amplitude));
         loglikelihood = bsxfun_normlogpdf(raw.x, sVec, noise);
         
         logposterior = bsxfun(@plus, loglikelihood, logprior);

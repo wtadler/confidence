@@ -68,8 +68,9 @@ for i = 1 : sets;
 
         if ~model.nFreesigs
             maxsigP = find_parameter('logsigma_c_low', model);
+            maxsigP = maxsigP(1); % there can be two if model.separate_measurement_and_inference_noise
             minsigP = find_parameter('logsigma_c_hi',  model);
-
+            minsigP = minsigP(1); % there can be two if model.separate_measurement_and_inference_noise
             maxsig = exp(x(maxsigP));
             minsig = exp(x(minsigP));
         else

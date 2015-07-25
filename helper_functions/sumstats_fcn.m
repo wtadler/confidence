@@ -8,10 +8,11 @@ function sumstats = sumstats_fcn(data, varargin)
 
 % g_exists  = isfield(data(1).raw, 'g');
 % rt_exists = isfield(data(1).raw, 'rt');
-trial_types = fieldnames(data(1).stats);
+trial_types = setdiff(fieldnames(data(1).stats), 'sig_levels');
 % fields = {'bin_counts','percent_correct','Chat1_prop','g_mean','resp_mean'}
 fields = {'tf','resp','g','Chat'};%'rt'
 % eventually, move all the if statement checks to the beginning here
+assignopts(who,varargin);
 
 for type = 1 : length(trial_types)
     for f = 1:length(fields)
@@ -21,10 +22,10 @@ for type = 1 : length(trial_types)
         sst.md.bin_counts = [];%data(1).stats.(trial_types{type}).bin_counts;
         
         % append
-        for subject = 1 : length(data); % concatenate along 3rd dim for other subjects
-            sst.md.mean.(fields{f}) = cat(3, sst.md.mean.(fields{f}), data(subject).stats.(trial_types{type}).mean.(fields{f}));
-            sst.md.std.(fields{f}) = cat(3, sst.md.std.(fields{f}), data(subject).stats.(trial_types{type}).std.(fields{f}));
-            sst.md.bin_counts = cat(3, sst.md.bin_counts, data(subject).stats.(trial_types{type}).bin_counts);
+        for dataset = 1 : length(data); % concatenate along 3rd dim for other datasets/subjects
+            sst.md.mean.(fields{f}) = cat(3, sst.md.mean.(fields{f}), data(dataset).stats.(trial_types{type}).mean.(fields{f}));
+            sst.md.std.(fields{f})  = cat(3, sst.md.std. (fields{f}), data(dataset).stats.(trial_types{type}).std.(fields{f}));
+            sst.md.bin_counts       = cat(3, sst.md.bin_counts,       data(dataset).stats.(trial_types{type}).bin_counts);
         end
         
         % sum, mean, SEM, edgar SEM over subjects

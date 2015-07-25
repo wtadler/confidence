@@ -11,32 +11,8 @@ cdsandbox
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 show_fit = true;
 if show_fit
-    % model fit
-    %     cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations')
-    %cd('/Users/will/Desktop/v3_A_fmincon_feb21')
-    %     cd('/Users/will/Google Drive/Ma lab/output/v3_joint_feb28')
     cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations/v3')
     load('v3_combined_and_cleaned_POSTER_DATA.mat')
-    
-    %load('v2_5models')
-    %    model = m([2 3 5]);
-    %    opt_models = {model.name};
-    %    data_type = 'real';
-    %load('v3nonoise.mat')
-    %model = gen.opt;
-    %     load('v2_small.mat')
-    %     model = model([4 1 2 3]);
-    %     opt_models = {model.name};
-    %load('non_overlap_d_noise.mat')
-    %   opt_models = model;
-    %   data_type = 'real';
-    % load('COMBINED_v3_A.mat')
-    %     dist_type = 'diff_mean_same_std';
-    
-    % load('newmodels_incl_freecats.mat')
-    %     data_type = 'real';
-    %     load('aborted_and_finished.mat')
-    
     plot_model = 1 : length(opt_models); % can make figs for each model or just one
 else
     plot_model = 1;
@@ -51,8 +27,7 @@ contrasts = exp(linspace(-5.5,-2,6));
 %set(0,'DefaultLineLineWidth',1)
 set(0,'DefaultLineLineWidth','remove')
 
-nBins = 9; %13 for cosyne poster
-[bins, axis] = bin_generator(nBins);
+nBins = 13; %13 for cosyne poster
 % [real_bins_rt, real_axis_rt] = bin_generator(n_bins_real,'binstyle','rt');
 
 ori_labels = [-16 -8 -4 -2 -1 0 1 2 4 8 16]; % make sure that this only has nBins entries or fewer
@@ -68,9 +43,9 @@ n_samples = 2160; % 1e7
 
 % EVERYTHING BELOW THIS needs to be a separate function, to make plotting easier.
 
-nPlotSamples = 100; % for MCMC fits. number of parameter values to generate datasets from. 100 might be enough. used 100 for cosyne poster
+nPlotSamples = 2; % for MCMC fits. number of fake datasets to generate, from each subject. 100 might be enough. used 100 for cosyne poster
 
-nHyperPlots = 1000; % number of times to take a random dataset from each subject. has only small effect on computation time.
+nHyperplots = 1000; % number of times to take a random fake dataset from each subject. has only small effect on computation time.
 %
 %gen_stat = 'Chat'; % plot choice and % correct
 % gen_stat = 'g'; % plot conf and % correct
@@ -97,104 +72,38 @@ if length(streal.A.data)==length(streal.B.data) % sanity check, not foolproof.
 else
     error('uh oh')
 end
-tasks = {'A','B'};
+data_tasks = {'A','B'}; % tasks for which we have data
 
-hyperPlotID = [];
-for dataset = 1:nDatasets
-    hyperPlotID = [hyperPlotID randsample(nPlotSamples,nHyperPlots,'true')];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% ANALYZE REAL DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+for task = 1:length(data_tasks)
+    [bins, axis] = bin_generator(nBins, 'task', data_tasks{task});
+
+    % analyze individual data
+    for dataset = 1 : nDatasets
+        [streal.(data_tasks{task}).data(dataset).stats, streal.(data_tasks{task}).data(dataset).sorted_raw] = indiv_analysis_fcn(streal.(data_tasks{task}).data(dataset).raw, bins);
+    end
+    
+    % group summary stats
+    streal.(data_tasks{task}).sumstats = sumstats_fcn(streal.(data_tasks{task}).data);
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% GENERATE/ANALYZE FAKE DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%% GENERATE FAKE DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% generate fake trials based on extracted params, bin/analyze.
 for model_id = plot_model;
-    for dataset = 1 : nDatasets;
-        ex = model(model_id).extracted(dataset);
-        
-        % BIN/ANALYZE REAL DATA (leave this out of the function that should replace this)
-        if opt_models(model_id).joint_task_fit
-            for task = 1:length(tasks)
-                [streal.(tasks{task}).data(dataset).stats, streal.(tasks{task}).data(dataset).sorted_raw] = indiv_analysis_fcn(streal.(tasks{task}).data(dataset).raw, bins);
-            end
-        else
-            [streal.data(dataset).stats, streal.data(dataset).sorted_raw]   = indiv_analysis_fcn(streal.data(dataset).raw, bins);
-        end
-        
-        tic
-        if show_fit
-            dists = {'diff_mean_same_std','same_mean_diff_std'};
-            models = {'model_A','model_B'};
-            param_idx = {'A_param_idx','B_param_idx'};
-            
-            all_p = [];
-            for c = 1:length(ex.p)
-                all_p = cat(1,all_p,ex.p{c});
-            end
-            sample_ids = randsample(size(all_p,1),nPlotSamples); % pick random parameter samples
-            
-            submodels(model_id) = prepare_submodels(opt_models(model_id));
-            for task = 1:length(tasks)
-                for s = 1:nPlotSamples
-                    task_id=tasks{task};
-                    model(model_id).(task_id).data(dataset).sample(s).p = all_p(sample_ids(s),submodels(model_id).(param_idx{task}))';
-                    model(model_id).(task_id).data(dataset).sample(s).raw = trial_generator(model(model_id).(task_id).data(dataset).sample(s).p, submodels(model_id).(models{task}),...
-                        'n_samples', n_samples, 'dist_type', dists{task}, 'contrasts', contrasts, 'model_fitting_data',streal.(task_id).data(dataset).raw);
-                    % BIN/ANALYZE FAKE DATA
-                    [model(model_id).(task_id).data(dataset).sample(s).stats, model(model_id).(task_id).data(dataset).sample(s).sorted_raw] = indiv_analysis_fcn(model(model_id).(task_id).data(dataset).sample(s).raw, bins);
-                    % model(model_id).(task_id).data(dataset).sample(s).raw = [];
-                end
-            end
-        end
-        toc
-        (5*(model_id-1)+dataset)/25
+    for subject = 1:length(model(model_id).extracted)
+        model(model_id).extracted(subject).fake = dataset_generator(model(model_id), ...
+            model(model_id).extracted(subject).p, nPlotSamples, ...
+            'nBins', nBins, 'raw_A', streal.A.data(subject).raw, 'raw_B', streal.B.data(subject).raw);
     end
     
-    if strcmp(optimization_method,'mcmc_slice') && opt_models(model_id).joint_task_fit
-        for task = 1:length(tasks)
-            task_id=tasks{task};
-            
-            % SUMMARIZE REAL DATA ACROSS SUBJECTS
-            streal.(task_id).sumstats = sumstats_fcn(streal.(task_id).data);
-            if show_fit
-                % SUMMARIZE DATA ACROSS SAMPLES
-                for dataset = 1:nDatasets % not using this?
-                    model(model_id).(task_id).data(dataset).sumstats = sumstats_fcn(model(model_id).(task_id).data(dataset).sample);
-                end
-                
-                fields = {'tf','resp','g','Chat'};
-                for f = 1:length(fields)
-                    model(model_id).(task_id).hyperplot.md.(fields{f}) = [];
-                end
-                % initialize hyperplots
-                for h = 1:nHyperPlots % load up many hyperplots of averages of combinations of fake datasets
-                    for dataset = 1:nDatasets
-                        model(model_id).(task_id).hyperplotdata(dataset) = model(model_id).(task_id).data(dataset).sample(hyperPlotID(h,dataset));
-                    end
-                    sumstats = sumstats_fcn(model(model_id).(task_id).hyperplotdata); % don't keep everything.
-                    for f = 1:length(fields)
-                        model(model_id).(task_id).hyperplot.md.(fields{f}) = cat(3,model(model_id).(task_id).hyperplot.md.(fields{f}),sumstats.all.mean.(fields{f}));
-                    end
-                end
-                % mean and std hyperplot
-                for f = 1:length(fields)
-                    model(model_id).(task_id).hyperplot.mean.(fields{f}) = mean(model(model_id).(task_id).hyperplot.md.(fields{f}),3);
-                    model(model_id).(task_id).hyperplot.std.(fields{f}) = std(model(model_id).(task_id).hyperplot.md.(fields{f}),0,3);
-                end
-            end
-        end
-    else
-        % SUMMARIZE REAL DATA ACROSS SUBJECTS
-        streal.sumstats = sumstats_fcn(streal.data);
-        if show_fit
-            % SUMMARIZE DATA ACROSS FITTED DATASETS. hyperplot
-            model(model_id).sumstats = sumstats_fcn(model(model_id).data);
-        end
-    end
-    
+    model(model_id).fake_sumstats = hyperplot(model(model_id), nHyperplots);
 end
-return
+
 %%
 
 cd('/Users/will/Google Drive/Will - Confidence/Presentations/cosyne')
@@ -225,7 +134,7 @@ for o = 2
             task_id = tasks{t};
             
             figure(1)
-            hyperplot = model(model_id).(tasks{t}).hyperplot;
+            hyperplot = model(model_id).fake_sumstats.(tasks{t});
             
             tight_subplot(3,6,t+1,1+m,[.042 .016]);
             loopvar = 0;
@@ -490,6 +399,8 @@ set(checks,'facecolor',[0 .6 0],'edgecolor','w','linewidth',1)
 
 
 %% model comparison bar plot
+
+% replaced by mybar.m (needs better name)
 cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations/v3')
 load('v3_combined_and_cleaned_POSTER_DATA.mat')
 
