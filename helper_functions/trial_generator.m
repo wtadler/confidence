@@ -90,7 +90,7 @@ end
 if ~attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast, 'flipsig', true); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
     raw.sig = p.unique_sigs(raw.contrast_id);
-    if model.separate_measurement_and_inference_noise
+    if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
         raw.sig_inference = p.unique_sigs_inference(raw.contrast_id);
     end
     %     c_low = min(raw.contrast_values);
@@ -110,17 +110,24 @@ elseif attention_manipulation
     %     raw.sig(raw.cue_validity ==  1) = p.sigma_c_hi;
 end
 raw.sig = reshape(raw.sig,1,length(raw.sig)); % make sure it's a row.
-if model.separate_measurement_and_inference_noise
+if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
     raw.sig_inference = reshape(raw.sig_inference, 1, length(raw.sig_inference));
 end
 
 if model.ori_dep_noise
     ODN = @(s, sig_amplitude) abs(sin(s * pi / 90)) * sig_amplitude;
-    pre_sig = raw.sig;
-    raw.sig = pre_sig + ODN(raw.s, p.sig_amplitude);
-    if model.separate_measurement_and_inference_noise
-        pre_sig_inference = raw.sig_inference;
-        raw.sig_inference = pre_sig_inference + ODN(raw.s, p.sig_amplitude_inference);
+%     pre_sig = raw.sig;
+%     raw.sig = pre_sig + ODN(raw.s, p.sig_amplitude);
+%     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
+%         pre_sig_inference = raw.sig_inference;
+%         raw.sig_inference = pre_sig_inference + ODN(raw.s, p.sig_amplitude_inference);
+%     end
+    if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
+        pre_sig = raw.sig_inference;
+        raw.sig_inference = pre_sig + ODN(raw.s, p.sig_amplitude_inference);
+    else
+        pre_sig = raw.sig;
+        raw.sig = pre_sig + ODN(raw.s, p.sig_amplitude);
     end
 end
 
@@ -146,15 +153,16 @@ if model.ori_dep_noise && strcmp(model.family, 'opt')
     s_mat = repmat(sVec',1, n_samples);
     x_mat = repmat(raw.x,length(sVec),1);
     
-    if model.separate_measurement_and_inference_noise
-        sig_mat = repmat(pre_sig_inference, length(sVec), 1);
+    %     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
+    %         sig_mat = repmat(pre_sig_inference, length(sVec), 1);
+    %         sig_plusODN_mat = sig_mat + ODN(s_mat, p.sig_amplitude_inference);
+    %     else
+    sig_mat=repmat(pre_sig, length(sVec), 1); % nTrials vector of sigma levels repeated some number of rows defined by ds
+    if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
         sig_plusODN_mat = sig_mat + ODN(s_mat, p.sig_amplitude_inference);
     else
-        sig_mat=repmat(pre_sig, length(sVec), 1); % nTrials vector of sigma levels repeated some number of rows defined by ds
         sig_plusODN_mat = sig_mat + ODN(s_mat, p.sig_amplitude);
     end
-    
-    
     
     % p(x|C). see conf data likelihood my task.pages>orientation dependent noise
     likelihood = @(sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./sig_plusODN_mat .*exp(-(x_mat-s_mat).^2 ./ (2*sig_plusODN_mat.^2) - (s_mat - mu_cat).^2 ./ (2*sigma_cat^2)));
@@ -164,7 +172,7 @@ end
 
 % calculate d(x)
 if strcmp(model.family,'opt')
-    if model.separate_measurement_and_inference_noise
+    if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
         assumed_sig = raw.sig_inference; % assumed sig is not the same as the sig that generated the data
     else
         assumed_sig = raw.sig; % assumed sig is accurate, and the same as the generative sig
@@ -231,24 +239,29 @@ if strcmp(model.family,'opt') % for all opt family models
     end
     
 elseif strcmp(model.family, 'MAP')
+    if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
+        assumed_sig = p.unique_sigs_inference; % assumed sig is not the same as the sig that generated the data
+    else
+        assumed_sig = p.unique_sigs; % assumed sig is accurate, and the same as the generative sig
+    end
     
     if ~model.ori_dep_noise
         raw.shat = zeros(1,n_samples);
         
         switch category_type
             case 'same_mean_diff_std' % task B
-                k1sq = 1./(p.unique_sigs.^-2 + category_params.sigma_1^-2);
-                k2sq = 1./(p.unique_sigs.^-2 + category_params.sigma_2^-2);
+                k1sq = 1./(assumed_sig.^-2 + category_params.sigma_1^-2);
+                k2sq = 1./(assumed_sig.^-2 + category_params.sigma_2^-2);
                 k1 = sqrt(k1sq);
                 k2 = sqrt(k2sq);
                 
             case 'diff_mean_same_std' % task A
-                ksq = 1./(p.unique_sigs.^-2 + category_params.sigma_s^-2);
+                ksq = 1./(assumed_sig.^-2 + category_params.sigma_s^-2);
                 k = sqrt(ksq);
         end
         
         for i = 1:nContrasts
-            cur_sig = p.unique_sigs(i);
+            cur_sig = assumed_sig(i);
             idx = find(raw.contrast_id==i);
             
             switch category_type
@@ -298,7 +311,7 @@ elseif strcmp(model.family, 'MAP')
             logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
         
-        noise = bsxfun(@plus, p.unique_sigs(raw.contrast_id), ODN(sVec, p.sig_amplitude));
+        noise = bsxfun(@plus, assumed_sig(raw.contrast_id), ODN(sVec, p.sig_amplitude));
         loglikelihood = bsxfun_normlogpdf(raw.x, sVec, noise);
         
         logposterior = bsxfun(@plus, loglikelihood, logprior);

@@ -13,6 +13,11 @@ if length(varargin) == 1;
     category_params = varargin{1};
 end
 
+if ~isfield(model, 'separate_measurement_and_inference_noise') % this should be temporary! take it out after the 7/2015 jobs.
+    model.separate_measurement_and_inference_noise = 0;
+end
+
+
 % % constraints for optimization algorithms that don't have constraints as inputs. this should be a wrapper for the function
 % if length(varargin) == 2 | length(varargin) == 3
 %     alg = varargin{2};
@@ -57,7 +62,7 @@ elseif model.d_noise
         nDNoiseSets=101;
     end
     nSTDs = 5;
-    weights = normpdf(linspace(-nSTDs, nSTDs, nDNoiseSets), 0, 1);
+    weights = my_normpdf(linspace(-nSTDs, nSTDs, nDNoiseSets), 0, 1);
     normalized_weights = weights ./ sum(weights);
     
     d_noise_draws = linspace(-p.sigma_d*nSTDs, p.sigma_d*nSTDs, nDNoiseSets);
@@ -81,77 +86,52 @@ else
     sig2 = 12;
 end
 
-xSteps = 200; %200 and 20 take about the same amount of time
+xSteps = 201; %200 and 20 take about the same amount of time
 if ~model.diff_mean_same_std
     xVec = linspace(0,90,xSteps)';
 else
     xVec = linspace(-45,45,xSteps)';
 end
 
-
-
-
-% % this is reversed from trial_generator. there, we generate x first, with regular sigs. here, we get the boundaries first, with sigs_inference
-% if model.separate_measurement_and_inference_noise
-%     sig = p.unique_sigs_inference;
-% else
-%     sig = p.unique_sigs;
-% end
-% 
-% if model.ori_dep_noise
-%     ODN = @(s, sig_amplitude) abs(sin(s * pi / 90)) * sig_amplitude;
-%     if ~strcmp(model.family, 'opt')
-%         sig = p.unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
-%         sig = sig + ODN(raw.s, p.sig_amplitude); % add orientation dependent noise to each sigma.
-%     elseif strcmp(model.family, 'opt')
-%         sSteps = 200;
-%         sVec = linspace(-100,100,sSteps)';
-%         % faster than meshgrid
-%         s_mat = repmat(sVec,1, xSteps);
-%         
-%         d_lookup_table = zeros(nContrasts,length(xVec));
-%         
-%         x_mat = repmat(xVec', sSteps,1);
-%         x_dec_bound = zeros(nDNoiseSets,nContrasts);
-%         
-%         likelihood = @(sigma, sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./ sigma .*exp(-(x_mat-s_mat).^2 ./ (2*sigma.^2) - (s_mat - mu_cat) .^2 ./ (2*sigma_cat^2)));
-%         
-%         if model.separate_measurement_and_inference_noise
-%             ODN_s_mat = ODN(s_mat, p.sig_amplitude_inference);
-%         else
-%             ODN_s_mat = ODN(s_mat, p.sig_amplitude);
-%         end
-%     end
-% end
-
-
+% clean this up!
 if model.ori_dep_noise
     ODN = @(s, sig_amplitude) abs(sin(s * pi / 90)) * sig_amplitude;
-    if ~strcmp(model.family, 'opt')
-        sig = p.unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
-        sig = sig + ODN(raw.s, p.sig_amplitude); % add orientation dependent noise to each sigma.
-    else
-        sSteps = 200;
-        sVec = linspace(-100,100,sSteps)';
-        % faster than meshgrid
-        s_mat = repmat(sVec,1, xSteps);
-        
+    
+    if strcmp(model.family, 'opt')
         d_lookup_table = zeros(nContrasts,length(xVec));
-        
-        x_mat = repmat(xVec', sSteps,1);
         x_dec_bound = zeros(nDNoiseSets,nContrasts);
 
-        likelihood = @(sigma, sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./ sigma .*exp(-(x_mat-s_mat).^2 ./ (2*sigma.^2) - (s_mat - mu_cat) .^2 ./ (2*sigma_cat^2)));
+        sSteps = 199;
+        sVec = linspace(-100,100,sSteps)';
+        s_mat = repmat(sVec,1, xSteps);
 
+        x_mat = repmat(xVec', sSteps,1);
+        
+        
+        likelihood = @(sigma, sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./ sigma .*exp(-(x_mat-s_mat).^2 ./ (2*sigma.^2) - (s_mat - mu_cat) .^2 ./ (2*sigma_cat^2))); % 7.3 secs
+        % equivalently (after normalization or ratio), more readable, but slower. doesn't require computation of x_mat, s_mat, or ODN_s_mat.
+%         likelihood2 = @(sigma, sigma_cat, mu_cat) sum(normpdf(x_mat,s_mat,sigma) .* normpdf(s_mat, mu_cat, sigma_cat));
+%         likelihood3 = @(sigma_flat, sigma_cat, mu_cat) sum(bsxfun(@times, bsxfun_normpdf(xVec', sVec, sigma), normpdf(sVec, mu_cat, sigma_cat)));
+        
         % this is reversed from trial_generator. there, we generate x first, with regular sigs. here, we get the boundaries first, with sigs_inference
         if model.separate_measurement_and_inference_noise
             sig = p.unique_sigs_inference;
-            ODN_s_mat = ODN(s_mat, p.sig_amplitude_inference);
+            ODN_s_mat = repmat(ODN(sVec, p.sig_amplitude_inference), 1, xSteps);
+        %    computed_ODN = ODN(sVec, p.sig_amplitude_inference);  % this is instead of ODN_s_mat if you use likelihood2() or likelihood3()
         else
             sig = p.unique_sigs;
-            ODN_s_mat = ODN(s_mat, p.sig_amplitude);
+            ODN_s_mat = repmat(ODN(sVec, p.sig_amplitude), 1, xSteps); 
+            %%%% computed_ODN
         end
-                
+        
+    else
+        if model.separate_measurement_and_inference_noise
+            sig = p.unique_sigs_inference(raw.contrast_id);
+            sig = sig + ODN(raw.s, p.sig_amplitude_inference);
+        else
+            sig = p.unique_sigs(raw.contrast_id); % 1 x nTrials vector of sigmas
+            sig = sig + ODN(raw.s, p.sig_amplitude); % add orientation dependent noise to each sigma.
+        end
     end
 else
     % this is reversed from trial_generator.m. there, we generate x first, with regular sigs. here, we get the boundaries first, with sigs_inference
@@ -175,6 +155,7 @@ end
             %k(:, c) = lininterp1m(repmat(fliplr(d_lookup_table(c,:)),nDNoiseSets,1)+repmat(d_noise_draws',1,xSteps), fliplr(xVec'), p.b_i(5))'; % take this out of the loop?
             % would be faster to take this out of the loop for the models without d_noise. but we're not really using models w/o d noise
             k(:, contrast) = lininterp1_multiple(bsxfun(@plus, fliplr(d_lookup_table(contrast,:)), d_noise_draws'), fliplr(xVec'), bf(0)); % take this out of the loop?
+            
         end
     end
 
@@ -192,16 +173,16 @@ end
             x_bounds = [-inf(nContrasts,1,nDNoiseSets) x_bounds inf(nContrasts,1,nDNoiseSets)];
         end
         %cols of x_bounds are for each choice and confidence
-        cols_lb = 5 + raw.Chat.*(raw.g - 1);
-        cols_ub = 5 + raw.Chat.* raw.g;
+        cols_lb = 4 + raw.Chat .* (raw.g - 1); % used to have 5 up here and -1 below
+        cols_ub = 4 + raw.Chat .*  raw.g;
         %rows are for each contrast level
-        rows = nContrasts + 1 - raw.contrast_id;
+        rows = nContrasts - raw.contrast_id; % used to have + 1 up here and - 1 below
         
         % flatten the whole cube into a vector
         x_bounds_squash = reshape(permute(x_bounds,[3 2 1]), numel(x_bounds), 1);
         % each trial is a nDNoiseSets-vector from the x_bounds vector. This defines the first index of each vector
-        start_pts_lb = (nDNoiseSets*(size(x_bounds,2)*(rows-1)+cols_lb-1)+1)';
-        start_pts_ub = (nDNoiseSets*(size(x_bounds,2)*(rows-1)+cols_ub-1)+1)';
+        start_pts_lb = (nDNoiseSets*((nBounds+2)*(rows)+cols_lb)+1)';
+        start_pts_ub = (nDNoiseSets*((nBounds+2)*(rows)+cols_ub)+1)';
         
         % this takes those vectors, and turns them back into a matrix.
         if ~model.diff_mean_same_std
@@ -217,8 +198,9 @@ end
             
         end
         
-        x_lb = min(cat(3,a,b), [], 3); % this is a hack. try to fix the above part
-        x_ub = max(cat(3,a,b), [], 3);
+        ab_cat = cat(3,a,b);
+        x_lb = min(ab_cat, [], 3); % this is a hack to get everything in the right order so that x_lb < x_ub
+        x_ub = max(ab_cat, [], 3);
 
     end
 
@@ -247,8 +229,8 @@ if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian
 %         sq_flag = 1; % this is because f gets passed a square root that can be negative. causes f to ignore the resulting imaginaries
         k1 = .5 * log( (sig.^2 + sig2^2) ./ (sig.^2 + sig1^2)); %log(prior / (1 - prior));
         k2 = (sig2^2 - sig1^2) ./ (2 .* (sig.^2 + sig1^2) .* (sig.^2 + sig2^2));
-        x_dec_bound  = sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - bf(0)) ./ repmat(k2, nDNoiseSets, 1));
-        % equivalently: k= sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'),bf(0)),k2));
+        x_dec_bound  = real(sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - bf(0)) ./ repmat(k2, nDNoiseSets, 1)));
+        % equivalently, but slower: x_dec_bound = sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'),bf(0)),k2));
     end
 elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
     
@@ -292,8 +274,8 @@ elseif strcmp(model.family, 'MAP')
             if ~model.diff_mean_same_std
                 mu1 = xVec*cur_sig^-2 * k1sq(i);
                 mu2 = xVec*cur_sig^-2 * k2sq(i);
-                w1 = normpdf(xVec,0,sqrt(sig1^2 + cur_sig^2));
-                w2 = normpdf(xVec,0,sqrt(sig2^2 + cur_sig^2));
+                w1 = my_normpdf(xVec,0,sqrt(sig1^2 + cur_sig^2));
+                w2 = my_normpdf(xVec,0,sqrt(sig2^2 + cur_sig^2));
                 shat_lookup_table(i,:) = gmm1max_n2_fast([w1 w2], [mu1 mu2], repmat([k1(i) k2(i)],xSteps,1),niter);
 
             elseif model.diff_mean_same_std
@@ -313,7 +295,11 @@ elseif strcmp(model.family, 'MAP')
             logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
         
-        noise = bsxfun(@plus, reshape(p.unique_sigs, 6, 1), ODN(sVec, p.sig_amplitude)); % 2d slice dependent on c and s;
+        if model.separate_measurement_and_inference_noise
+            noise = bsxfun(@plus, reshape(p.unique_sigs_inference, 6, 1), ODN(sVec, p.sig_amplitude_inference)); % 2d slice dependent on c and s;
+        else
+            noise = bsxfun(@plus, reshape(p.unique_sigs, 6, 1), ODN(sVec, p.sig_amplitude)); % 2d slice dependent on c and s;
+        end
         loglikelihood = bsxfun_normlogpdf(xVec', sVec, noise);
         
         logposterior = bsxfun(@plus, loglikelihood, logprior); % 3d
@@ -361,9 +347,24 @@ else
 end
 
 if ~model.diff_mean_same_std
-    p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) - repmat(raw.Chat, nDNoiseSets, 1) .* symmetric_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+    % 0.5 + 0.5 * Chat - Chat *symmetric_normcdf(x_dec_bound, s, measurement_sigma)
+%     p_choice = 0.5 + 0.5 * repmat(raw.Chat, nDNoiseSets, 1) - repmat(raw.Chat, nDNoiseSets, 1) .* symmetric_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+%     p_choice = bsxfun(@minus, 0.5 + 0.5 * raw.Chat, ...
+%                               bsxfun(@times, raw.Chat,...
+%                                              symmetric_normcdf_old(x_dec_bound,...
+%                                                                repmat(mu, nDNoiseSets, 1),...
+%                                                                repmat(measurement_sigma, nDNoiseSets, 1))));
+    p_choice = bsxfun(@minus, 0.5 + 0.5 * raw.Chat, ...
+                              bsxfun(@times, raw.Chat,...
+                                             symmetric_normcdf(x_dec_bound,...
+                                                               mu,...
+                                                               measurement_sigma)));
+
 elseif model.diff_mean_same_std
-    p_choice = 0.5 + repmat(raw.Chat, nDNoiseSets, 1) .* (0.5 - my_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1)));
+    % 0.5 + Chat * (0.5 - normcdf(x_dec_bound, s, measurement_sigma)
+%     p_choice = 0.5 + repmat(raw.Chat, nDNoiseSets, 1) .* (0.5 - my_normcdf(x_dec_bound, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1)));
+    p_choice = 0.5 + bsxfun(@times, raw.Chat,...
+                                    0.5 - bsxfun_normcdf(x_dec_bound, mu, measurement_sigma));
 end
 
 p_choice = normalized_weights*p_choice;
@@ -401,8 +402,8 @@ if ~model.choice_only
             d_lb=p.b_i(2*conf_levels+1-raw.resp);
             d_ub=p.b_i(2*conf_levels+2-raw.resp);
             
-            x_lb = sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_ub), k2));
-            x_ub = sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_lb), k2));
+            x_lb = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_ub), k2)));
+            x_ub = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_lb), k2)));
 
         end
     elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
@@ -420,10 +421,18 @@ if ~model.choice_only
         x_lb = p.b_i(raw.resp)   + sig    .* p.m_i(raw.resp);
         x_ub = p.b_i(raw.resp+1) + sig    .* p.m_i(raw.resp+1);
         
+        if ~model.diff_mean_same_std
+            x_lb = max(x_lb, 0);
+            x_ub = max(x_ub, 0);
+        end
     elseif strcmp(model.family, 'quad')
         x_lb = p.b_i(raw.resp)   + sig.^2 .* p.m_i(raw.resp);
         x_ub = p.b_i(raw.resp+1) + sig.^2 .* p.m_i(raw.resp+1);
         
+        if ~model.diff_mean_same_std
+            x_lb = max(x_lb, 0);
+            x_ub = max(x_ub, 0);
+        end
     elseif (strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1'))% && ~model.diff_mean_same_std
         x_lb = p.b_i(raw.resp); 
         x_ub = p.b_i(raw.resp+1);
@@ -477,21 +486,17 @@ if ~model.choice_only
             x_ub = x_bounds(ub_index);
         end
     end
-    
-%     if ~strcmp(model.family, 'neural1')
-%         mu = raw.s;
-%         sigma = sig;
-%     else
-%         mu = sig.^-2 .* raw.s .* sqrt(2*pi) * p.sigma_tc;
-%         sigma = sqrt(sig.^-2 .* (p.sigma_tc^2 + raw.s.^2) .* sqrt(2*pi) * p.sigma_tc);
-%     end
-    
+        
     if ~model.diff_mean_same_std
-        cum_prob_lb = symmetric_normcdf(x_lb, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
-        cum_prob_ub = symmetric_normcdf(x_ub, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+%         cum_prob_lb = symmetric_normcdf_old(x_lb, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+%         cum_prob_ub = symmetric_normcdf_old(x_ub, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+        cum_prob_lb = symmetric_normcdf(x_lb, mu, measurement_sigma);
+        cum_prob_ub = symmetric_normcdf(x_ub, mu, measurement_sigma);
     else
-        cum_prob_lb = my_normcdf(x_lb, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
-        cum_prob_ub = my_normcdf(x_ub, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+        %         cum_prob_lb = my_normcdf(x_lb, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+        %         cum_prob_ub = my_normcdf(x_ub, repmat(mu, nDNoiseSets, 1), repmat(measurement_sigma, nDNoiseSets, 1));
+        cum_prob_lb = my_normcdf(x_lb, mu, measurement_sigma);
+        cum_prob_ub = my_normcdf(x_ub, mu, measurement_sigma);
     end
     
     p_conf_choice = cum_prob_ub - cum_prob_lb;
@@ -583,11 +588,29 @@ function retval = symmetric_normcdf(k, mu, sigma)
 % sigma is the width of the measurement distribution.
 % y is the x_lb or x_ub
 
-retval              = zeros(size(mu)); % length of all trials
-idx           = find(k>0);      % find all trials where k is greater than 0. k is either positive or imaginary. so a non-positive k would indicate negative bounds, which can be dropped?
-mu                   = mu(idx);
-sigma               = sigma(idx);
-k                   = k(idx);
 
-retval(idx)   = my_normcdf(k, mu, sigma) - my_normcdf(-k, mu, sigma);
+retval = my_normcdf(k, mu, sigma) - my_normcdf(-k, mu, sigma);
+% retval(k<=0) = 0; % don't need this if we put a real() around every sqrt()?
+
 end
+ 
+% function retval = symmetric_normcdf_old(k, mu, sigma)
+% % this returns the probability mass from -k to k of N(x; mu, sig).
+% % symmetric_normcdf(k_big) - symmetric_normcdf(k_small) will give you the
+% % sum of the two probability bands, which are symmetric across x=0
+% 
+% % mu is the mean of the measurement distribution, usually the stimulus
+% % sigma is the width of the measurement distribution.
+% % y is the x_lb or x_ub
+% 
+% 
+% 
+% retval              = zeros(size(mu)); % length of all trials
+% idx           = find(k>0);      % find all trials where k is greater than 0. k is either positive or imaginary. so a non-positive k would indicate negative bounds, which can be dropped?
+% mu                   = mu(idx);
+% sigma               = sigma(idx);
+% k                   = k(idx);
+% 
+% retval(idx)   = my_normcdf(k, mu, sigma) - my_normcdf(-k, mu, sigma);
+% 
+% end

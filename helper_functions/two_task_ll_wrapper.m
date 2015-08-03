@@ -34,9 +34,15 @@ elseif sm.joint_d % always recompute both
 end
 
 if recompute(1)
+    if ~isfield(sm.model_A, 'separate_measurement_and_inference_noise') % THESE 2 IF STATEMENTS ARE TEMPORARY
+        sm.model_A.separate_measurement_and_inference_noise = 0;
+    end
     llA = -nloglik_fcn(p_A, rawA, sm.model_A, nDNoiseSets, category_params);
 end
 if recompute(2)
+    if ~isfield(sm.model_B, 'separate_measurement_and_inference_noise')
+        sm.model_B.separate_measurement_and_inference_noise = 0;
+    end
     llB = -nloglik_fcn(p_B, rawB, sm.model_B, nDNoiseSets, category_params);
 end
 ll = llA + llB;

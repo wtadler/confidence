@@ -69,6 +69,10 @@ elseif strcmp(fig_type, 'mcmc_figures')
     for model_id = 1:length(model_struct)
         m = model_struct(model_id);
         
+        if isempty(m.name)
+            continue
+        end
+        
         if isempty(plot_datasets)
             datasets = 1:length(m.extracted);
         else
@@ -85,6 +89,10 @@ elseif strcmp(fig_type, 'mcmc_figures')
         end
         for dataset_id = datasets
             ex = m.extracted(dataset_id);
+            
+            if isempty(ex.name)
+                continue
+            end
             dataset_name = upper(ex.name);
             
             [true_p, true_logposterior] = deal([]);
@@ -94,10 +102,14 @@ elseif strcmp(fig_type, 'mcmc_figures')
             end
             
             tic
+            try
             mcmcdiagnosis(ex.p, 'logposterior', ex.logposterior, 'fit_model', m, ...
                 'true_p', true_p, 'true_logposterior', true_logposterior, 'dataset_name', dataset_name, ...
                 'dic', ex.dic, 'gen_model', g, 'show_cornerplot', show_cornerplot);
-            toc
+            
+            catch
+                toc
+            end
             pause(1e-3); % to plot
         end
     end
@@ -111,6 +123,9 @@ elseif strcmp(fig_type, 'mcmc_grid')
     
     for model_id = 1:length(model_struct)
         m = model_struct(model_id);
+        if isempty(m.name)
+            continue
+        end
         if ~isempty(gen_struct)
             g = gen_struct(model_id);
             if length(m.parameter_names) ~= length(g.parameter_names)
@@ -122,7 +137,9 @@ elseif strcmp(fig_type, 'mcmc_grid')
         
         for dataset_id = 1:length(m.extracted)
             ex = m.extracted(dataset_id);
-            
+            if isempty(ex.name)
+                continue
+            end
             [true_p, true_logposterior] = deal([]);
             if ~isempty(gen_struct) % if this is mcmc recovery
                 true_p = g.p(:, dataset_id);
@@ -142,7 +159,7 @@ elseif strcmp(fig_type, 'mcmc_grid')
             end
             if dataset_id == 1
                 set(gca, 'visible', 'on')
-                ylabel(num2str(model_id))
+                ylabel(rename_models(m.name))
             end
             tight_subplot(length(model_struct), 2*length(m.extracted), model_id, 2*dataset_id, [], [.06 .01 .04 .06]);
             plot_logposterior_hist(ex.logposterior, 'true_logposterior', true_logposterior, 'show_legend', show_legend, 'show_labels', false)
