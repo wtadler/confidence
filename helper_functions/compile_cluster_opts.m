@@ -253,7 +253,7 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                     
 %                     old_dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
                     
-                    ex.dic = dic(all_samples, -all_nll, loglik_fcn);
+                    [ex.dic, ex.dbar, ex.dtbar] = dic(all_samples, -all_nll, loglik_fcn);
                     
 %                     if abs(old_dic-ex.dic) > .1
 %                         error('old and new DIC methods don''t seem to be equivalent.')

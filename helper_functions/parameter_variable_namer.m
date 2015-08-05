@@ -37,21 +37,21 @@ if ~isfield(model, 'nFreesigs') || model.nFreesigs == 0
     c_hi = max(contrasts);
     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
     p.unique_sigs = fliplr(sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta)); % low to high sigma. should line up with contrast id
-    p.unique_sigs = max(p.unique_sigs, exp(-4)); % prevents problems in nloglik_fcn
+    p.unique_sigs = max(p.unique_sigs, exp(-4)); % prevents problems in nloglik_fcn. this is temporary. won't need this after changes in parameter_constraints.m trickle down.
     
     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
         alpha_inference = (p.sigma_c_low_inference^2-p.sigma_c_hi_inference^2)/(c_low^-p.beta_inference - c_hi^-p.beta_inference);
         p.unique_sigs_inference = fliplr(sqrt(p.sigma_c_low_inference^2 - alpha_inference * c_low^-p.beta_inference + alpha_inference*contrasts.^-p.beta_inference)); % low to high sigma. should line up with contrast id
-%         p.unique_sigs_inference = max(p.unique_sigs_inference, exp(-4)); % prevents problems in nloglik_fcn
+%         p.unique_sigs_inference = max(p.unique_sigs_inference, exp(-4)); % prevents problems in nloglik_fcn. this is temporary. won't need this after changes in parameter_constraints.m trickle down. 
     end
 else
     p.unique_sigs = [];
-    if model.separate_measurement_and_inference_noise
+    if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
         p.unique_sigs_inference = [];
     end
     for sig_id = 1:model.nFreesigs
         p.unique_sigs = [p.(['sigma_c' num2str(sig_id)]) p.unique_sigs];
-        if model.separate_measurement_and_inference_noise
+        if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
             p.unique_sigs_inference = [p.(['sigma_c' num2str(sig_id) '_inference']) p.unique_sigs_inference];
         end
     end

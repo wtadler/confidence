@@ -550,12 +550,12 @@ for gen_model_id = active_gen_models
                     all_p = reshape(permute(ex.p,[1 3 2]),[],size(ex.p,2),1);
                     [ex.min_nll, ex.min_idx] = min(all_nll);
                     ex.best_params = all_p(ex.min_idx,:)';
-                    ex.mean_params = mean(all_p);
-                    dbar = 2*mean(all_nll);
-                    %nloglik_wrapper = @(p) nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
                     
-                    dtbar= -2*loglik_wrapper(ex.mean_params);
-                    ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
+%                     ex.mean_params = mean(all_p);
+%                     dbar = 2*mean(all_nll);                    
+%                     dtbar= -2*loglik_wrapper(ex.mean_params);
+%                     ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
+                    ex.dic = dic(all_p, all_nll, loglik_wrapper);
                     
                     ex.best_hessian = [];
                     ex.hessian = [];
