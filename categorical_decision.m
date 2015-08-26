@@ -356,9 +356,7 @@ try
     scr.cross = Screen('MakeTexture', scr.win , f_c);
 
     if nStimuli > 1
-        
-        %  need to change this! figure out how the fixation cross will work. + or x shaped?
-        
+                
         arm_rows = f_c_size/2-fw:f_c_size/2 + 1 + fw;
         L_arm_cols = 1:f_c_size/2-1-fw;
         R_arm_cols = f_c_size/2+2+fw:f_c_size;
@@ -368,15 +366,18 @@ try
         cross_whiteLR = cross_whiteL; % neutral cue
         cross_whiteLR(arm_rows, R_arm_cols) = white;
         
+        cross_whiteLRUD = cross_whiteLR;
+        cross_whiteLRUD([L_arm_cols, R_arm_cols], [arm_rows, arm_rows]) = white;
+        
         cross_grayL = cross_whiteL;
         cross_grayL(cross_grayL==white) = lightgray;
         
-        scr.cueL = Screen('MakeTexture', scr.win, cross_whiteL);
-        scr.cueR = Screen('MakeTexture', scr.win, fliplr(cross_whiteL));
-        scr.cueLR= Screen('MakeTexture', scr.win, cross_whiteLR);
-        
+        scr.cueL    = Screen('MakeTexture', scr.win, cross_whiteL);
+%         scr.cueR = Screen('MakeTexture', scr.win, fliplr(cross_whiteL));
+        scr.cueLR   = Screen('MakeTexture', scr.win, cross_whiteLR);
+        scr.cueLRUD = Screen('MakeTexture', scr.win, cross_whiteLRUD);
         scr.resp_cueL = Screen('MakeTexture', scr.win, cross_grayL);
-        scr.resp_cueR = Screen('MakeTexture', scr.win, fliplr(cross_grayL));
+%         scr.resp_cueR = Screen('MakeTexture', scr.win, fliplr(cross_grayL));
     end
     
     % set up grating parameters
