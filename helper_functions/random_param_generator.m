@@ -66,14 +66,17 @@ for i = 1 : sets;
         %             x(monotonic_params) = sort(x(monotonic_params));
         %         end
 
-        switch contrast_type
-            case 'old'
-                maxsig = sqrt(x(3).^2 + x(1) .* contrasts(1) .^ - x(2));
-                minsig = sqrt(x(3).^2 + x(1) .* contrasts(6) .^ - x(2));
-            case 'new'
-                maxsig = exp(x(1));
-                minsig = exp(x(2));
-                
+        if ~model.nFreesigs
+            maxsigP = find_parameter('logsigma_c_low', model);
+            maxsigP = maxsigP(1); % there can be two if model.separate_measurement_and_inference_noise
+            minsigP = find_parameter('logsigma_c_hi',  model);
+            minsigP = minsigP(1); % there can be two if model.separate_measurement_and_inference_noise
+            maxsig = exp(x(maxsigP));
+            minsig = exp(x(minsigP));
+        else
+%             maxsigP = find_parameter('logsigma_c1', model);
+%             minsigP = find_parameter('logsigma_c6',  model);
+            break % skip the sig test
         end
     end
     

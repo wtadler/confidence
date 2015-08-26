@@ -5,7 +5,12 @@ function [stats, sorted_raw] = indiv_analysis_fcn(raw, bins, varargin)
 
 % define defaults
 conf_levels = 4; % used for discrete variance
-sig_levels = length(unique(raw.contrast));
+if isfield(raw, 'cue_validity_id')
+    stats.sig_levels = length(unique(raw.cue_validity_id));
+else
+    stats.sig_levels = length(unique(raw.contrast));
+end
+
 data_type = 'subject';
 flipsig = 1;
 discrete = 0;
@@ -42,21 +47,28 @@ stats.all.index = true(1,length(raw.C));
 % stats.after_Chat2.index= idx(idx<length(raw.C));
 
 
-trial_types = fieldnames(stats); % the field names defined above.
+trial_types = setdiff(fieldnames(stats), 'sig_levels'); % the field names defined above.
 
 % cut out sig sorting thing here, moved to compile_and_analyze
 
 for type = 1 : length(trial_types)    
     st=stats.(trial_types{type});
-    for contrast = 1 : sig_levels;
+    for contrast = 1 : stats.sig_levels;
         % These vectors contain all the trials for a given contrast and
         % trial_type. intersection of two indices.
         fields = {'C','s','x','Chat','tf','resp','g','rt'};
-        % sort trials by contrast and trial type
+        
+        % sort trials by reliability (sig) and trial type
+        if isfield(raw, 'cue_validity_id')
+            sig_idx = raw.cue_validity_id == contrast;
+        else
+            sig_idx = raw.contrast_id == contrast;
+        end
+        
         for f = 1:length(fields)
             if isfield(raw,fields{f})
                 sr.(fields{f}) = ...
-                    raw.(fields{f})(raw.contrast_id == contrast & st.index);
+                    raw.(fields{f})(sig_idx & st.index);
             end
         end
         
@@ -87,6 +99,9 @@ for type = 1 : length(trial_types)
         [n, st.bin_index] = histc(sr.s, [-Inf, bins, Inf]);
         st.bin_counts (contrast,:) = n(1 : end - 1); % number in each s bin, at this contrast level
         output_fields = {'tf','resp','g','rt'};
+
+        std_beta_dist = @(a,b) sqrt(a*b/((a+b)^2*(a+b+1)));
+
         for bin = 1 : length(bins) + 1; % calc stats for each bin over s
             for f = 1:length(output_fields)
                 if isfield(sr,output_fields{f})
@@ -96,24 +111,46 @@ for type = 1 : length(trial_types)
                 end
             end
             st.mean.Chat(contrast,bin) = .5 - .5 * mean(sr.Chat(st.bin_index == bin)); % this is actually chat prop
-            st.std.Chat(contrast,bin) = .5 - .5 * std(sr.Chat(st.bin_index == bin));
+            st.std.Chat(contrast,bin) = .5 * std(sr.Chat(st.bin_index == bin));
             st.sem.Chat(contrast,bin) = st.std.Chat(contrast,bin) / sqrt(st.bin_counts(contrast,bin)); % this is sem chat prop
             
-%             end
-%             if g_exists
-%                 st.g_mean            (contrast,bin) =     mean(sr.g    (st.bin_index == bin));
-%                 st.g_sem             (contrast,bin) =     std (sr.g    (st.bin_index == bin))/sqrt(st.bin_counts(contrast,bin));
-%                 st.resp_mean         (contrast,bin) =     mean(sr.resp (st.bin_index == bin));
-%                 st.resp_sem          (contrast,bin) =     std (sr.resp (st.bin_index == bin))/sqrt(st.bin_counts(contrast,bin));
-%             end
-%             
-%             st.percent_correct   (contrast,bin) =     mean(sr.tf   (st.bin_index == bin));
-%             st.percent_correct_sem
-%             st.Chat1_prop        (contrast,bin) = .5 - .5 * mean(sr.Chat (st.bin_index == bin));
-%             if rt_exists     
-%                 st.rt_mean           (contrast,bin) =     mean(sr.rt   (st.bin_index == bin));
-%             end
+            nChatn1 = sum(sr.Chat(st.bin_index == bin)==-1);
+            nChat1 = sum(sr.Chat(st.bin_index == bin)==1);
+            st.std_beta_dist.Chat(contrast, bin) = std_beta_dist(nChatn1, nChat1);
+            
+            nHits = sum(sr.tf(st.bin_index == bin) == 1);
+            nMisses = sum(sr.tf(st.bin_index == bin) == 0);
+            st.std_beta_dist.tf(contrast, bin) = std_beta_dist(nHits, nMisses);
+            
+            % might want to do sem of beta dist for binary vars like choice or tf??
+            %                             if strcmp(dep_vars{dep_var}, 'tf') % standard deviation of the beta distribution instead of SEM
+%                 nHits = sum(raw.(dep_vars{dep_var})(idx));
+%                 nMisses = nTrials - nHits;
+%                 sems (bin, i) = sqrt(nHits*nMisses/((nHits+nMisses)^2*(nHits+nMisses+1)));
+
         end
+        
+        % bin trials by reliability
+        for f = 1:length(output_fields)
+            if isfield(sr,output_fields{f})
+                st.mean_marg_over_s.(output_fields{f})(contrast) = mean(sr.(output_fields{f}));
+                st.std_marg_over_s.(output_fields{f})(contrast) = std(  sr.(output_fields{f}));
+                st.sem_marg_over_s.(output_fields{f})(contrast) = st.std_marg_over_s.(output_fields{f})(contrast)/sqrt(sum(st.bin_counts(contrast,:)));
+            end
+            st.mean_marg_over_s.Chat(contrast) = .5 - .5 * mean(sr.Chat);
+            st.std_marg_over_s.Chat(contrast) = .5 * std(sr.Chat);
+            st.sem_marg_over_s.Chat(contrast) = st.std_marg_over_s.Chat(contrast)/sqrt(sum(st.bin_counts(contrast,:)));
+
+            nChatn1 = sum(sr.Chat==-1);
+            nChat1 = sum(sr.Chat==1);
+            st.std_beta_dist_over_s.Chat(contrast) = std_beta_dist(nChatn1, nChat1);
+            
+            nHits = sum(sr.tf == 1);
+            nMisses = sum(sr.tf == 0);
+            st.std_beta_dist_over_s.tf(contrast) = std_beta_dist(nHits, nMisses);
+        end
+
+        
 %         
 %         if rt_exists
 %             % bin trials by rt. MERGE THIS WITH TOP. also, add resp to this if you want

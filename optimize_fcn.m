@@ -2,16 +2,20 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'neural1';
-opt_models(1).multi_lapse = 1;
-opt_models(1).partial_lapse = 1;
-opt_models(1).repeat_lapse = 1;
+opt_models(1).family = 'opt';
+opt_models(1).multi_lapse = 0;
+opt_models(1).partial_lapse = 0;
+opt_models(1).repeat_lapse = 0;
 opt_models(1).choice_only = 0;
-opt_models(1).ori_dep_noise = 0;
-opt_models(1).joint_task_fit = 1;
+opt_models(1).diff_mean_same_std = 1;
+opt_models(1).ori_dep_noise = 1;
+opt_models(1).symmetric = 1;
+opt_models(1).joint_task_fit = 0;
+opt_models(1).nFreesigs = 0;
+opt_models(1).d_noise = 0;
+opt_models(1).joint_d = 0;
+opt_models(1).separate_measurement_and_inference_noise = 0;
 
-opt_models(2) = opt_models(1);
-opt_models(2).ori_dep_noise = 1;
 
 opt_models = parameter_constraints(opt_models);
 
@@ -23,7 +27,6 @@ active_opt_models = 1:length(opt_models);
 
 nRegOptimizations = 40;
 nDNoiseOptimizations = 8;
-nMAPOriDepNoiseOptimizations = 4;
 
 nDNoiseSets = 101;
 maxWorkers = Inf; % set this to 0 to turn parfor loops into for loops
@@ -38,14 +41,16 @@ optimization_method = 'fmincon'; % 'fmincon', 'mcmc_slice'
 nKeptSamples = 1e4; % for mcmc_slice
 nChains = 4;
 aborted = false;
+prev_best_param_sample = [];
 
-data_type = 'fake'; % 'real' or 'fake'
+data_type = 'real'; % 'real' or 'fake'
 % 'fake' generates trials and responses, to do parameter/model recovery
 % 'real' takes real trials and real responses, to extract parameters
 
 %% fake data generation parameters
 fake_data_params =  'random'; % 'extracted' or 'random'
-category_params.category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
+% category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
+attention_manipulation = false;
 
 category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
 category_params.a = 0; % overlap for sym_uniform
@@ -74,22 +79,41 @@ end
 
 nll_tolerance = 1e-3; % this is for determining what "good" parameters are.
 
+
+job_id = datetimefcn;
+assignopts(who,varargin);
+filename = sprintf('%s.mat',job_id);
+
 if hpc
-    datadir='/home/wta215/data/v3/taskA';
-    datadirB='/home/wta215/data/v3/taskB';
+    datadir_joint='/home/wta215/data/v3';
+    savedir = '/home/wta215/Analysis/output/';
 else
-    datadir = '/Users/will/Google Drive/Will - Confidence/Data/v3/taskA';
-    datadirB = '/Users/will/Google Drive/Will - Confidence/Data/v3/taskB';
+    datadir_joint = '/Users/will/Google Drive/Will - Confidence/Data/v3b_ellipse';
+    savedir = '/Users/will/Google Drive/Ma lab/output/';
 end
 
+log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
 assignopts(who,varargin);
+
+datadirA = [datadir_joint '/taskA'];
+datadirB = [datadir_joint '/taskB'];
+assignopts(who,varargin);
+
+if hpc
+    my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
+else
+    my_print = @fprintf;
+end
+
+cd(savedir)
+
 
 if strcmp(optimization_method,'fmincon')
     fmincon_opts = optimoptions(@fmincon,'Algorithm','interior-point', 'display', 'off', 'UseParallel', 'never');
 end
 
 if strcmp(data_type, 'real')
-    gen = compile_data('datadir', datadir, 'crossvalidate', crossvalidate, 'k', k);
+    gen = compile_data('datadir', datadirA, 'crossvalidate', crossvalidate, 'k', k);
     if ~isempty(datadirB)
         genB = compile_data('datadir', datadirB, 'crossvalidate', crossvalidate, 'k', k);
     end
@@ -109,22 +133,7 @@ elseif strcmp(data_type,'fake_pre_generated')
     datasets = 1:nDatasets;
 end
 
-job_id = datetimefcn;
 assignopts(who,varargin); % reassign datasets (for multiple jobs)
-
-
-
-if hpc
-    savedir = '/home/wta215/Analysis/output/';
-else
-    savedir = '/Users/will/Google Drive/Ma lab/output/';
-end
-
-log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
-my_print = @(s) fprintf(log_fid,'%s\n',s); % print to log instead of to console.
-% my_print = @fprintf;
-cd(savedir)
-filename = sprintf('%s.mat',job_id);
 
 %% GENERATE FAKE DATA %%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -135,10 +144,16 @@ if strcmp(data_type, 'fake')
         g = gen_models(gen_model_id);
         o = g; % this is for log_posterior function
         
-        if (g.diff_mean_same_std && ~strcmp(category_params.category_type, 'diff_mean_same_std')) || (~g.diff_mean_same_std && strcmp(category_params.category_type, 'diff_mean_same_std'))
-            warning('category mismatch')
+        if g.diff_mean_same_std
+            category_type = 'diff_mean_same_std';
+        elseif ~g.diff_mean_same_std
+            category_type = 'same_mean_diff_std';
         end
         
+        if attention_manipulation && g.nFreesigs ~= 3
+            error('attention_manipulation is indicated, but you don''t have nFreesigs equal to 3.')
+        end
+            
         % generate parameters, or use previously extracted parameters
         switch fake_data_params
             case 'random'
@@ -150,8 +165,7 @@ if strcmp(data_type, 'fake')
                         g.beq(fixed_params_gen) = fixed_params_gen_values;
                     end
                 end
-                
-                gen(gen_model_id).p = random_param_generator(nDatasets, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
+                gen(gen_model_id).p = random_param_generator(nDatasets, g, 'fixed_params', fixed_params_gen, 'generating_flag', true);
                 gen(gen_model_id).p
 
             case 'extracted' % previously extracted using this script (deprecated, add model(i)... or something)
@@ -168,25 +182,56 @@ if strcmp(data_type, 'fake')
         end
         for dataset = datasets;
             % generate data from parameters
-            %save before
-            d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'contrasts', exp(linspace(-5.5,-2,6)));
-            gen(gen_model_id).data(dataset).raw = d;
-            gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), d, g, nDNoiseSets, category_params);
-            gen(gen_model_id).data(dataset).true_logposterior = -gen(gen_model_id).data(dataset).true_nll + log_prior(gen(gen_model_id).p(:,dataset)');
-            figure(dataset)
-            subplot(1,2,1)
-            plot(d.s,d.x,'.')
-            subplot(1,2,2)
-            if g.choice_only
-                plot(d.x,d.Chat,'.')
-            else
-                plot(d.x,d.resp,'.')
+%             save before
+            my_print('generating dataset %i\n', dataset)
+            good_dataset = false;
+            while ~good_dataset
+                d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'attention_manipulation', attention_manipulation, 'category_type', category_type);
+                gen(gen_model_id).data(dataset).raw = d;
+                gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), d, g, nDNoiseSets, category_params);
+                gen(gen_model_id).data(dataset).true_logposterior = -gen(gen_model_id).data(dataset).true_nll + log_prior(gen(gen_model_id).p(:,dataset)');
+                
+                % if the dataset doesn't just make the same choice for every trial at all contrast levels, accept dataset by breaking while loop, and generate next one
+                for c = d.contrast
+                    idx = d.contrast == c;
+                    if g.choice_only
+                        if ~all(d.Chat(idx) == -1) && ~all(d.Chat(idx) == 1)
+                            good_dataset = true;
+                            continue
+                        else % if the dataset is the same choice for every trial, generate new parameters and try again
+                            gen(gen_model_id).p(:,dataset) = random_param_generator(1, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
+                            good_dataset = false;
+                            break
+                        end
+                    else
+                        if ~all(d.resp(idx) == -1) && ~all(d.resp(idx) == 2) && ~all(d.resp(idx) == 3) && ~all(d.resp(idx) == 4) && ~all(d.resp(idx) == 5) && ~all(d.resp(idx) == 6) && ~all(d.resp(idx) == 7) && ~all(d.resp(idx) == 8)
+                            good_dataset = true;
+                            continue
+                        else
+                            gen(gen_model_id).p(:,dataset) = random_param_generator(1, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
+                            good_dataset = false;
+                            break
+                        end
+                    end
+                end
+                
             end
-            %save after
+%             figure(dataset)
+%             subplot(1,2,1)
+%             plot(d.s,d.x,'.')
+%             subplot(1,2,2)
+%             if g.choice_only
+%                 plot(d.x,d.Chat,'.')
+%             else
+%                 plot(d.x,d.resp,'.')
+%             end
         end
-        pause(1)
+%         pause(.1)
+%         save after
 %         return
     end
+    
+    genB = gen; % this is how task B data gets loaded. dirty
 elseif strcmp(data_type, 'fake_pre_generated')
     for gen_model_id = active_gen_models;
         g = gen_models(gen_model_id);
@@ -215,8 +260,6 @@ for gen_model_id = active_gen_models
         
         if strcmp(o.family, 'opt') && o.d_noise
             nOptimizations = nDNoiseOptimizations;
-        elseif strcmp(o.family, 'MAP') && o.ori_dep_noise
-            nOptimizations = nMAPOriDepNoiseOptimizations;
         else
             nOptimizations = nRegOptimizations;
         end
@@ -256,7 +299,6 @@ for gen_model_id = active_gen_models
         % OPTIMIZE
         for dataset = datasets;
             my_print(sprintf('\n\n########### DATASET %i ######################\n\n', dataset));
-            data = gen(gen_model_id).data(dataset);
             
             if min(size(fixed_params_opt_values))>1 % if it's a matrix, assign the different datasets the different values. this is hacky
                 o.beq(fixed_params_opt) = fixed_params_opt_values(:,dataset);
@@ -269,25 +311,37 @@ for gen_model_id = active_gen_models
                 x0 = random_param_generator(nOptimizations, o, 'generating_flag', x0_reasonable, 'fixed_params', fixed_params_opt); % try turning on generating_flag.
 
                 if crossvalidate
-                    d = data.train(trainset);
-                    d_test = data.test(trainset);
+                    d      = gen(gen_model_id).data(dataset).train(trainset);
+                    d_test = gen(gen_model_id).data(dataset).test(trainset);
                 else
-                    d = data.raw;
+                    if o.joint_task_fit
+                        data_taskA = gen (gen_model_id).data(dataset).raw;
+                        data_taskB = genB(gen_model_id).data(dataset).raw;
+                        
+                        if strcmp(data_type, 'real'); dataset_name = gen(gen_model_id).data(dataset).name; end
+                    elseif ~o.joint_task_fit
+                        if ~o.diff_mean_same_std % task B
+                            data =       genB(gen_model_id).data(dataset).raw;
+                            
+                            if strcmp(data_type, 'real'); dataset_name = genB(gen_model_id).data(dataset).name; end
+                        elseif o.diff_mean_same_std % task A
+                            data =       gen (gen_model_id).data(dataset).raw;
+                            
+                            if strcmp(data_type, 'real'); dataset_name = gen(gen_model_id).data(dataset).name; end
+                        end
+                    end
                 end
                 
                 % use anon objective function to fix data parameter.
                 if ~o.joint_task_fit
-                    loglik_wrapper = @(p) -nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
+                    loglik_wrapper = @(p) -nloglik_fcn(p, data, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
                 elseif o.joint_task_fit
-                    dA = d;
-                    dB = genB(gen_model_id).data(dataset).raw;
-
-                    loglik_wrapper = @(p) two_task_ll_wrapper(p, dA, dB, sm, nDNoiseSets, category_params);
+                    loglik_wrapper = @(p) two_task_ll_wrapper(p, data_taskA, data_taskB, sm, nDNoiseSets, category_params);
                 end
                 
                 logprior_wrapper = @log_prior;
                 
-                nloglik_wrapper = @(p) -loglik_wrapper(p) -logprior_wrapper(p); % this is actually the nlogposterior wrapper.
+                nloglik_wrapper = @(p) -loglik_wrapper(p);% -logprior_wrapper(p); % uncomment this for log posterior
                 
                 % possible outputs
                 % fmincon only
@@ -316,13 +370,17 @@ for gen_model_id = active_gen_models
                         
                         if exist([savedir 'aborted/aborted_' filename],'file')
                             % RESUME PREVIOUSLY ABORTED SAMPLING
-                            load([savedir 'aborted/aborted_' filename])
+                            load([savedir 'aborted/aborted_' filename], '-regexp', '^(?!time_lim)\w') % load everything except time_lim. keep that from what was set in the pbs script.
+                            if ~isfield(o, 'separate_measurement_and_inference_noise') % this can hopefully be removed after these 7/2015 jobs finish.
+                                o.separate_measurement_and_inference_noise = 0;
+                            end
                             log_fid = fopen([savedir job_id '.txt'],'a'); % open up a log
                             remaining_samples = isnan(ex_nll);
                             nRemSamples = sum(remaining_samples);
                             %remaining_p = isnan(ex_p);
                             [s_tmp,ll_tmp,lp_tmp] = deal(cell(1,nOptimizations));
                             fclose(log_fid);
+
                             % HERE FOLLOWS SOME TERRIBLE, REDUNDANT CODE.
                             if maxWorkers == 0
                                 for optimization = 1:nOptimizations
@@ -354,6 +412,10 @@ for gen_model_id = active_gen_models
                             clear s_tmp ll_tmp lp_tmp samples loglikes logpriors
                         else
                             % NEW SAMPLING
+                            if ~isempty(prev_best_param_sample)
+                                x0 = prev_best_param_sample;
+                            end
+                            
                             if maxWorkers==0
                                 for optimization = 1 : nOptimizations
                                     [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nKeptSamples, loglik_wrapper, x0(:,optimization), (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
@@ -386,9 +448,9 @@ for gen_model_id = active_gen_models
                             return
                         else
                             aborted=false;
-                            if exist([savedir 'aborted/aborted_' filename])
-                                delete([savedir 'aborted/aborted_' filename])
-                            end
+%                             if exist([savedir 'aborted/aborted_' filename])
+%                                 delete([savedir 'aborted/aborted_' filename])
+%                             end
                         end
                         
                         if end_early
@@ -488,12 +550,12 @@ for gen_model_id = active_gen_models
                     all_p = reshape(permute(ex.p,[1 3 2]),[],size(ex.p,2),1);
                     [ex.min_nll, ex.min_idx] = min(all_nll);
                     ex.best_params = all_p(ex.min_idx,:)';
-                    ex.mean_params = mean(all_p);
-                    dbar = 2*mean(all_nll);
-                    nloglik_wrapper = @(p) nloglik_fcn(p, d, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
                     
-                    dtbar= 2*nloglik_wrapper(ex.mean_params); % f is nll
-                    ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
+%                     ex.mean_params = mean(all_p);
+%                     dbar = 2*mean(all_nll);                    
+%                     dtbar= -2*loglik_wrapper(ex.mean_params);
+%                     ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
+                    ex.dic = dic(all_p, all_nll, loglik_wrapper);
                     
                     ex.best_hessian = [];
                     ex.hessian = [];
@@ -504,7 +566,7 @@ for gen_model_id = active_gen_models
                     ex.dic = [];
                     ex.best_params          = ex.p(:, ex.min_idx);
                     ex.n_good_params                          = sum(ex.nll < ex.min_nll + nll_tolerance & ex.nll > 10);
-                    paramprior      = o.param_prior;
+                    paramprior      = prod(1 ./ (o.ub - o.lb));
                     ex.best_hessian = ex.hessian(:,:,ex.min_idx);
                     h               = ex.best_hessian;
                     ex.laplace = -ex.min_nll + log(paramprior) +  (nParams/2)*log(2*pi) - .5 * log(det(h));
@@ -512,7 +574,7 @@ for gen_model_id = active_gen_models
                 [ex.aic, ex.bic, ex.aicc] = aicbic(-ex.min_nll, nParams, gen_nSamples);
                 
                 if strcmp(data_type, 'real')
-                    gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = data.name;
+                    gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = dataset_name;
                 end
                 if slimdown
                     fields = {'p','nll','logprior','hessian','min_nll','min_idx','best_params','n_good_params','aic','bic','aicc','dic','best_hessian','laplace'};
@@ -547,64 +609,52 @@ end
 %%
 if ~hpc
     %diagnosis_plots
-% gen.opt=model; % this is for after CCO
-if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
-    % COMPARE TRUE AND FITTED PARAMETERS IN SUBPLOTS
-    figure;
-    % for each parameter, plot all datasets
-    for parameter = 1 : nParams
-        subplot(5,5,parameter);
-        extracted_params = [gen(active_gen_models).opt(active_opt_models).extracted.best_params];
-        plot(gen(active_gen_models).p(parameter,:), extracted_params(parameter,:), '.','markersize',10);
-        hold on
-        xlim([g.lb_gen(parameter) g.ub_gen(parameter)]);
-        ylim([g.lb_gen(parameter)     g.ub_gen(parameter)]);
+    % gen.opt=model; % this is for after CCO
+    if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
+        diagnosis_plots(gen(active_gen_models).opt(active_opt_models),...
+            'gen_struct', gen(active_gen_models), 'fig_type', 'parameter_recovery', 'only_good_fits', true)
         
-        %axis square;
-        plot([g.lb(parameter) g.ub(parameter)], [g.lb(parameter) g.ub(parameter)], '--');
-        
-        title(g.parameter_names{parameter});
-    end
-    %         suplabel('true parameter', 'x');
-    %         suplabel('extracted parameter', 'y');
-elseif strcmp(optimization_method,'mcmc_slice')
-    % DIAGNOSE MCMC
-    % open windows for every model/dataset combo.
-    for gen_model_id = 1%:length(gen)
-        g = gen_models(gen_model_id);
-        if strcmp(data_type,'real')
-            g.name = [];
-        end
-        for opt_model_id = 1:length(gen(gen_model_id).opt) % active_opt_models
-            o = gen(gen_model_id).opt(opt_model_id);
-            for dataset_id = 1:length(o.extracted) % dataset
-                ex = o.extracted(dataset_id);
-                
-%                 warning('move this stuff up or out of here. it happens in CCO')
-%                 % move this up
-%                 ex.logposterior = ex.logprior - ex.nll;
-%                 for c = 1:size(ex.logposterior,2)
-%                     lp_tmp{c}=ex.logposterior(:,c);
-%                     samp{c}=ex.p(:,:,c);
-%                 end
-%                 ex.logposterior = lp_tmp;
-%                 ex.p = samp;
-                
-                if ~isempty(ex.p) % if there's data here                    
-                    [true_p,true_logposterior]=deal([]);
-                    if strcmp(data_type,'fake') && strcmp(o.name, g.name)
-                        true_p = gen(gen_model_id).p(:,dataset_id);
-                        true_logposterior = gen(gen_model_id).data(dataset_id).true_logposterior;
+    elseif strcmp(optimization_method,'mcmc_slice')
+        % DIAGNOSE MCMC
+        % open windows for every model/dataset combo.
+        for gen_model_id = 1%:length(gen)
+            g = gen_models(gen_model_id);
+            if strcmp(data_type,'real')
+                g.name = [];
+            end
+            for opt_model_id = 1:length(gen(gen_model_id).opt) % active_opt_models
+                o = gen(gen_model_id).opt(opt_model_id);
+                for dataset_id = 1:length(o.extracted) % dataset
+                    ex = o.extracted(dataset_id);
+                    
+                    %                 warning('move this stuff up or out of here. it happens in CCO')
+                    %                 % move this up
+                    %                 ex.logposterior = ex.logprior - ex.nll;
+                    %                 for c = 1:size(ex.logposterior,2)
+                    %                     lp_tmp{c}=ex.logposterior(:,c);
+                    %                     samp{c}=ex.p(:,:,c);
+                    %                 end
+                    %                 ex.logposterior = lp_tmp;
+                    %                 ex.p = samp;
+                    
+                    if ~isempty(ex.p) % if there's data here
+                        [true_p,true_logposterior]=deal([]);
+                        if strcmp(data_type,'fake') && strcmp(o.name, g.name)
+                            true_p = gen(gen_model_id).p(:,dataset_id);
+                            true_logposterior = gen(gen_model_id).data(dataset_id).true_logposterior;
+                        end
+                        tic
+                        if ~isfield(ex, 'logposterior')
+                            ex.logposterior = ex.logprior - ex.nll;
+                        end
+                        [fh,ah]=mcmcdiagnosis(ex.p,'logposterior',ex.logposterior,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',ex.dic,'gen_model',g);
+                        toc
+                        pause(.00001); % to plot
                     end
-                    tic
-                    [fh,ah]=mcmcdiagnosis(ex.p,'logposterior',ex.logposterior,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',ex.dic,'gen_model',g);
-                    toc
-                    pause(.00001); % to plot
                 end
             end
         end
     end
-end
 
 end
 %%
@@ -612,13 +662,17 @@ fh = [];
 fclose(log_fid);
 delete([savedir filename '~'])
 save([savedir filename])
+
 %%
     function lp = log_prior(x)
+        x = reshape(x, length(x), 1); % make sure x is column vector
+        
         lapse_sum = lapse_rate_sum(x, o);
         if any(x<o.lb) || any(x>o.ub) || lapse_sum > 1
             lp = -Inf;
         else
-            uniform_range = o.ub(~o.lapse_params)-o.lb(~o.lapse_params);
+            non_lapse_params = setdiff(1:length(x), o.lapse_params);
+            uniform_range = o.ub(non_lapse_params) - o.lb(non_lapse_params);
             a=1; % beta dist params
             b=20;
             lp=sum(log(1./uniform_range))+sum(log(betapdf(x(o.lapse_params),a,b)));

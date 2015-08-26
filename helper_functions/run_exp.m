@@ -1,112 +1,161 @@
-function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, varargin)    
+function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name)
 
-if length(varargin) == 1
-    R2 = varargin{1};
-    attention_manipulation = true;
+% if length(varargin) == 1
+%     R2 = varargin{1};
+%     attention_manipulation = true;
+% else
+%     attention_manipulation = false;
+% end
+nStimuli = size(R.draws{blok}, 3);
+
+if nStimuli == 4
+    cross_rot = 45;
 else
-    attention_manipulation = false;
+    cross_rot = 0;
 end
 
-    flag = 0;
-    responses.c = zeros(n.sections, n.trials); % cat response
-    responses.conf = zeros(n.sections, n.trials); % conf response
-    responses.rt = zeros(n.sections, n.trials); % rt
-    %bool matrix of correct/incorrect responses
-    responses.tf = zeros(n.sections, n.trials);
-    
-    %%% Text before trials %%%
-    switch type
-        case 'Training'
-            str='Coming up: Category Training';
-        case 'Confidence Training'
+
+flag = 0;
+responses.c = zeros(n.sections, n.trials); % cat response
+responses.conf = zeros(n.sections, n.trials); % conf response
+responses.rt = zeros(n.sections, n.trials); % rt
+%bool matrix of correct/incorrect responses
+responses.tf = zeros(n.sections, n.trials);
+
+%%% Text before trials %%%
+switch type
+    case 'Training'
+        str='Coming up: Category Training';
+    case 'Confidence Training'
+        if nStimuli == 1
             str=['Let''s get some quick practice with confidence ratings.\n\n'...
                 'Coming up: ' task_str 'Confidence Training'];
-        case 'Attention Training'
-            str='Let''s get some practice with the attention task.\n\nReport left tilt (CCW) or right tilt (CW).';
-%             Screen('TextSize', scr.win, round(scr.fontsize*.7));
-        case 'Attention Training Conf'
-            str='Now rate your confidence as well as category.\n\nThe stimuli might be hard to see.';
-        case 'Test'
-            str=['Coming up: ' task_str 'Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
-        case 'PreTest'
-            str='Now for some practice trials...\n\nReport category 1 or 2 using the confidence scale.';
-    end
-    [~,ny]=center_print(str,'center');
-    Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
-    flip_key_flip(scr,'begin',ny,color, false);
-    
-    
-    %%%Run trials %%%
+        elseif nStimuli >= 2
+            str=['Let''s get some practice with confidence ratings and attentional cues.\n\n'...
+                'Coming up: ' task_str 'Confidence and Attention Training'];
+        end
+    case 'Attention Training'
+        str='Let''s get some practice with the attention task.\n\nReport left tilt (CCW) or right tilt (CW).';
+        %             Screen('TextSize', scr.win, round(scr.fontsize*.7));
+    case 'Attention Training Conf'
+        str='Now rate your confidence as well as category.\n\nThe stimuli might be hard to see.';
+    case 'Test'
+        str=['Coming up: ' task_str 'Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
+    case 'PreTest'
+        str='Now for some practice trials...\n\nReport category 1 or 2 using the confidence scale.';
+end
+
+
+Eyelink('message', 'Subject code: %s', subject_name);
+[~,ny]=center_print(str,'center');
+Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
+flip_key_flip(scr,'begin',ny,color, false);
+
+
+%%%Run trials %%%
 try
     for section = 1:n.sections
-        n_trials = n.trials; 
+        if P.eye_tracking
+            block = [type ' Block ' num2str(blok) ', Section ' num2str(section)];
+            Eyelink('message', str);
+        end
+        
+        n_trials = n.trials;
         trial_order = 1:n.trials;
         trial_counter = 1;
         
         % for trial = 1:n.trials;
         while trial_counter <= n_trials
-            % Initialize for eye tracking trial breaks
-            stop_trial = 0;
-            
-%             responses.c %%% print for debugging
-%             trial_order
+            %             responses.c %%% print for debugging
+            %             trial_order
             
             % Current trial number
             i_trial = trial_counter; % the trial we're on now
             trial = trial_order(i_trial); % the current index into trials
             trial_counter = trial_counter+1; % update the trial counter so that we will move onto the next trial, even if there is a fixation break
             
-            stim = struct;
-            stim(1).ort = R.draws{blok}(section, trial);        %orientation
-            stim(1).cur_sigma = R.sigma{blok}(section, trial);  %contrast
-            stim(1).phase = R.phase{blok}(section, trial);      %phase (not needed by ellipse)
-
-            Screen('DrawTexture', scr.win, scr.cross);
+            Screen('DrawTexture', scr.win, scr.cross, [], [], cross_rot);
             t0 = Screen('Flip', scr.win);
             
             % Check fixation hold
             if P.eye_tracking
+                % prints EyeLink message TRIAL_START, SYNC_TIME
                 drift_corrected = rd_eyeLink('trialstart', scr.win, {scr.el, i_trial, scr.cx, scr.cy, scr.rad});
                 
                 if drift_corrected
                     % restart trial
-                    Screen('DrawTexture', scr.win, scr.cross);
+                    Screen('DrawTexture', scr.win, scr.cross, [], [], cross_rot);
                     t0 = Screen('Flip', scr.win);
                 end
             end
-
-            if ~attention_manipulation
+            
+            stim = struct;
+            for i = 1:nStimuli
+                stim(i).ort =       R.draws{blok}(section, trial, i);  %orientation
+                stim(i).cur_sigma = R.sigma{blok}(section, trial, i);  %contrast
+                stim(i).phase =     R.phase{blok}(section, trial, i);  %phase (not needed by ellipse)
+            end
+            
+            if nStimuli == 1
                 WaitSecs(t.betwtrials/1000);
-            elseif attention_manipulation 
-                stim(2).ort = R2.draws{blok}(section, trial);
-                stim(2).cur_sigma = R2.sigma{blok}(section, trial);
-                stim(2).phase = R2.phase{blok}(section, trial);
+            elseif nStimuli >= 2
+                %                 stim(2).ort = R2.draws{blok}(section, trial);
+                %                 stim(2).cur_sigma = R2.sigma{blok}(section, trial);
+                %                 stim(2).phase = R2.phase{blok}(section, trial);
                 
                 % DISPLAY SPATIAL ATTENTION CUE
-                if R2.cue{blok}(section, trial) == -1
-                    Screen('DrawTexture', scr.win, scr.cueL);
-                elseif R2.cue{blok}(section, trial) == 0
-                    Screen('DrawTexture', scr.win, scr.cueLR);
-                elseif R2.cue{blok}(section, trial) == 1
-                    Screen('DrawTexture', scr.win, scr.cueR);
+                
+                if nStimuli == 2
+                    if R.cue{blok}(section, trial) == 0
+                        cue = scr.cueLR;
+                        rot = 0;
+                    elseif R.cue{blok}(section, trial) == 1
+                        cue = scr.cueL;
+                        rot = 0;
+                    elseif R.cue{blok}(section, trial) == 2
+                        cue = scr.cueL;
+                        rot = 180;
+                    end
+                elseif nStimuli == 4
+                    if R.cue{blok}(section, trial) == 0
+                        
+                        cue = scr.cueLRUD;
+                        rot = 45;
+                    else
+                        cue = scr.cueL;
+                        rot = 225 - 90 * R.cue{blok}(section, trial);
+                    end
+                else
+                    warning('No support for nStimuli other than 2 or 4')
                 end
+                
+                Screen('DrawTexture', scr.win, cue, [], [], rot);
+                
+                %                 if R.cue{blok}(section, trial) == -1
+                %                     Screen('DrawTexture', scr.win, scr.cueL);
+                %                 elseif R.cue{blok}(section, trial) == 0
+                %                     Screen('DrawTexture', scr.win, scr.cueLR);
+                %                 elseif R.cue{blok}(section, trial) == 1
+                %                     Screen('DrawTexture', scr.win, scr.cueR);
+                %                 end
                 
                 t_cue = Screen('Flip', scr.win, t0 + t.betwtrials/1000);
                 if P.eye_tracking
                     Eyelink('Message', 'EVENT_CUE');
                 end
-                Screen('DrawTexture', scr.win, scr.cross);
+                Screen('DrawTexture', scr.win, scr.cross, [], [], cross_rot);
                 t_cue_off = Screen('Flip', scr.win, t_cue + t.cue_dur/1000);
                 
                 %%% should make this timing exact by interfacing with grate
                 if P.eye_tracking
-                    while GetSecs - t_cue_off < t.cue_target_isi/1000 - P.eye_slack && ~stop_trial
+                    fixation = 1;
+                    while GetSecs - t_cue_off < t.cue_target_isi/1000 - P.eye_slack && fixation
                         WaitSecs(.01);
+                        % prints EyeLink message FIX_CHECK, and potentially BROKE_FIXATION
                         fixation = rd_eyeLink('fixcheck', scr.win, {scr.cx, scr.cy, scr.rad});
-                        [stop_trial, trial_order, n_trials] = fixationBreakTasks(...
-                            fixation, scr.win, color.bg, trial_order, i_trial, n_trials);
                     end
-                    if stop_trial
+                    if ~fixation
+                        [trial_order, n_trials] = fixationBreakTasks(scr.win, color.bg, trial_order, i_trial, n_trials);
                         continue
                     end
                 else
@@ -125,28 +174,41 @@ try
                 ellipse(P, scr, t, stim); % ellipse doesn't need phase info
             end
             
-            if attention_manipulation               
+            
+            if nStimuli >= 2
                 % DISPLAY RESPONSE CUE (i.e. probe)
                 %%% should make this timing exact by interfacing with grate
-                Screen('DrawTexture', scr.win, scr.cross);
+                Screen('DrawTexture', scr.win, scr.cross, [], [], cross_rot);
                 t_target_off = Screen('Flip', scr.win);
                 
-                if R2.probe{blok}(section, trial) == -1
-                    Screen('DrawTexture', scr.win, scr.resp_cueL);
-                    cval = R.trial_order{blok}(section, trial);
-                elseif R2.probe{blok}(section, trial) == 1
-                    Screen('DrawTexture', scr.win, scr.resp_cueR);
-                    cval = R2.trial_order{blok}(section, trial);
+                if nStimuli == 2
+                    if R.probe{blok}(section, trial)     == 1
+                        rot = 0;
+                    elseif R.probe{blok}(section, trial) == 2
+                        rot = 90;
+                    end
+                elseif nStimuli == 4
+                    rot = 225 - 90 * R.probe{blok}(section, trial);
                 end
                 
+                Screen('DrawTexture', scr.win, scr.resp_cueL, [], [], rot);
+                
+                %                 if R.probe{blok}(section, trial) == -1
+                %                     Screen('DrawTexture', scr.win, scr.resp_cueL);
+                %                 elseif R.probe{blok}(section, trial) == 1
+                %                     Screen('DrawTexture', scr.win, scr.resp_cueR);
+                %                 end
+                
                 if P.eye_tracking
-                    while GetSecs - t_target_off < t.cue_target_isi/1000 - P.eye_slack && ~stop_trial
+                    fixation = 1;
+                    while GetSecs - t_target_off < t.cue_target_isi/1000 - P.eye_slack && fixation
                         WaitSecs(.01);
+                        % prints EyeLink message FIX_CHECK, and potentially BROKE_FIXATION
                         fixation = rd_eyeLink('fixcheck', scr.win, {scr.cx, scr.cy, scr.rad});
-                        [stop_trial, trial_order, n_trials] = fixationBreakTasks(...
-                            fixation, scr.win, color.bg, trial_order, i_trial, n_trials);
                     end
-                    if stop_trial
+                    if ~fixation
+                        [trial_order, n_trials] = fixationBreakTasks(...
+                            scr.win, color.bg, trial_order, i_trial, n_trials);
                         continue
                     end
                 end
@@ -155,17 +217,19 @@ try
                 if P.eye_tracking
                     Eyelink('Message', 'EVENT_RESPCUE');
                 end
-            else
-                cval = R.trial_order{blok}(section, trial); %class
             end
             
-            
-            clc; %%% comment out for debugging
+            %clc;
             fprintf('blok %g, section %g, trial %g\n\n',blok,section,trial)
+            
             %subject input
             t0 = GetSecs;
-            resp = 0;
-            while resp == 0;
+            Chat = 0;
+            
+            C = R.trial_order{blok}(section, trial); % true category
+            
+            
+            while Chat == 0;
                 [~, tResp, keyCode] = KbCheck;
                 
                 %To quit script, press insert and enter ONLY
@@ -176,15 +240,15 @@ try
                 
                 if strcmp(type, 'Training') | strcmp(type, 'Attention Training')
                     if keyCode(scr.key5) % cat 1
-                        resp = 1;
+                        Chat = 1;
                     elseif keyCode(scr.key6) % cat 2
-                        resp = 2;
+                        Chat = 2;
                     end
                 else % if not in non-conf training
                     if keyCode(scr.key1) || keyCode(scr.key2) || keyCode(scr.key3) || keyCode(scr.key4) %cat 1 keys
-                        resp = 1;
+                        Chat = 1;
                     elseif keyCode(scr.key7) || keyCode(scr.key8) || keyCode(scr.key9) || keyCode(scr.key10) %cat 2 keys
-                        resp = 2;
+                        Chat = 2;
                     end
                     
                     if keyCode(scr.key1) || keyCode(scr.key10)
@@ -204,9 +268,9 @@ try
             end
             
             %record 1 if correct, 0 if incorrect
-%             fprintf('cat %d - ACC %d\n', resp, resp==cval) % for debugging
-            responses.tf(section, trial) = (resp == cval);
-            responses.c(section, trial) = resp;
+            %             fprintf('cat %d - ACC %d\n', resp, resp==cval) % for debugging
+            responses.tf(section, trial) = (Chat == C);
+            responses.c (section, trial) = Chat;
             if ~strcmp(type, 'Training') && ~strcmp(type, 'Attention Training') % if not in non-conf training
                 responses.conf(section, trial) = conf;
             end
@@ -214,7 +278,7 @@ try
             
             if ~strcmp(type,'Test') && ~ strcmp(type,'PreTest')% give trial by trial feedback unless testing.
                 %feedback
-                if resp == cval
+                if Chat == C
                     status = 'Correct!';
                     stat_col = color.grn;
                 else
@@ -224,12 +288,12 @@ try
                 
                 switch type
                     case 'Training'
-                        [~,ny]=center_print(sprintf('You said: Category %i',resp),scr.cy-50);
+                        [~,ny]=center_print(sprintf('You said: Category %i',Chat),scr.cy-60); % scr.cy-50
                         [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
                     case 'Confidence Training'
-                        [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',resp,confstr),scr.cy-50);
+                        [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 20); % -50
                     case {'Attention Training Conf', 'Attention Training'}
-                        if resp == 1; str = 'LEFT'; else str = 'RIGHT'; end
+                        if Chat == 1; str = 'LEFT'; else str = 'RIGHT'; end
                         if strcmp(type,'Attention Training Conf')
                             confstr =  sprintf(' with %s confidence',confstr);
                         else
@@ -237,7 +301,7 @@ try
                         end
                         [~,ny]=center_print(sprintf('You said: %s%s.',str,confstr),scr.cy-50);
                         [~,ny]=center_print(sprintf('\n%s',status),ny+10,stat_col);
-
+                        
                 end
                 
                 Screen('Flip',scr.win, tResp+t.pause/1000);
@@ -258,14 +322,17 @@ try
             if strcmp('Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
                 midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %sCategory Training.', scorereport, fractionizer(section, n.sections), task_str);
                 str = 'continue';
+            elseif strcmp('Confidence Training', type) && attention_manipulation
+                midtxt = sprintf('You have completed\n\n%s of %sConfidence and Attention Training.', fractionizer(section, n.sections), task_str);
+                str = 'continue';
             else
                 midtxt = sprintf('You have completed\n\n%s of %s%s Block %i of %i.', fractionizer(section, n.sections), task_str, type, blok, n.blocks);
                 str = 'continue';
             end
             
             [~,ny]=center_print(midtxt,'center');
-            flip_key_flip(scr,str,ny,color,false); 
-        end    
+            flip_key_flip(scr,str,ny,color,false);
+        end
     end
     
     
@@ -290,7 +357,11 @@ try
                 hitxt = sprintf('%s\n\nYou just got %s\n',motivational_str,scorereport);
             end
         case 'Confidence Training'
-            hitxt = 'Great job! You have just finished Confidence Training.\n';
+            if attention_manipulation
+                hitxt = 'Great job! You have just finished Confidence and Attention Training.\n';
+            elseif ~attention_manipulation
+                hitxt = 'Great job! You have just finished Confidence Training.\n';
+            end
         case 'Attention Training'
             hitxt = sprintf('%s\n\nYou have just finished Attention Training with\n\n%s\n',motivational_str,scorereport);
         case 'Attention Training Conf'
@@ -302,13 +373,13 @@ try
     end
     [~,ny]=center_print(hitxt,'center');
     flip_key_flip(scr,'continue',ny,color,experimenter_needed);
-
+    
     
     if strcmp(type, 'Test')
         %load top scores
         load top_ten
         ranking = 11 - sum(blockscore>=top_ten.(R.category_type).scores); % calculate current ranking
- 
+        
         if ranking < 11
             top_ten.(R.category_type).scores = [top_ten.(R.category_type).scores(1:(ranking-1));  blockscore;  top_ten.(R.category_type).scores(ranking:9)];
             for m = 10:-1:ranking+1
@@ -319,17 +390,17 @@ try
         else
             hitxt='\n\n\n\n';
         end
-
+        
         if ~any(strfind(subject_name,'test'))
             save top_ten top_ten;
         end
-
+        
         [nx,ny] = center_print(sprintf('%sYour score for Testing Block %i of %i: %.1f%%\n\n%sTop Ten:\n\n',hitxt,blok,n.blocks,blockscore,task_str),-80);
         
         for j = 1:10
             [nx,ny] = center_print(sprintf('%i) %.1f%%    %s\n',j,top_ten.(R.category_type).scores(j),top_ten.(R.category_type).initial{j}),ny,[],scr.cx*.8 - (j==10)*20);
         end
-
+        
         % instructions below top ten
         experimenter_needed = false;
         if blok ~= n.blocks
@@ -364,7 +435,7 @@ try
         end
         
         flip_key_flip(scr,'continue',ny,color,experimenter_needed);
-            
+        
     end
     
     

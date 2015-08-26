@@ -3,17 +3,19 @@ close all
 
 % VIDEO PARAMETERS
 
-% list.extraplot = {'empty','dvx','dvx','dvx','xvsig','xvsig','xvsig','xvsig','xvsig'}
-% list.models = [2 2 2 2 2 3 4 5 6];
-% list.xp_region_fill = [0 0 0 1 1 1 1 1 1];
-% list.dp_region_fill = [0 0 1 1 0 0 0 0 0];
+% list.extraplot = {'xvsig','xvsig','dvx','dvx','dvx','dvx','xvsig','xvsig','xvsig','xvsig'};
+% list.models =           [3 3 2 2 2 2 2 4 5 6];
+% list.xp_region_fill =   [1 1 0 0 0 1 1 1 1 1];
+% list.dp_region_fill =   [0 0 0 1 1 1 0 0 0 0];
+% list.choice_colors =    [1 0 0 1 0 0 0 0 0 0];
+% list.ghost =            [0 0 0 0 0 0 0 0 0 0];
 
-list.extraplot = {'xvsig','xvsig','dvx','dvx','dvx','dvx','xvsig','xvsig','xvsig','xvsig'};
-list.models =           [3 3 2 2 2 2 2 4 5 6];
-list.xp_region_fill =   [1 1 0 0 0 1 1 1 1 1];
-list.dp_region_fill =   [0 0 0 1 1 1 0 0 0 0];
-list.choice_colors =    [1 0 0 1 0 0 0 0 0 0];
-list.ghost =            [0 0 0 0 0 0 0 0 0 0];
+list.extraplot = {'xvsig'};
+list.models =           [2];
+list.xp_region_fill =   [1];
+list.dp_region_fill =   [0];
+list.choice_colors =    [0];
+list.ghost =            [0];
 
 datetimestr_all = datetimefcn;
 set(0,'defaultaxesticklength',[.008 .025]);
@@ -26,9 +28,9 @@ for iii=1:length(list.models)
     f=figure;
     clf
     
-    makevideo = 0;
+    makevideo = 1;
     loopSecs = 7.5;
-    fps = 45;
+    fps = 3;
     nSteps=round(loopSecs * fps);
     sss=1:nSteps;
     scalefactor = 2.73; % 2: XGA. 2.5: SXGA. 2.73: SXGA+, 1400x1050.
@@ -57,18 +59,30 @@ for iii=1:length(list.models)
     x=linspace(-20,20,nX);
     yl=[0 .14];
     xl=[-20 20];
-    colors = [0 0 .4;
-        .17 .17 .6;
-        .33 .33 .8;
-        .5 .5 1;
-        1 .5 .5;
+%     colors = [0 0 .4;
+%         .17 .17 .6;
+%         .33 .33 .8;
+%         .5 .5 1;
+%         1 .5 .5;
+%         .8 .33 .33;
+%         .6 .17 .17;
+%         .4 0 0];
+    colors = [0 .1 .4;
+        .1 .3 .6;
+        .3 .5 .8;
+        .5 .7 .8;
+        .9 .7 .6;
         .8 .33 .33;
-        .6 .17 .17;
-        .4 0 0];
+        .6 .15 .17;
+        .4 0 0].^1;
+        
     if list.choice_colors(iii)
-        colors = [repmat([.5 .5 1],4,1);repmat([1 .5 .5],4,1)];
+%         colors = [repmat([.5 .5 1],4,1);repmat([1 .5 .5],4,1)];
+          row1 = 3;
+          row2 = 6;
+          colors = [repmat(colors(row1,:),4,1);
+                    repmat(colors(row2,:),4,1)];
     end
-    colors = colors.^.7;
     true_contrasts=exp(-4:.5:-1.5);
     p.alpha = .0210;
     p.beta = 2.26;
@@ -88,7 +102,7 @@ for iii=1:length(list.models)
     gcf_w = 512; % keep at 512
     gcf_rh = .375*gcf_w; % height in pixels for a one row figure
     
-    alpha=.8;
+    alpha=.6;
     subject = 2;
     go = true;
     xt=-15:5:15;
@@ -153,12 +167,12 @@ for iii=1:length(list.models)
         criteria{model_id}=[zeros(1,nSteps);
             repmat(p.b_i(2:end-1)',1,nSteps);
             80*ones(1,nSteps)];
-    elseif any(regexp(m(model_id).name, '^lin2'))
+    elseif any(regexp(m(model_id).name, '^lin'))
         criteria{model_id}=max(0,[zeros(1,nSteps);
             repmat(p.b_i(2:end-1)',1,nSteps)+p.m_i(2:end-1)'*sigs;
             80*ones(1,nSteps)]);
         
-    elseif any(regexp(m(model_id).name, '^quad2'))
+    elseif any(regexp(m(model_id).name, '^quad'))
         criteria{model_id}=max(0,[zeros(1,nSteps);
             repmat(p.b_i(2:end-1)',1,nSteps)+p.m_i(2:end-1)'*sigs.^2;
             80*ones(1,nSteps)]);
@@ -444,8 +458,8 @@ nModels = 5%length(models)
 figure
 %set(gcf,'position',[73 -899 2808 1705])
 set(gcf,'position',[53 647 1274 859],'color',[1 1 1])
-nSubjects = 1%length(gen.opt(1).extracted);
-subjects = 1% : nSubjects;
+nSubjects = length(gen.opt(1).extracted);
+subjects = 1: nSubjects;
 %nSubjects = 1;
 %subjects = 2;
 fa = 1; %face alpha
@@ -460,7 +474,7 @@ for modelno = models
     for subject = subjects
         
         subplot(nModels,nSubjects, (modelno-1)*nSubjects+subject)
-        %%
+        %
         p = gen.opt(modelno).extracted(subject).best_params;
         p = parameter_variable_namer(p,gen.opt(modelno).parameter_names,gen.opt(modelno));
 %         p.b_i = [-Inf -7 -5.16 -3 0 3 5.16 7 Inf]; %lin
@@ -536,14 +550,14 @@ for modelno = models
                 80*ones(1,nSteps)];
         end
         
-        colors = [ 0 0 .4;
-            .1 .1 .7;
-            .4 .4 .75;
-            .8 .8 1;
-            1 .8 .8;
-            .75 .4 .4;
-            .6 .1 .1;
-            .5 0 0];
+        colors = [0 .1 .4;
+        .1 .3 .6;
+        .3 .5 .8;
+        .5 .7 .8;
+        .9 .7 .6;
+        .8 .33 .33;
+        .6 .15 .17;
+        .4 0 0].^1;
         set(0,'DefaultAxesColorOrder', colors);
         for i = 1:8
             f = fill([-fliplr(criteria(i,:)) -criteria(i+1,:)], [fliplr(y) y], colors(i,:)); % one half

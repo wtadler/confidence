@@ -34,6 +34,13 @@ else
     
     [submodel_struct.A_param_idx, submodel_struct.B_param_idx] = deal(true(size(submodel_struct.model_A.parameter_names)));
     
+    % hacks! normally taken care of by parameter_constraints
+    submodel_struct.model_A.lapse_params = find(~cellfun(@isempty, strfind(submodel_struct.model_A.parameter_names,'lambda'))); % this line is normally in parameter_constraints
+    submodel_struct.model_B.lapse_params = find(~cellfun(@isempty, strfind(submodel_struct.model_B.parameter_names,'lambda')));
+    submodel_struct.model_A.term_params = find(~cellfun(@isempty, strfind(submodel_struct.model_A.parameter_names,'Term'))); % this line is normally in parameter_constraints
+    submodel_struct.model_B.term_params = find(~cellfun(@isempty, strfind(submodel_struct.model_B.parameter_names,'Term')));
+    submodel_struct.model_A.attention1 = 0;
+    submodel_struct.model_B.attention1 = 0;
 end
 
 submodel_struct.joint_d = m.joint_d;

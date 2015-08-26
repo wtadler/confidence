@@ -6,10 +6,13 @@ datadir='/Users/will/Google Drive/Ma lab/output/v3_joint_feb28';
 rawdatadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA/'; % for computing DIC
 rawdatadirB='/Users/will/Google Drive/Will - Confidence/Data/v3/taskB/'; % for computing DIC
 
-toss_bad_samples = false;
+toss_bad_samples = true;
+extraburn_prop = 0;
 
 jobid = 'ab';
 hpc = true;
+
+include_aborted_jobs = false;
 assignopts(who,varargin)
 
 st = compile_data('datadir',rawdatadir);
@@ -28,6 +31,23 @@ files = what(datadir);
 mat_files = files.mat;
 job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%s.*\\.mat', jobid))));
 
+% load aborted chains
+if include_aborted_jobs
+    aborted_files = what([datadir '/aborted']);
+    aborted_mat_files = aborted_files.mat;
+    aborted_job_files = aborted_mat_files(~cellfun(@isempty, regexp(aborted_mat_files, sprintf('^aborted_%s.*\\.mat', jobid))));
+    for f = 1:length(aborted_job_files);
+        aborted_file = regexp(aborted_job_files{f}, '^aborted_(.*)', 'tokens'); % a{1}{1} is a filename string without ('aborted_')
+        aborted_file = aborted_file{1}{1};
+        if ~any(cellfun(@(s) ~isempty(strfind(aborted_file, s)), job_files)) % if aborted_file is not already in job_files
+            job_files = [job_files;strcat('aborted/aborted_', aborted_file)];
+        end
+    end
+        
+    
+%     job_files = [job_files;strcat('aborted/', aborted_job_files)];
+end
+        
 newjob = zeros(1,length(job_files));
 for j = 1:length(job_files)
     t = regexp(job_files{j},'\.(.*?)\.','tokens');
@@ -38,7 +58,6 @@ end
 job_files = job_files(sort_idx)
 
 load(job_files{1}) % load first file to get nDatasets
-
 
 if any(strfind(job_files{1},'model')) && any(regexp(job_files{1},'m[0-9]*.'))% new model recovery
     
@@ -109,7 +128,7 @@ elseif strfind(job_files{1},'model') % old model recovery
     end
     
 elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates single chain real data
-    tmp=load(job_files{1}); % to get nDatasets
+    tmp=load(job_files{1});
     
 %     if exist('ex_p','var') % indicates aborted file
 %         end_early_routine
@@ -148,12 +167,18 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
     for fid = 1:length(job_files);
         fid
         tmp = load(job_files{fid});
+        
         if isfield(tmp,'ex_p')
             tmp = end_early_routine(tmp);
-            %e_fields = fieldnames(tmp.gen.opt(tmp.active_opt_models).extracted(tmp.dataset));
+            e_fields = fieldnames(tmp.gen.opt(tmp.active_opt_models).extracted(tmp.dataset));
+            e_fields = setdiff(e_fields,'name'); % don't want to append names later
         end
         m = tmp.active_opt_models;
         d = tmp.dataset;
+        
+%         e_fields = fieldnames(tmp.gen.opt(m).extracted(d));
+%         e_fields = setdiff(e_fields,'name'); % don't want to append names later
+
         
         if isempty(model(m).name) % initialize model details if they are not there
             for f = 1:length(m_fields)
@@ -166,11 +191,11 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
             %             model(m).extracted(d) = tmp.gen.opt(m).extracted(d);
             model(m).extracted(d).name = tmp.gen.opt(m).extracted(d).name;
             for f = 1:length(e_fields)
-                model(m).extracted(d).(e_fields{f}) = {tmp.gen.opt(m).extracted(d).(e_fields{f})};
+                    model(m).extracted(d).(e_fields{f}) = {tmp.gen.opt(m).extracted(d).(e_fields{f})};
             end
         else % go through and append the different chain data
             for f = 1:length(e_fields)
-                model(m).extracted(d).(e_fields{f}) = cat(2,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
+                    model(m).extracted(d).(e_fields{f}) = cat(2,model(m).extracted(d).(e_fields{f}),tmp.gen.opt(m).extracted(d).(e_fields{f}));
             end
             
         end
@@ -183,14 +208,15 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                 ex = model(m).extracted(d);
                 if ~isempty(ex.p) % if there's data here
                     nChains = length(ex.nll);
-                    %extraburn_prop = 0;
                     for c = 1:nChains
-                        %nSamples = length(ex.nll{c});
-                        %burn_start = max(1,round(nSamples*extraburn_prop));
-                        %ex.p{c} = ex.p{c}(burn_start:end,:);
-                        %ex.nll{c} = ex.nll{c}(burn_start:end,:);
+                        nSamples = length(ex.nll{c});
+                        burn_start = max(1,round(nSamples*extraburn_prop));
+                        ex.p{c} = ex.p{c}(burn_start:end,:);
+                        ex.nll{c} = ex.nll{c}(burn_start:end,:);
+                        ex.logprior{c} = ex.logprior{c}(burn_start:end,:);
                         ex.logposterior{c} = -ex.nll{c} + ex.logprior{c};
-                        %logposterior{c} = -o.extracted(d).nll(burn_start:end,c) + o.extracted(d).logprior(burn_start:end,c);
+                        
+%                         logposterior{c} = -o.extracted(d).nll(burn_start:end,c) + o.extracted(d).logprior(burn_start:end,c);
                     end
                     
                     all_samples = [];
@@ -203,25 +229,39 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
                             keepers = ex.logposterior{c} > max_logpost-threshold;
                             ex.p{c} = ex.p{c}(keepers,:);
                             ex.nll{c} = ex.nll{c}(keepers);
+                            ex.logprior{c} = ex.logprior{c}(keepers);
                             ex.logposterior{c} = ex.logposterior{c}(keepers);
                         end
                         all_samples = cat(1,all_samples,ex.p{c});
                         all_nll = cat(1,all_nll,ex.nll{c});
                     end
+
+%                     ex.mean_params = mean(all_samples)';
+%                     dbar = 2*mean(all_nll);
                     
-                    ex.mean_params = mean(all_samples)';
-                    dbar = 2*mean(all_nll);
                     if ~model(m).joint_task_fit
-                        dtbar= 2*nloglik_fcn(ex.mean_params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
+                        loglik_fcn = @(params) -nloglik_fcn(params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
+
+%                         dtbar= 2*nloglik_fcn(ex.mean_params, st.data(d).raw, model(m), tmp.nDNoiseSets, tmp.category_params);
+                        
                     elseif model(m).joint_task_fit
-
                         sm=prepare_submodels(model(m));
-
-                        dtbar=-2*two_task_ll_wrapper(ex.mean_params, st.data(d).raw, stB.data(d).raw, sm, nDNoiseSets, category_params, true);
-
+                        loglik_fcn = @(params) two_task_ll_wrapper(params, st.data(d).raw, stB.data(d).raw, sm, nDNoiseSets, category_params, true);
+                        
+%                         dtbar=-2*two_task_ll_wrapper(ex.mean_params, st.data(d).raw, stB.data(d).raw, sm, nDNoiseSets, category_params, true);
                     end
                     
-                    ex.dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
+%                     old_dic=2*dbar-dtbar; %DIC = 2(LL(theta_bar)-2LL_bar)
+                    
+                    [ex.dic, ex.dbar, ex.dtbar] = dic(all_samples, -all_nll, loglik_fcn);
+                    
+%                     if abs(old_dic-ex.dic) > .1
+%                         error('old and new DIC methods don''t seem to be equivalent.')
+%                     else
+%                         fprintf(['success!  ' num2str(old_dic) ' = ' num2str(ex.dic) '\n'])
+%                     end
+                    
+                    
                     
                     [~,chain_idx] = min([ex.min_nll{:}]);
                     fields = {'min_nll','aic','bic','aicc','best_params'};
