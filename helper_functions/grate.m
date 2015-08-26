@@ -19,13 +19,15 @@ for i = 1:nStimuli
     elseif nStimuli == 2
         center_point{i} = [scr.cx scr.cy] + (2*i-3) * [P.stim_dist 0];
     elseif nStimuli == 4
-        center_point{i} = rotateCoords([scr.cx; scr.cy] + [P.stim_dist/sqrt(2); -P.stim_dist/sqrt(2)], -90*i);
+        center_point{i} = [scr.cx scr.cy] + rotateCoords([P.stim_dist/sqrt(2); -P.stim_dist/sqrt(2)], -90*i)';
     end
    
     w = P.grateAlphaMaskSize;
     destRect{i} = [center_point{i} center_point{i}] +[-w/2 -w/2 w/2 w/2];
 end
-
+if nStimuli == 4
+    'stop'
+end
 %% show it
 
 frame = 0;

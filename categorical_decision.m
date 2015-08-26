@@ -56,7 +56,7 @@ switch room_letter
         scr.fontstyle = 1;
         scr.displayHz = 60;
         
-        f_c_size = 37; % length and width. must be even.
+        f_c_size = 38; % length and width. must be even.
         fw = 1; % line thickness = 2+2*fw pixels
         dir = ''; % fill me out
 
@@ -148,7 +148,7 @@ else
     if nStimuli > 1
         % AttentionTraining.category_params.test_sigmas = 1;
         % AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;        
-        Training.category_params.test_sigmas = 0.08;
+        Training.category_params.test_sigmas = 0.2; % ran as 0.08 in pilot 1
         Test.category_params.test_sigmas = Training.category_params.test_sigmas;
 %         Test.category_params.test_sigmas = exp(-3.5);
     else
@@ -359,7 +359,7 @@ try
 
     if nStimuli > 1
                 
-        arm_rows = f_c_size/2-fw:f_c_size/2 + 1 + fw;
+        arm_rows = (f_c_size/2-fw) : (f_c_size/2 + 1 + fw);
         L_arm_cols = 1:f_c_size/2-1-fw;
         R_arm_cols = f_c_size/2+2+fw:f_c_size;
         
@@ -397,7 +397,7 @@ try
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
     P.ellipseColor = 0;
     
-    P.attention_stim_spacing = 7; % 5.5 % for two stimuli, distance from center (ie radius), in degrees (5 to 8, 4/21/15)
+    P.attention_stim_spacing = 3; % ran as 7 in pilot 1 % for two stimuli, distance from center (ie radius), in degrees (5 to 8, 4/21/15)
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
     
     %%%Setup routine. this is some complicated stuff to deal with the
@@ -580,11 +580,11 @@ try
         end
         
         % Testing
-        if nStimuli > 1      
-            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name, Test.R2);
-        else
+%         if nStimuli > 1      
+%             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name, Test.R2);
+%         else
             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name);
-        end
+%         end
         if flag ==1,  break;  end
         
         elapsed_mins = toc(start_t)/60;
