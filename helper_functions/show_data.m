@@ -17,6 +17,7 @@ models = [];
 plot_reliabilities = [];
 show_legend = false;
 real_sumstats = [];
+stagger_titles = false;
 assignopts(who, varargin);
 
 % blue to red colormap
@@ -175,7 +176,9 @@ for fig = 1:nFigs
     for col = 1:nCols
         if ~group_fits
             subject = col;
-            model = models(fig); % might be dependent on task too...add this feature later?
+            if show_fits
+                model = models(fig); % might be dependent on task too...add this feature later?
+            end
         elseif group_fits
             model = models(col);
         end
@@ -223,21 +226,6 @@ for fig = 1:nFigs
                 'symmetrify', symmetrify, 'colors', colors, 'linewidth', linewidth, 'errorbarwidth', errorbarwidth, 'ticklength', ticklength, 'std_beta_dist_instead_of_sem', false, ...
                 'plot_reliabilities', plot_reliabilities)
             
-            % title (and maybe legend) for top row
-            if row == 1
-                if ~group_fits
-                    title(real_st.(tasks{task}).data(col).name)
-                elseif group_fits
-                    title(rename_models(model.name));
-                    set(gca, 'xticklabel', ori_labels.(tasks{task}))
-                end
-                
-                if col == 1
-                    if ~marg_over_s && show_legend
-                        legend(labels)
-                    end
-                end
-            end
                 % x axis labels for bottom row
             if row == nRows
                 if ~marg_over_s
@@ -291,6 +279,28 @@ for fig = 1:nFigs
                     plot_halfway_line(4.5)
             end
             
+            % title (and maybe legend) for top row
+            if row == 1
+                if ~group_fits
+                    t=title(real_st.(tasks{task}).data(col).name)
+                elseif group_fits
+                    t=title(rename_models(model.name));
+                    set(gca, 'xticklabel', ori_labels.(tasks{task}))
+                end
+                
+                if col == 1
+                    if ~marg_over_s && show_legend
+                        legend(labels)
+                    end
+                end
+                if stagger_titles && mod(col,2)==0 % every other column. this needs to be after set(gca, 'ydir', 'reverse')
+                    tpos = get(t, 'position');
+                    yrange = ylims(row,2)-ylims(row,1);
+                    set(t, 'position', tpos+[0 .04*yrange 0])
+                end
+
+            end
+            set(gca,'color','none')
         end
     end
 end

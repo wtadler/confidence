@@ -20,9 +20,13 @@ for m_id = 1 : nModels
         c.symmetric = 0;
     end
     
-    if ~strcmp(c.family, 'opt') && ~strcmp(c.family, 'MAP')
+    if ~strcmp(c.family, 'opt')
         % these options are only for bayesian models
         c.d_noise = 0;
+    end
+    
+    if ~strcmp(c.family, 'opt') && ~strcmp(c.family, 'MAP')
+        % these options are only for bayesian and MAP models
         c.separate_measurement_and_inference_noise = 0;
     end
     
@@ -123,10 +127,12 @@ for m_id = 1 : nModels
         'b_3_neural1Term_TaskA'
         'b_0_neural1Choice_TaskA'
         };
-    % sch can't be lower than -4 otherwise we get problems in nloglik_fcn
+    
+    % 8/11: lb(1:3) used to be [0 -4 10]
+    % scl/sch can't be lower than -4 otherwise we get problems in nloglik_fcn
     %               scl sch betabn3dbn2dbn1db0d b1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA  sig_tc  bn3n1   bn2n1   bn1n1   b0n1    b1n1    b2n1    b3n1    b0n1c   b0n1_TA     b1n1_TA     b2n1_TA     b3n1_TA     b0n1c_TA
-    c.lb       = [  0   -4  -10 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30     0       0       0       0       0       0       0       0       0       -50         0           0           0           -50     ]';
-    c.ub       = [  10  10  10  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   .8  .25 .25 .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30      10      150     150     150     150     150     200     300     200     50          200         200         200         50      ]';
+    c.lb       = [  -4  -4  -40 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30     0       0       0       0       0       0       0       0       0       -50         0           0           0           -50     ]';
+    c.ub       = [  10  10  15  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   .8  .25 .25 .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30      10      150     150     150     150     150     200     300     200     50          200         200         200         50      ]';
     c.lb_gen   = [  1   .5  -2  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  -3  0   0   0   0   0   2   8  2   -2  3   0       -.3     .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5      0       0       0       0       0       0       0       0       10      -10         0           0           0           -10     ]';
     c.ub_gen   = [  3.5 1   2   -.5 .2  .2  .2  .2  .2  .2  3   5   5   5   5   5   5   1   1   1   1   1   1   1   2   .1  .1  .1  .2  .1  4   10  10  2   8   2       .3      1.2     1.2     2       2       5       5       30      2       1       1       1       2       3       5       1.7     15      15      15      15      15      15      15      20      10          15          15          15          1       ]';
     

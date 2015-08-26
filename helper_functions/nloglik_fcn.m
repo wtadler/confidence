@@ -1,10 +1,10 @@
-function [nloglik, loglik_vec] = nloglik_fcn(p_in, raw, model, nDNoiseSets, varargin)
+function [nll, ll_trials] = nloglik_fcn(p_in, raw, model, nDNoiseSets, varargin)
 
 lapse_sum = lapse_rate_sum(p_in, model);
 
 if lapse_sum > 1
-    nloglik = Inf;
-    loglik_vec = -inf(size(raw.Chat));
+    nll = Inf;
+    ll_trials = -inf(size(raw.Chat));
     %     warning('lapse_sum > 1')
     return
 end
@@ -540,25 +540,25 @@ end
 % COMPUTE LOG LIKELIHOOD %%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if ~model.choice_only
-    loglik_vec = log (p_full_lapse + ...
+    ll_trials = log (p_full_lapse + ...
         (p.lambda_g / 4) * p_choice + ...
         p.lambda_r * p_repeat + ...
         (1 - p.lambda - p.lambda_g - p.lambda_r) * p_conf_choice); % can also do 1 - lapse_sum instead of (1 - stuff - stuff).
 else % choice models
-    loglik_vec = log(p.lambda / 2 + ...
+    ll_trials = log(p.lambda / 2 + ...
         p.lambda_r * p_repeat + ...
         (1 - p.lambda - p.lambda_r) * p_choice); % can also do 1 - lapse_sum instead of (1 - stuff - stuff).
 end
 % Set all -Inf logliks to a very negative number. These are usually trials where
 % the subject reports something very strange. Usually lapse rate accounts for this.
-loglik_vec(loglik_vec < -1e5) = -1e5;
-nloglik = - sum(loglik_vec);
+ll_trials(ll_trials < -1e5) = -1e5;
+nll = - sum(ll_trials);
 
-if ~isreal(nloglik)
+if ~isreal(nll)
     % in case things go wrong. this shouldn't execute.
     warning('imaginary nloglik')
     %     save nltest
-    nloglik = real(nloglik) + 1e3; % is this an okay way to avoid "undefined at initial point" errors? it's a hack.
+    nll = real(nll) + 1e3; % is this an okay way to avoid "undefined at initial point" errors? it's a hack.
 end
 
     function bval = bf(name)

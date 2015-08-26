@@ -18,7 +18,7 @@ if isempty(regexp(name_in, ':')) % if names have already been namified, they won
 end
 
 % FAMILIES
-if regexp(name_in, 'opt')
+if regexp(name_in, '^opt')
     if regexp(name_in, 'symmetric')
         if regexp(name_in, 'joint_d')
             name_out = ['Bayes_{Sym,Joint}'];
@@ -28,15 +28,15 @@ if regexp(name_in, 'opt')
     else
         name_out = ['Bayes_{Free}'];
     end
-elseif regexp(name_in, 'lin')
+elseif regexp(name_in, '^lin')
     name_out = ['Lin'];
-elseif regexp(name_in, 'quad')
+elseif regexp(name_in, '^quad')
     name_out = ['Quad'];
-elseif regexp(name_in, 'neural1')
+elseif regexp(name_in, '^neural1')
     name_out = ['Neur_{Lin}'];
-elseif regexp(name_in, 'fixed')
+elseif regexp(name_in, '^fixed')
     name_out = ['Fixed'];
-elseif regexp(name_in, 'MAP')
+elseif regexp(name_in, '^MAP')
     name_out = ['MAP'];
 end
 
@@ -53,7 +53,19 @@ if regexp(name_in, 'nFreesigs')
 end
 
 if regexp(name_in, 'choice_only')
-    name_out = [name_out, ', choice only']
+    name_out = [name_out, ', choice only'];
 end
+
+if regexp(name_in, 'separate_measurement_and_inference_noise')
+    name_out = [name_out, ', sep meas/inf noise'];
+end
+if regexp(name_in, 'noise_fixed')
+    name_out = [name_out, ', noise fixed'];
+end
+
+if regexp(name_in, 'measurement_fixed')
+    name_out = [name_out, ', measurement noise fixed'];
+end
+
 
 end

@@ -6,13 +6,20 @@ MCM = 'dic';
 sort_subjects = false;
 
 fig_type = 'grid'; % 'grid' or 'bar' or 'mean'
-    inter_group_gutter=.2;
-    intra_group_gutter= 0.02;
-    fontname = 'Helvetica Neue';
-    fontsize = 10;
-    mark_best_and_worst = true;
-    color_switch_threshold = .5; % point in the MCM range where the text color switches from black to white
 
+% BAR OPTIONS
+inter_group_gutter=.2;
+intra_group_gutter= 0.02;
+show_names = true;
+fontname = 'Helvetica Neue';
+
+% GRID OPTIONS
+mark_best_and_worst = true;
+color_switch_threshold = .5; % point in the MCM range where the text color switches from black to white
+
+fontsize = 10;    
+
+mark_grate_ellipse = false;
 assignopts(who, varargin)
 
 if strcmp(MCM, 'laplace')
@@ -27,6 +34,8 @@ nDatasets = length(models(1).extracted);
 score = nan(nModels, nDatasets);
 for m = 1:nModels
     for d = 1:nDatasets
+        m
+        d
         score(m,d) = models(m).extracted(d).(MCM);
     end
 end
@@ -113,8 +122,8 @@ switch fig_type
                 crosses(subject) = patch(subject-.5+xpatchx, worst_idx(subject)-.5+xpatchy,'k');
                 checks(subject)  = patch(subject-.5 +vpatchx, best_idx(subject)-.5+vpatchy,'k');
             end
-            set(crosses,'facecolor',[.6 0 0],'edgecolor','w','linewidth',1)
-            set(checks,'facecolor',[0 .6 0],'edgecolor','w','linewidth',1)
+            set(crosses, 'facecolor', [.6 0 0], 'edgecolor', 'w', 'linewidth', 1)
+            set(checks,  'facecolor', [0 .6 0], 'edgecolor', 'w', 'linewidth', 1)
         end
 
     case 'bar'
@@ -123,12 +132,28 @@ switch fig_type
         
         MCM_delta = bsxfun(@minus, score, score(best_model,:));
         
-        mybar(-MCM_delta, 'barnames', upper({models(1).extracted.name}), 'show_mean', true, ...
-            'inter_group_gutter', inter_group_gutter, 'intra_group_gutter', intra_group_gutter)
+        
+        
+        if show_names
+            mybar(-MCM_delta, 'barnames', upper({models(1).extracted.name}), 'show_mean', true, ...
+                'inter_group_gutter', inter_group_gutter, 'intra_group_gutter', intra_group_gutter, ...
+                'mark_grate_ellipse', mark_grate_ellipse)
+        else
+            mybar(-MCM_delta, 'show_mean', true, ...
+                'inter_group_gutter', inter_group_gutter, 'intra_group_gutter', intra_group_gutter, ...
+                'mark_grate_ellipse', mark_grate_ellipse)
+        end
 
         yl = get(gca,'ylim')
         set(gca,'ticklength',[0 0],'box','off','xtick',1:nModels,'xticklabel',model_names,...
             'xaxislocation','top','fontweight','bold','fontname', fontname,'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
-            'fontsize', fontsize)
+            'fontsize', fontsize, 'xticklabelrotation', 30)
         
+        if strcmp(MCM, 'waic2') || strcmp(MCM, 'waic1')
+            MCM_name = 'WAIC';
+        else
+            MCM_name = upper(MCM);
+        end
+        
+        ylabel(sprintf('%s_{%s} - %s', MCM_name, model_names{best_model}, MCM_name))
 end

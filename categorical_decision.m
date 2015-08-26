@@ -1,9 +1,12 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, attention_manipulation, eye_tracking, exp_number, nExperiments)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, exp_number, nExperiments)
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
 % Will Adler
 % Ma Lab, New York University
 
+if ~nStimuli % because this used to be attention_manipulation which could be true or false
+    nStimuli = 1;
+end
 
 if ~exist('exp_number','var') || ~exist('nExperiments','var')
     exp_number = 1;
@@ -140,7 +143,7 @@ if strcmp(P.stim_type, 'ellipse')
     Training.category_params.test_sigmas = .95;
     Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
 else
-    if attention_manipulation
+    if nStimuli > 1
         % AttentionTraining.category_params.test_sigmas = 1;
         % AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;        
         Training.category_params.test_sigmas = 0.08;
@@ -175,7 +178,7 @@ end
 
 % number of trials, timing
 
-if attention_manipulation    
+if nStimuli > 1
     Demo.t.pres = 300; % 250
     Demo.t.betwtrials = 550; % 200
 
@@ -352,7 +355,10 @@ try
     f_c(:,f_c_size/2 - fw: f_c_size/2 + 1 + fw) = darkgray;
     scr.cross = Screen('MakeTexture', scr.win , f_c);
 
-    if attention_manipulation
+    if nStimuli > 1
+        
+        %  need to change this! figure out how the fixation cross will work. + or x shaped?
+        
         arm_rows = f_c_size/2-fw:f_c_size/2 + 1 + fw;
         L_arm_cols = 1:f_c_size/2-1-fw;
         R_arm_cols = f_c_size/2+2+fw:f_c_size;
@@ -388,7 +394,7 @@ try
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
     P.ellipseColor = 0;
     
-    P.attention_stim_spacing = 7; % 5.5 % for two stimuli, distance from center, in degrees (5 to 8, 4/21/15)
+    P.attention_stim_spacing = 7; % 5.5 % for two stimuli, distance from center (ie radius), in degrees (5 to 8, 4/21/15)
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
     
     %%%Setup routine. this is some complicated stuff to deal with the
@@ -412,21 +418,21 @@ try
         Training.R.phase{spec} = TrainingpreR.phase{spec-1};
     end
     
-    ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params);
-    Test.R = setup_exp_order(Test.n, Test.category_params);
+    ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, nStimuli, cue_validity);
+    Test.R = setup_exp_order(Test.n, Test.category_params, nStimuli, cue_validity);
 %     PreTest.R = setup_exp_order(PreTest.n, Test.category_params);
     
-    if attention_manipulation
-        ConfidenceTraining.R2 = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, cue_validity);
-        Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
-%         PreTest.R2 = setup_exp_order(PreTest.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
-
-%         AttentionTraining.R = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params);
-%         AttentionTraining.R2 = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params, cue_validity);
-%         
-%         AttentionTrainingConf.R = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params);
-%         AttentionTrainingConf.R2 = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params, cue_validity);
-    end
+%     if nStimuli > 1
+%         ConfidenceTraining.R2 = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, cue_validity);
+%         Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
+% %         PreTest.R2 = setup_exp_order(PreTest.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
+% 
+% %         AttentionTraining.R = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params);
+% %         AttentionTraining.R2 = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params, cue_validity);
+% %         
+% %         AttentionTrainingConf.R = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params);
+% %         AttentionTrainingConf.R2 = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params, cue_validity);
+%     end
     
     %% Start eyetracker
     if eye_tracking
@@ -518,9 +524,9 @@ try
                 [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
 
-                if attention_manipulation && new_subject
+                if nStimuli > 1 && new_subject
                     % attention and probe demo
-                    
+                    % add 2 more stimuli, but basically this should work
                     demostim(1).ort = -45;
                     demostim(2).ort = -4;
                     demostim(1).phase = 360*rand;
@@ -542,11 +548,11 @@ try
                 end
                 
                 if ~noconftraining
-                    if attention_manipulation
-                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name, ConfidenceTraining.R2);
-                    else
+%                     if nStimuli > 1
+%                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name, ConfidenceTraining.R2);
+%                     else
                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
-                    end
+%                     end
                 end
                 if flag ==1,  break;  end
 
@@ -569,7 +575,7 @@ try
         end
         
         % Testing
-        if attention_manipulation            
+        if nStimuli > 1      
             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name, Test.R2);
         else
             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name);

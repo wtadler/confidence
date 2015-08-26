@@ -7,6 +7,7 @@ intra_group_gutter= 0.02;
 fontname = 'Helvetica Neue';
 barnames = [];
 show_mean = true;
+mark_grate_ellipse = false;
 assignopts(who, varargin)
 
 
@@ -19,12 +20,23 @@ nBarsPerGroup = size(x,2);
 
 barwidth = (1 - inter_group_gutter - (nBarsPerGroup-1)*intra_group_gutter)/nBarsPerGroup;
 
+if mark_grate_ellipse
+    warning('this grate-ellipse marking is not flexible')
+    grate_ellipse_order = [1 2 4 5 7 3 6 8 9 10 11];
+    barnames = barnames(grate_ellipse_order);
+    x = x(:, grate_ellipse_order);
+    barcolor = [repmat([0 0 0],5,1); repmat([.5 .5 .5], 6, 1)];
+else
+    barcolor = repmat([0 0 0], nBarsPerGroup, 1);
+end
 
 for g = 1:nGroups
     for b = 1:nBarsPerGroup
         y = x(g,b);
         start = g-.5*(1-inter_group_gutter) + (barwidth+intra_group_gutter)*(b-1);
-        f=fill([start start+barwidth start+barwidth start], [0 0 y y],'black','EdgeColor','none');
+
+        f=fill([start start+barwidth start+barwidth start], [0 0 y y], barcolor(b, :), 'EdgeColor', 'none');
+        
         hold on
         
         % subject name

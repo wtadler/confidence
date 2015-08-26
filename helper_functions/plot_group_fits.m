@@ -11,6 +11,7 @@ yaxis = 'task'; % 'depvar', 'task'
 gutter = [.013 .04];
 margins = [.05 .01 .07 .04]; % L R B T
 plot_reliabilities = [2 4 6];
+stagger_titles = false;
 assignopts(who, varargin);
 
 nTasks = length(tasks);
@@ -68,4 +69,4 @@ for m = 1:length(models)
 end
 
 ah = show_data('root_datadir', root_datadir, 'real_sumstats', real_sumstats, 'models', models, 'marg_over_s', marg_over_s, ...
-    'gutter', gutter, 'margins', margins, 'plot_reliabilities', plot_reliabilities, 'yaxis', yaxis, 'nBins', nBins, 'dep_vars', dep_vars);
+    'gutter', gutter, 'margins', margins, 'plot_reliabilities', plot_reliabilities, 'yaxis', yaxis, 'nBins', nBins, 'dep_vars', dep_vars, 'stagger_titles', stagger_titles);
