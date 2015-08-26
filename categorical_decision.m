@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, attention_manipulation, eye_tracking, exp_number, nExperiments)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, attention_manipulation, eye_tracking, stim_type, exp_number, nExperiments)
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
 % Will Adler
@@ -86,7 +86,7 @@ nDemoTrials = 72; % for 'new' style demo
 elapsed_mins = 0;
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
-P.stim_type = 'grate';  %options: 'grate', 'ellipse'
+P.stim_type = stim_type;  %options: 'grate', 'ellipse'
 %category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
 % attention_manipulation = true;
 cue_validity = .7;
@@ -97,6 +97,7 @@ color.wt = [white white white];
 lightgray = 180; % 157
 bg = 127.5;
 color.bg = bg;
+scr.bg = bg;
 darkgray = 10;
 color.bk = [0 0 0];
 color.red = [100 0  0];
@@ -133,7 +134,7 @@ clear tmp
 
 if strcmp(P.stim_type, 'ellipse')
     Training.category_params.test_sigmas = .95;
-    Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
+    Test.category_params.test_sigmas = linspace(.15,.8,6); % are these reasonable eccentricities? prev .4:.9.
 else
     if attention_manipulation
         % AttentionTraining.category_params.test_sigmas = 1;
@@ -468,7 +469,9 @@ try
         [nx,ny]=DrawFormattedText(scr.win, 'Example stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize/2, color.wt);
         ny = ny+P.grateAlphaMaskSize/2;
     elseif strcmp(P.stim_type, 'ellipse')
-        im = drawEllipse(P.ellipseAreaPx, .95, 0, P.ellipseColor, mean(P.bgColor));
+        im = drawEllipse(P.ellipseAreaPx, .95, 0, P.ellipseColor, scr.bg);
+        [nx,ny]=DrawFormattedText(scr.win, 'Example stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize/2, color.wt);
+
         max_ellipse_d = size(im,1); % in this case, this is the height of the longest (tallest) ellipse
         ellipse(P, scr, [], stim)
         ny = ny+max_ellipse_d;

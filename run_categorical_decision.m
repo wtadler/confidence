@@ -9,20 +9,23 @@ if nargin==0
     initial = 'shortfast';
 end
 
-exp_type = 'attention'; %'attention' or 'AB'
-new_subject = true;
+exp_type = 'AB'; %'attention' or 'AB'
+new_subject = false;
 
 switch exp_type
     case 'attention'
         room_letter = 'Carrasco_L1'; % 'mbp','Carrasco_L1','1139'
-        category_type = 'same_mean_diff_std'; % 'same_mean_diff_std','sym_uniform'
-        eye_tracking = false;
-
+        eye_tracking = true;
         attention_manipulation = true;
+
+        category_type = 'same_mean_diff_std'; % 'same_mean_diff_std','sym_uniform'
+        stim_type = 'grate';
         
         categorical_decision(category_type, initial, new_subject, ...
-            room_letter, attention_manipulation, eye_tracking)
+            room_letter, attention_manipulation, eye_tracking, stim_type)
     case 'AB'
+        cd('C:\GitHub\Confidence-Theory')
+        stim_type = 'ellipse';
         room_letter = '1139';
         attention_manipulation = false;
         eye_tracking = false;
@@ -33,7 +36,7 @@ switch exp_type
         end
         for i = 1:2
             categorical_decision(category_types{i}, initial, new_subject, ...
-                room_letter, attention_manipulation, eye_tracking, i, 2)
+                room_letter, attention_manipulation, eye_tracking, stim_type, i, 2)
         end
 
 end
