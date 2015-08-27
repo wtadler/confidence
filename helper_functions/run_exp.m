@@ -45,8 +45,9 @@ switch type
         str='Now for some practice trials...\n\nReport category 1 or 2 using the confidence scale.';
 end
 
-
-Eyelink('message', 'Subject code: %s', subject_name);
+if P.eye_tracking
+    Eyelink('message', 'Subject code: %s', subject_name);
+end
 [~,ny]=center_print(str,'center');
 Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
 flip_key_flip(scr,'begin',ny,color, false);
@@ -185,7 +186,7 @@ try
                     if R.probe{blok}(section, trial)     == 1
                         rot = 0;
                     elseif R.probe{blok}(section, trial) == 2
-                        rot = 90;
+                        rot = 180;
                     end
                 elseif nStimuli == 4
                     rot = 225 - 90 * R.probe{blok}(section, trial);
@@ -322,7 +323,7 @@ try
             if strcmp('Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
                 midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %sCategory Training.', scorereport, fractionizer(section, n.sections), task_str);
                 str = 'continue';
-            elseif strcmp('Confidence Training', type) && attention_manipulation
+            elseif strcmp('Confidence Training', type) && nStimuli >= 2
                 midtxt = sprintf('You have completed\n\n%s of %sConfidence and Attention Training.', fractionizer(section, n.sections), task_str);
                 str = 'continue';
             else
@@ -357,9 +358,9 @@ try
                 hitxt = sprintf('%s\n\nYou just got %s\n',motivational_str,scorereport);
             end
         case 'Confidence Training'
-            if attention_manipulation
+            if nStimuli >= 2
                 hitxt = 'Great job! You have just finished Confidence and Attention Training.\n';
-            elseif ~attention_manipulation
+            elseif nStimuli == 1
                 hitxt = 'Great job! You have just finished Confidence Training.\n';
             end
         case 'Attention Training'
