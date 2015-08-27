@@ -5,10 +5,10 @@ function  ellipse(P, scr, t, stim, varargin)
 % bgcol is the color of the background.
 % adapted from drawEllipse.m
 
-ort = stim.ort;
+ort = stim.ort+90;
 cur_sigma = stim.cur_sigma;
 
-im = drawEllipse(P.ellipseAreaPx, cur_sigma, ort, P.ellipseColor, mean(P.bgColor));
+im = drawEllipse(P.ellipseAreaPx, cur_sigma, ort, P.ellipseColor, scr.bg);
 
 %% show it
 % some shortcuts

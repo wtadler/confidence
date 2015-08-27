@@ -1,9 +1,13 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, attention_manipulation, eye_tracking, exp_number, nExperiments)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments)
+
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
 % Will Adler
 % Ma Lab, New York University
 
+if ~nStimuli % because this used to be attention_manipulation which could be true or false
+    nStimuli = 1;
+end
 
 if ~exist('exp_number','var') || ~exist('nExperiments','var')
     exp_number = 1;
@@ -19,10 +23,6 @@ end
 
 Screen('Preference', 'SkipSyncTests', 1);
 Screen('Preference', 'VisualDebuglevel', 3);
-
-dir = pwd;
-datadir = [dir '/data'];
-addpath(genpath(dir))
 
 % eye tracking params
 eye_data_dir = 'eyedata';
@@ -56,8 +56,9 @@ switch room_letter
         scr.fontstyle = 1;
         scr.displayHz = 60;
         
-        f_c_size = 37; % length and width. must be even.
+        f_c_size = 38; % length and width. must be even.
         fw = 1; % line thickness = 2+2*fw pixels
+        dir = ''; % fill me out
 
     case 'Carrasco_L1'
         screen_width = 40;
@@ -67,6 +68,8 @@ switch room_letter
         
         f_c_size = 28; % length and width. must be even.
         fw = 0; % line thickness = 2+2*fw pixels
+        
+        dir = ''; % fill me out
 end
 
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
@@ -80,6 +83,12 @@ if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter
     %scr.keyz=29; %z
 end
 
+dir = pwd;
+datadir = [dir '/data'];
+addpath(genpath(dir))
+
+
+
 close all;
 %%
 if new_subject
@@ -91,7 +100,7 @@ end
 elapsed_mins = 0;
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
-P.stim_type = 'grate';  %options: 'grate', 'ellipse'
+P.stim_type = stim_type;  %options: 'grate', 'ellipse'
 %category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
 % attention_manipulation = true;
 cue_validity = .7;
@@ -102,6 +111,7 @@ color.wt = [white white white];
 lightgray = 180; % 157
 bg = 127.5;
 color.bg = bg;
+scr.bg = bg;
 darkgray = 10;
 color.bk = [0 0 0];
 color.red = [100 0  0];
@@ -138,12 +148,12 @@ clear tmp
 
 if strcmp(P.stim_type, 'ellipse')
     Training.category_params.test_sigmas = .95;
-    Test.category_params.test_sigmas = .4:.1:.9; % are these reasonable eccentricities?
+    Test.category_params.test_sigmas = linspace(.15,.8,6); % are these reasonable eccentricities? prev .4:.9.
 else
-    if attention_manipulation
+    if nStimuli > 1
         % AttentionTraining.category_params.test_sigmas = 1;
         % AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;        
-        Training.category_params.test_sigmas = 0.08;
+        Training.category_params.test_sigmas = 0.2; % ran as 0.08 in pilot 1
         Test.category_params.test_sigmas = Training.category_params.test_sigmas;
 %         Test.category_params.test_sigmas = exp(-3.5);
     else
@@ -175,7 +185,7 @@ end
 
 % number of trials, timing
 
-if attention_manipulation    
+if nStimuli > 1
     Demo.t.pres = 300; % 250
     Demo.t.betwtrials = 550; % 200
 
@@ -358,8 +368,9 @@ try
     f_c(:,f_c_size/2 - fw: f_c_size/2 + 1 + fw) = darkgray;
     scr.cross = Screen('MakeTexture', scr.win , f_c);
 
-    if attention_manipulation
-        arm_rows = f_c_size/2-fw:f_c_size/2 + 1 + fw;
+    if nStimuli > 1
+                
+        arm_rows = (f_c_size/2-fw) : (f_c_size/2 + 1 + fw);
         L_arm_cols = 1:f_c_size/2-1-fw;
         R_arm_cols = f_c_size/2+2+fw:f_c_size;
         
@@ -368,15 +379,18 @@ try
         cross_whiteLR = cross_whiteL; % neutral cue
         cross_whiteLR(arm_rows, R_arm_cols) = white;
         
+        cross_whiteLRUD = cross_whiteLR;
+        cross_whiteLRUD([L_arm_cols, R_arm_cols], [arm_rows, arm_rows]) = white;
+        
         cross_grayL = cross_whiteL;
         cross_grayL(cross_grayL==white) = lightgray;
         
-        scr.cueL = Screen('MakeTexture', scr.win, cross_whiteL);
-        scr.cueR = Screen('MakeTexture', scr.win, fliplr(cross_whiteL));
-        scr.cueLR= Screen('MakeTexture', scr.win, cross_whiteLR);
-        
+        scr.cueL    = Screen('MakeTexture', scr.win, cross_whiteL);
+%         scr.cueR = Screen('MakeTexture', scr.win, fliplr(cross_whiteL));
+        scr.cueLR   = Screen('MakeTexture', scr.win, cross_whiteLR);
+        scr.cueLRUD = Screen('MakeTexture', scr.win, cross_whiteLRUD);
         scr.resp_cueL = Screen('MakeTexture', scr.win, cross_grayL);
-        scr.resp_cueR = Screen('MakeTexture', scr.win, fliplr(cross_grayL));
+%         scr.resp_cueR = Screen('MakeTexture', scr.win, fliplr(cross_grayL));
     end
     
     % set up grating parameters
@@ -394,7 +408,7 @@ try
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
     P.ellipseColor = 0;
     
-    P.attention_stim_spacing = 7; % 5.5 % for two stimuli, distance from center, in degrees (5 to 8, 4/21/15)
+    P.attention_stim_spacing = 3; % ran as 7 in pilot 1 % for two stimuli, distance from center (ie radius), in degrees (5 to 8, 4/21/15)
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
     
     %%%Setup routine. this is some complicated stuff to deal with the
@@ -418,21 +432,21 @@ try
         Training.R.phase{spec} = TrainingpreR.phase{spec-1};
     end
     
-    ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params);
-    Test.R = setup_exp_order(Test.n, Test.category_params);
+    ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, nStimuli, cue_validity);
+    Test.R = setup_exp_order(Test.n, Test.category_params, nStimuli, cue_validity);
 %     PreTest.R = setup_exp_order(PreTest.n, Test.category_params);
     
-    if attention_manipulation
-        ConfidenceTraining.R2 = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, cue_validity);
-        Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
-%         PreTest.R2 = setup_exp_order(PreTest.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
-
-%         AttentionTraining.R = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params);
-%         AttentionTraining.R2 = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params, cue_validity);
-%         
-%         AttentionTrainingConf.R = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params);
-%         AttentionTrainingConf.R2 = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params, cue_validity);
-    end
+%     if nStimuli > 1
+%         ConfidenceTraining.R2 = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, cue_validity);
+%         Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
+% %         PreTest.R2 = setup_exp_order(PreTest.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
+% 
+% %         AttentionTraining.R = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params);
+% %         AttentionTraining.R2 = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params, cue_validity);
+% %         
+% %         AttentionTrainingConf.R = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params);
+% %         AttentionTrainingConf.R2 = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params, cue_validity);
+%     end
     
     %% Start eyetracker
     if eye_tracking
@@ -479,7 +493,9 @@ try
         [nx,ny]=DrawFormattedText(scr.win, 'Example stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize/2, color.wt);
         ny = ny+P.grateAlphaMaskSize/2;
     elseif strcmp(P.stim_type, 'ellipse')
-        im = drawEllipse(P.ellipseAreaPx, .95, 0, P.ellipseColor, mean(P.bgColor));
+        im = drawEllipse(P.ellipseAreaPx, .95, 0, P.ellipseColor, scr.bg);
+        [nx,ny]=DrawFormattedText(scr.win, 'Example stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize/2, color.wt);
+
         max_ellipse_d = size(im,1); % in this case, this is the height of the longest (tallest) ellipse
         ellipse(P, scr, [], stim)
         ny = ny+max_ellipse_d;
@@ -524,9 +540,9 @@ try
                 [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
 
-                if attention_manipulation && new_subject
+                if nStimuli > 1 && new_subject
                     % attention and probe demo
-                    
+                    % add 2 more stimuli, but basically this should work
                     demostim(1).ort = -45;
                     demostim(2).ort = -4;
                     demostim(1).phase = 360*rand;
@@ -548,11 +564,11 @@ try
                 end
                 
                 if ~noconftraining
-                    if attention_manipulation
-                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name, ConfidenceTraining.R2);
-                    else
+%                     if nStimuli > 1
+%                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name, ConfidenceTraining.R2);
+%                     else
                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
-                    end
+%                     end
                 end
                 if flag ==1,  break;  end
 
@@ -575,11 +591,11 @@ try
         end
         
         % Testing
-        if attention_manipulation            
-            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name, Test.R2);
-        else
+%         if nStimuli > 1      
+%             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name, Test.R2);
+%         else
             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name);
-        end
+%         end
         if flag ==1,  break;  end
         
         elapsed_mins = toc(start_t)/60;

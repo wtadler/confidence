@@ -1,4 +1,6 @@
 function unique_sigs = params2sig(p,varargin);
+
+% this functionality should be in parameter_variable_namer now? 6/2/15
 contrasts = exp(linspace(-5.5,-2,6));
 assignopts(who,varargin);
 p

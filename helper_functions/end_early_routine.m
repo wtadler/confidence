@@ -31,7 +31,7 @@ ex.lambda = ex_lambda;
 ex.grad = ex_grad;
 ex.hessian = ex_hessian;
 ex.ncall = ex_ncall;
-ex.log_prior = ex_logprior;
+ex.logprior = ex_logprior;
 
 
 if crossvalidate
@@ -70,10 +70,10 @@ else
     end
     [ex.aic, ex.bic, ex.aicc] = aicbic(-ex.min_nll, nParams, gen_nSamples);
     if strcmp(data_type, 'real')
-        gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = data.name;
+        gen(gen_model_id).opt(opt_model_id).extracted(dataset).name = gen.data(dataset).name; % need to change this to genB when just fitting task B data
     end
     if slimdown
-        fields = {'p','nll','log_prior','hessian','min_nll','min_idx','best_params','n_good_params','aic','bic','aicc','best_hessian','laplace'};%,'dic'};
+        fields = {'p','nll','logprior','hessian','min_nll','min_idx','best_params','n_good_params','aic','bic','aicc','best_hessian','laplace'};%,'dic'};
     else
         fields = fieldnames(ex);
     end

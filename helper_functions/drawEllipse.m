@@ -40,5 +40,5 @@ end
 im = im(:, any(diff(im)));
 im = im(any(diff(im')), :);
 
-imshow(im)
-colormap(gray);
+% imshow(im)
+% colormap(gray);

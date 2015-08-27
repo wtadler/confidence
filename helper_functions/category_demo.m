@@ -9,7 +9,7 @@ for category = 1 : 2
         Screen('Flip', scr.win);
         WaitSecs(Demo.t.betwtrials/1000);
         
-        stim.ort = stimulus_orientations(Test.category_params, category, 1);
+        stim.ort = stimulus_orientations(Test.category_params, category, 1, category_type);
         
         if strcmp(P.stim_type, 'gabor')
             r_gabor(P, scr, Demo.t, stim); % haven't yet added phase info to this function
