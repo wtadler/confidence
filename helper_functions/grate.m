@@ -6,6 +6,11 @@ if ~exist('demo', 'var')
 end
 
 nStimuli = length(stim);
+if nStimuli == 4
+    cross_rot = 45;
+else
+    cross_rot = 0;
+end
 
 for i = 1:nStimuli
     % create texture
@@ -25,9 +30,7 @@ for i = 1:nStimuli
     w = P.grateAlphaMaskSize;
     destRect{i} = [center_point{i} center_point{i}] +[-w/2 -w/2 w/2 w/2];
 end
-if nStimuli == 4
-    'stop'
-end
+
 %% show it
 
 frame = 0;
@@ -39,10 +42,12 @@ while (lastTime - startTime)*1000 < t.pres;
 
     for i = 1:nStimuli
         Screen('DrawTexture',scr.win,texture{i},[],destRect{i},90-stim(i).ort,[],[],[],[],kPsychDontDoRotation, [stim(i).phase+P.grateDt*P.grateSpeed*360*frame, P.grateSpatialFreq, P.grateSigma, stim(i).cur_sigma, P.grateAspectRatio, 0, 0, 0]);
-        if nStimuli ~= 1
-            Screen('DrawTexture', scr.win, scr.cross); % display fixation cross when there are multiple stimuli.
-        end
     end
+    
+    if nStimuli ~= 1
+        Screen('DrawTexture', scr.win, scr.cross, [], [], cross_rot); % display fixation cross when there are multiple stimuli.
+    end
+
     
     if ~demo
         lastTime = Screen('Flip',scr.win, startTime + frame*P.grateDt);
