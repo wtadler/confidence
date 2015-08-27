@@ -82,7 +82,12 @@ end
 
 close all;
 %%
-nDemoTrials = 72; % for 'new' style demo
+if new_subject
+    nDemoTrials = 72;
+elseif ~new_subject
+    nDemoTrials = 30;
+end
+
 elapsed_mins = 0;
 
 %Paradigm Parameters stored (mainly) in the two structs 'Training' and 'Test'
@@ -175,12 +180,18 @@ if attention_manipulation
     Demo.t.betwtrials = 550; % 200
 
     ConfidenceTraining.n.blocks = 1;
-    ConfidenceTraining.n.sections = 2;
-    ConfidenceTraining.n.trials = 36; % WTA: 16
+    if new_subject
+        ConfidenceTraining.n.sections = 2;
+        ConfidenceTraining.n.trials = 36; % WTA: 16
+    elseif ~new_subject
+        ConfidenceTraining.n.sections = 1;
+        ConfidenceTraining.n.trials = 30;
+    end
+    
 
     Training.t.betwtrials = 800;
 
-    Test.n.blocks = 3;
+    Test.n.blocks = 3; % 3
     Test.n.sections = 4;
     Test.n.trials = 36; % 9*numel(Test.sigma.int)*2 = 108
 
