@@ -14,7 +14,7 @@ Screen('Flip',scr.win,[],1);
 if experimenter_needed
     WaitSecs(initial_wait);
     while true
-        [~,keyCode] = KbWait;
+        [~,keyCode] = KbWait(-1);
         if keyCode(scr.(key))
             break
         end
@@ -25,7 +25,7 @@ else
     DrawFormattedText(scr.win,['\n\n\nPress any key to ' string '.\n\n'],'center',y,color.wt);
     Screen('Flip',scr.win);
     WaitSecs(.15);
-    KbWait;
+    KbWait(-1);
     Screen('Flip',scr.win);
     WaitSecs(.5);
 end

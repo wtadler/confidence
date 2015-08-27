@@ -9,7 +9,7 @@ if nargin==0
 end
 
 exp_type = 'attention'; %'attention' or 'AB'
-new_subject = false;
+new_subject = true;
 
 switch exp_type
     case 'attention'

@@ -300,6 +300,7 @@ try
         screenid = 0;
     end
     
+%     Screen('Resolution', screenid, scr.res(1), scr.res(2), scr.displayHz)
     % OPEN FULL SCREEN
     [scr.win, scr.rect] = Screen('OpenWindow', screenid, color.bg); %scr.win is the window id (10?), and scr.rect is the coordinates in the form [ULx ULy LRx LRy]
     % OPEN IN WINDOW
@@ -313,7 +314,9 @@ try
         case 'Carrasco_L1'
             % Check screen resolution and refresh rate - if it's not set correctly to
             % begin with, the color might be off
+            
             res = Screen('Resolution', screenid);
+            
             if ~all([res.width res.height res.hz] == [scr.res scr.displayHz])
                 error('Screen resolution and/or refresh rate has not been set correctly by the experimenter!')
             end
@@ -401,7 +404,7 @@ try
     P.grateSpatialFreq = P.grateSpatialFreq / P.pxPerDeg; % cycles / pixel
     P.grateSpeed = 6; % cycles per second % formerly 10
     P.grateDt = 1/scr.displayHz; %seconds per frame % formerly .01
-    P.grateAlphaMaskSize = round(10*P.grateSigma);
+    P.grateAlphaMaskSize = round(6*P.grateSigma);
     
     % Ellipse parameters
     P.ellipseAreaDegSq = 1; % ellipse area in degrees squared
@@ -539,17 +542,20 @@ try
                 Training.initial.n.blocks = Training.n.blocks;
                 [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
-
-                if nStimuli > 1 && new_subject
-                    % attention and probe demo
-                    % add 2 more stimuli, but basically this should work
-                    demostim(1).ort = -45;
-                    demostim(2).ort = -4;
-                    demostim(1).phase = 360*rand;
-                    demostim(2).phase = 360*rand;
-                    demostim(1).cur_sigma = Test.category_params.test_sigmas;
-                    demostim(2).cur_sigma = Test.category_params.test_sigmas;
-                    
+                
+                if new_subject
+                    demostim = struct('phase', num2cell(360*rand(1,nStimuli)), 'cur_sigma', Test.category_params.test_sigmas);
+                    if nStimuli == 2
+                        % attention and probe demo
+                        demostim(1).ort = -45;
+                        demostim(2).ort = -4;
+                    elseif nStimuli == 4
+                        % attention and probe demo
+                        demostim(1).ort = 4;
+                        demostim(2).ort = -35;
+                        demostim(3).ort = 10;
+                        demostim(4).ort = -5.5;
+                    end
                     
                     % display static 2-stimulus screen
                     flip_key_flip(scr, 'continue', scr.cy, color, true);
@@ -557,10 +563,14 @@ try
                     flip_key_flip(scr, 'continue', scr.cy, color, true);
                     
                     % display probe
-                    Screen('DrawTexture', scr.win, scr.resp_cueL);
+                    if nStimuli == 2
+                        Screen('DrawTexture', scr.win, scr.resp_cueL);
+                    elseif nStimuli == 4
+                        Screen('DrawTexture', scr.win, scr.resp_cueL, [], [], 45); % probe location 2
+                    end
                     flip_key_flip(scr, 'continue', scr.cy, color, true);
                     flip_key_flip(scr, 'continue', scr.cy, color, true);
-
+                    
                 end
                 
                 if ~noconftraining

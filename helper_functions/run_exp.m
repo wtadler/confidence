@@ -231,7 +231,7 @@ try
             
             
             while Chat == 0;
-                [~, tResp, keyCode] = KbCheck;
+                [~, tResp, keyCode] = KbCheck(-1);
                 
                 %To quit script, press insert and enter ONLY
                 %simultaneously
