@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only)
 
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
@@ -12,6 +12,10 @@ end
 if ~exist('exp_number','var') || ~exist('nExperiments','var')
     exp_number = 1;
     nExperiments = 1;
+end
+
+if ~exist('choice_only', 'var')
+    choice_only = false;
 end
 
 try
@@ -281,11 +285,11 @@ else
     nodemo = false;
 end
 
-if strfind(subject_name, 'noconf') > 0
+% if strfind(subject_name, 'noconf') > 0
     noconftraining = true;
-else
-    noconftraining = false;
-end
+% else
+%     noconftraining = false;
+% end
 
 
 try
@@ -540,10 +544,11 @@ try
                 end
                 
                 Training.initial.n.blocks = Training.n.blocks;
-                [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
+                [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, ...
+                    color, P, 'Category Training', k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
                 
-                if new_subject
+                if new_subject && nStimuli > 1
                     demostim = struct('phase', num2cell(360*rand(1,nStimuli)), 'cur_sigma', Test.category_params.test_sigmas);
                     if nStimuli == 2
                         % attention and probe demo
@@ -574,38 +579,28 @@ try
                 end
                 
                 if ~noconftraining
-%                     if nStimuli > 1
-%                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name, ConfidenceTraining.R2);
-%                     else
-                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n,ConfidenceTraining.R,Test.t,scr,color,P,'Confidence Training',k, new_subject, task_str, final_task, subject_name);
-%                     end
+                    if nStimuli == 1
+                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
+                            scr, color, P, 'Confidence Training', k, new_subject, task_str, final_task, subject_name);
+                    elseif nStimuli > 1
+                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
+                            scr, color, P, 'Confidence and Attention Training', k, new_subject, task_str, final_task, subject_name);
+                    end
+                elseif noconftraining && nStimuli > 1
+                    [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
+                        scr, color, P, 'Attention Training', k, new_subject, task_str, final_task, subject_name);
                 end
                 if flag ==1,  break;  end
 
-%                 if attention_manipulation
-%                     [AttentionTraining.responses, flag] = run_exp(AttentionTraining.n,AttentionTraining.R, Training.t,scr,color,P,'Attention Training',k, new_subject, task_str, final_task, subject_name, AttentionTraining.R2);
-%                     if flag==1,break;end
-%                     
-%                     [AttentionTrainingConf.responses, flag] = run_exp(AttentionTrainingConf.n,AttentionTrainingConf.R, Test.t,scr,color,P,'Attention Training Conf',k, new_subject, task_str, final_task, subject_name, AttentionTrainingConf.R2);
-%                     if flag==1,break;end
-%                 end
-%
-%                 if attention_manipulation
-%                     [Test.responses{k}, flag] = run_exp(PreTest.n, PreTest.R, Test.t, scr, color, P, 'PreTest',k, new_subject, task_str, final_task, subject_name, PreTest.R2);
-%                 end
             else
-                [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr, color, P, 'Training',k, new_subject, task_str, final_task, subject_name);
+                [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr,...
+                    color, P, 'Category Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
 
             end
         end
         
-        % Testing
-%         if nStimuli > 1      
-%             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name, Test.R2);
-%         else
-            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Test',k, new_subject, task_str, final_task, subject_name);
-%         end
+        [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing', k, new_subject, task_str, final_task, subject_name, choice_only);
         if flag ==1,  break;  end
         
         elapsed_mins = toc(start_t)/60;

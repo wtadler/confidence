@@ -1,11 +1,13 @@
-function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name)
+function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, choice_only)
 
-% if length(varargin) == 1
-%     R2 = varargin{1};
-%     attention_manipulation = true;
-% else
-%     attention_manipulation = false;
-% end
+if ~exist('choice_only', 'var')
+    if strcmp(type, 'Category Training') || strcmp(type, 'Attention Training')
+        choice_only = true;
+    else
+        choice_only = false;
+    end
+end
+
 nStimuli = size(R.draws{blok}, 3);
 
 if nStimuli == 4
@@ -24,25 +26,16 @@ responses.tf = zeros(n.sections, n.trials);
 
 %%% Text before trials %%%
 switch type
-    case 'Training'
-        str='Coming up: Category Training';
+    case 'Category Training'
+        str=['Coming up: ' task_str type];
     case 'Confidence Training'
-        if nStimuli == 1
-            str=['Let''s get some quick practice with confidence ratings.\n\n'...
-                'Coming up: ' task_str 'Confidence Training'];
-        elseif nStimuli >= 2
-            str=['Let''s get some practice with confidence ratings and attentional cues.\n\n'...
-                'Coming up: ' task_str 'Confidence and Attention Training'];
-        end
-    case 'Attention Training'
-        str='Let''s get some practice with the attention task.\n\nReport left tilt (CCW) or right tilt (CW).';
-        %             Screen('TextSize', scr.win, round(scr.fontsize*.7));
-    case 'Attention Training Conf'
-        str='Now rate your confidence as well as category.\n\nThe stimuli might be hard to see.';
-    case 'Test'
-        str=['Coming up: ' task_str 'Testing Block ' num2str(blok) ' of ' num2str(n.blocks)];
-    case 'PreTest'
-        str='Now for some practice trials...\n\nReport category 1 or 2 using the confidence scale.';
+        str=['Let''s get some quick practice with confidence ratings.\n\n'...
+            'Coming up: ' task_str type];
+    case 'Confidence and Atention Training'
+        str=['Let''s get some practice with confidence ratings and attentional cues.\n\n'...
+            'Coming up: ' task_str type];
+    case 'Testing'
+        str=['Coming up: ' task_str type ' Block ' num2str(blok) ' of ' num2str(n.blocks)];
 end
 
 if P.eye_tracking
@@ -239,13 +232,13 @@ try
                     error('You cancelled the script by pressing the insert and enter keys simultaneously.')
                 end
                 
-                if strcmp(type, 'Training') | strcmp(type, 'Attention Training')
+                if choice_only
                     if keyCode(scr.key5) % cat 1
                         Chat = 1;
                     elseif keyCode(scr.key6) % cat 2
                         Chat = 2;
                     end
-                else % if not in non-conf training
+                else % if collecting confidence responses
                     if keyCode(scr.key1) || keyCode(scr.key2) || keyCode(scr.key3) || keyCode(scr.key4) %cat 1 keys
                         Chat = 1;
                     elseif keyCode(scr.key7) || keyCode(scr.key8) || keyCode(scr.key9) || keyCode(scr.key10) %cat 2 keys
@@ -272,13 +265,12 @@ try
             %             fprintf('cat %d - ACC %d\n', resp, resp==cval) % for debugging
             responses.tf(section, trial) = (Chat == C);
             responses.c (section, trial) = Chat;
-            if ~strcmp(type, 'Training') && ~strcmp(type, 'Attention Training') % if not in non-conf training
+            if ~choice_only
                 responses.conf(section, trial) = conf;
             end
             responses.rt(section,trial) = tResp - t0;
             
-            if ~strcmp(type,'Test') && ~ strcmp(type,'PreTest')% give trial by trial feedback unless testing.
-                %feedback
+            if ~strcmp(type, 'Testing') % give trial by trial feedback unless testing.
                 if Chat == C
                     status = 'Correct!';
                     stat_col = color.grn;
@@ -287,22 +279,11 @@ try
                     stat_col = color.red;
                 end
                 
-                switch type
-                    case 'Training'
-                        [~,ny]=center_print(sprintf('You said: Category %i',Chat),scr.cy-60); % scr.cy-50
-                        [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
-                    case 'Confidence Training'
-                        [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 20); % -50
-                    case {'Attention Training Conf', 'Attention Training'}
-                        if Chat == 1; str = 'LEFT'; else str = 'RIGHT'; end
-                        if strcmp(type,'Attention Training Conf')
-                            confstr =  sprintf(' with %s confidence',confstr);
-                        else
-                            confstr = '';
-                        end
-                        [~,ny]=center_print(sprintf('You said: %s%s.',str,confstr),scr.cy-50);
-                        [~,ny]=center_print(sprintf('\n%s',status),ny+10,stat_col);
-                        
+                if choice_only
+                    [~,ny]=center_print(sprintf('You said: Category %i',Chat),scr.cy-60); % scr.cy-50
+                    [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
+                elseif ~choice_only
+                    [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 20); % -50
                 end
                 
                 Screen('Flip',scr.win, tResp+t.pause/1000);
@@ -320,11 +301,11 @@ try
         %if another section in the same block immediately follows
         if section ~= n.sections
             [~,scorereport]=calcscore(responses,n.trials);
-            if strcmp('Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
-                midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %sCategory Training.', scorereport, fractionizer(section, n.sections), task_str);
+            if strcmp('Category Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
+                midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %s%s.', scorereport, fractionizer(section, n.sections), task_str, type);
                 str = 'continue';
-            elseif strcmp('Confidence Training', type) && nStimuli >= 2
-                midtxt = sprintf('You have completed\n\n%s of %sConfidence and Attention Training.', fractionizer(section, n.sections), task_str);
+            elseif strcmp('Confidence and Attention Training')
+                midtxt = sprintf('You have completed\n\n%s of %s%s.', fractionizer(section, n.sections), task_str, type);
                 str = 'continue';
             else
                 midtxt = sprintf('You have completed\n\n%s of %s%s Block %i of %i.', fractionizer(section, n.sections), task_str, type, blok, n.blocks);
@@ -349,7 +330,7 @@ try
     
     experimenter_needed = false;
     switch type
-        case 'Training'
+        case 'Category Training'
             % strcmp(task_str,'') is a standin for nExperiments == 1.
             if blok == 1 && new_subject && (strcmp(task_str,'') | (~strcmp(task_str,'') && ~final_task))
                 hitxt = sprintf('You just got %s\n\n\nPlease go get the experimenter from the other room!',scorereport);
@@ -357,26 +338,16 @@ try
             else
                 hitxt = sprintf('%s\n\nYou just got %s\n',motivational_str,scorereport);
             end
-        case 'Confidence Training'
-            if nStimuli >= 2
-                hitxt = 'Great job! You have just finished Confidence and Attention Training.\n';
-            elseif nStimuli == 1
-                hitxt = 'Great job! You have just finished Confidence Training.\n';
-            end
-        case 'Attention Training'
-            hitxt = sprintf('%s\n\nYou have just finished Attention Training with\n\n%s\n',motivational_str,scorereport);
-        case 'Attention Training Conf'
-            hitxt = sprintf('%s\n\nYou have just finished Attention Training (Confidence) with\n\n%s\n',motivational_str,scorereport);
-        case 'Test'
+        case 'Testing'
             hitxt = sprintf('%s\n\nYou''ve just finished %sTesting Block %i of %i with\n\n%s\n',motivational_str,task_str,blok,n.blocks,scorereport);
-        case 'PreTest'
-            hitxt = sprintf('%s\n\nYou''ve just finished your practice trials with\n\n%s\n\nPlease let the experimenter know if\n\nyou have any questions.',motivational_str,scorereport);
+        otherwise
+            hitxt = sprtinf('Great job! You have just finished %s.\n', type);
     end
     [~,ny]=center_print(hitxt,'center');
     flip_key_flip(scr,'continue',ny,color,experimenter_needed);
     
     
-    if strcmp(type, 'Test')
+    if strcmp(type, 'Testing')
         %load top scores
         load top_ten
         ranking = 11 - sum(blockscore>=top_ten.(R.category_type).scores); % calculate current ranking
@@ -387,7 +358,7 @@ try
                 top_ten.(R.category_type).initial{m} = top_ten.(R.category_type).initial{m-1};
             end
             top_ten.(R.category_type).initial{ranking} = subject_name;
-            hitxt=sprintf('\n\nCongratulations! You made the %sTop Ten!\n\n',task_str);;
+            hitxt=sprintf('\n\nCongratulations! You made the %sTop Ten!\n\n',task_str);
         else
             hitxt='\n\n\n\n';
         end
