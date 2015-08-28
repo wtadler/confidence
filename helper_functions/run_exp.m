@@ -34,6 +34,9 @@ switch type
     case 'Confidence and Atention Training'
         str=['Let''s get some practice with confidence ratings and attentional cues.\n\n'...
             'Coming up: ' task_str type];
+    case 'Attention Training'
+        str=['Let''s get some practice with attentional cues.\n\n'...
+            'Coming up: ' task_str type];
     case 'Testing'
         str=['Coming up: ' task_str type ' Block ' num2str(blok) ' of ' num2str(n.blocks)];
 end
@@ -304,11 +307,11 @@ try
             if strcmp('Category Training', type) && blok == 1 % partway through training block 1. when experimenter should leave room
                 midtxt = sprintf('You got %s\n\nYou have completed\n\n%s of %s%s.', scorereport, fractionizer(section, n.sections), task_str, type);
                 str = 'continue';
-            elseif strcmp('Confidence and Attention Training')
-                midtxt = sprintf('You have completed\n\n%s of %s%s.', fractionizer(section, n.sections), task_str, type);
+            elseif strcmp('Testing', type)
+                midtxt = sprintf('You have completed\n\n%s of %s%s Block %i of %i.', fractionizer(section, n.sections), task_str, type, blok, n.blocks);
                 str = 'continue';
             else
-                midtxt = sprintf('You have completed\n\n%s of %s%s Block %i of %i.', fractionizer(section, n.sections), task_str, type, blok, n.blocks);
+                midtxt = sprintf('You have completed\n\n%s of %s%s.', fractionizer(section, n.sections), task_str, type);
                 str = 'continue';
             end
             
@@ -341,7 +344,7 @@ try
         case 'Testing'
             hitxt = sprintf('%s\n\nYou''ve just finished %sTesting Block %i of %i with\n\n%s\n',motivational_str,task_str,blok,n.blocks,scorereport);
         otherwise
-            hitxt = sprtinf('Great job! You have just finished %s.\n', type);
+            hitxt = sprintf('Great job! You have just finished %s.\n', type);
     end
     [~,ny]=center_print(hitxt,'center');
     flip_key_flip(scr,'continue',ny,color,experimenter_needed);

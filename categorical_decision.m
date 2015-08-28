@@ -9,7 +9,7 @@ if ~nStimuli % because this used to be attention_manipulation which could be tru
     nStimuli = 1;
 end
 
-if ~exist('exp_number','var') || ~exist('nExperiments','var')
+if (~exist('exp_number','var') || isempty(exp_number)) || (~exist('nExperiments','var') || isempty(exp_number))
     exp_number = 1;
     nExperiments = 1;
 end
@@ -157,7 +157,7 @@ else
     if nStimuli > 1
         % AttentionTraining.category_params.test_sigmas = 1;
         % AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;        
-        Training.category_params.test_sigmas = 0.2; % ran as 0.08 in pilot 1
+        Training.category_params.test_sigmas = 0.08; % ran as 0.08 in pilot 1
         Test.category_params.test_sigmas = Training.category_params.test_sigmas;
 %         Test.category_params.test_sigmas = exp(-3.5);
     else
@@ -285,11 +285,11 @@ else
     nodemo = false;
 end
 
-% if strfind(subject_name, 'noconf') > 0
+if strfind(subject_name, 'noconf') > 0
     noconftraining = true;
-% else
-%     noconftraining = false;
-% end
+else
+    noconftraining = false;
+end
 
 
 try
@@ -415,7 +415,7 @@ try
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
     P.ellipseColor = 0;
     
-    P.attention_stim_spacing = 3; % ran as 7 in pilot 1 % for two stimuli, distance from center (ie radius), in degrees (5 to 8, 4/21/15)
+    P.attention_stim_spacing = 5; % ran as 7 in pilot 1 % for two stimuli, distance from center (ie radius), in degrees (5 to 8, 4/21/15)
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
     
     %%%Setup routine. this is some complicated stuff to deal with the
@@ -441,19 +441,6 @@ try
     
     ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, nStimuli, cue_validity);
     Test.R = setup_exp_order(Test.n, Test.category_params, nStimuli, cue_validity);
-%     PreTest.R = setup_exp_order(PreTest.n, Test.category_params);
-    
-%     if nStimuli > 1
-%         ConfidenceTraining.R2 = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, cue_validity);
-%         Test.R2 = setup_exp_order(Test.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
-% %         PreTest.R2 = setup_exp_order(PreTest.n, Test.category_params, cue_validity); % second set of stimuli. This also contains the probe/cue info.
-% 
-% %         AttentionTraining.R = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params);
-% %         AttentionTraining.R2 = setup_exp_order(AttentionTraining.n, AttentionTraining.category_params, cue_validity);
-% %         
-% %         AttentionTrainingConf.R = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params);
-% %         AttentionTrainingConf.R2 = setup_exp_order(AttentionTrainingConf.n, AttentionTrainingConf.category_params, cue_validity);
-%     end
     
     %% Start eyetracker
     if eye_tracking
@@ -497,7 +484,7 @@ try
     if strcmp(P.stim_type, 'grate')
         gabortex = CreateProceduralGabor(scr.win, P.grateAlphaMaskSize, P.grateAlphaMaskSize, [], [0.5 0.5 0.5 0.0],1,0.5);
         Screen('DrawTexture', scr.win, gabortex, [], [], 90-stim.ort, [], [], [], [], kPsychDontDoRotation, [0, P.grateSpatialFreq, P.grateSigma, stim.cur_sigma, P.grateAspectRatio, 0, 0, 0]);
-        [nx,ny]=DrawFormattedText(scr.win, 'Example stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize/2, color.wt);
+        [nx,ny]=DrawFormattedText(scr.win, 'Example stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize, color.wt);
         ny = ny+P.grateAlphaMaskSize/2;
     elseif strcmp(P.stim_type, 'ellipse')
         im = drawEllipse(P.ellipseAreaPx, .95, 0, P.ellipseColor, scr.bg);
@@ -578,18 +565,19 @@ try
                     
                 end
                 
-                if ~noconftraining
-                    if nStimuli == 1
+                if nStimuli == 1 && ~choice_only && ~noconftraining
+                    [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
+                        scr, color, P, 'Confidence Training', k, new_subject, task_str, final_task, subject_name);
+                elseif nStimuli >= 2
+                    if choice_only
                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
-                            scr, color, P, 'Confidence Training', k, new_subject, task_str, final_task, subject_name);
-                    elseif nStimuli > 1
+                            scr, color, P, 'Attention Training', k, new_subject, task_str, final_task, subject_name);
+                    elseif ~noconftraining
                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
                             scr, color, P, 'Confidence and Attention Training', k, new_subject, task_str, final_task, subject_name);
                     end
-                elseif noconftraining && nStimuli > 1
-                    [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
-                        scr, color, P, 'Attention Training', k, new_subject, task_str, final_task, subject_name);
                 end
+                
                 if flag ==1,  break;  end
 
             else
