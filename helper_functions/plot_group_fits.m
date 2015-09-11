@@ -42,7 +42,6 @@ for task = 1:nTasks
     for subject = 1:nSubjects
         [streal.(tasks{task}).data(subject).stats, streal.(tasks{task}).data(subject).sorted_raw] = indiv_analysis_fcn(streal.(tasks{task}).data(subject).raw, edges.(tasks{task}));
     end
-    
     % real summary stats
     real_sumstats.(tasks{task}) = sumstats_fcn(streal.(tasks{task}).data);
 end
@@ -58,14 +57,14 @@ for m = 1:length(models)
         end
         
         models(m).extracted(subject).fake_datasets = dataset_generator(models(m), models(m).extracted(subject).p, nPlotSamples, ...
-            'nBins', nBins, 'raw', raw(subject), 'tasks', tasks); % generates fake datasets for both tasks
+            'nBins', nBins, 'raw', raw(subject), 'tasks', tasks, 'dep_vars', dep_vars); % generates fake datasets for both tasks
         
         prop_complete = ((m-1)*nSubjects+subject)/(length(models)*nSubjects);
         secs_remaining = (toc(t_start)/prop_complete - toc(t_start));
         fprintf('%.i%%, %.f secs remaining\n',round(100*prop_complete), secs_remaining)
     end
     
-    models(m).fake_sumstats = hyperplot(models(m), nHyperplots);
+    models(m).fake_sumstats = hyperplot(models(m), nHyperplots, 'fields', dep_vars);
 end
 
 ah = show_data('root_datadir', root_datadir, 'real_sumstats', real_sumstats, 'models', models, 'marg_over_s', marg_over_s, ...

@@ -22,7 +22,7 @@ for m = 1:length(model)
             end
             
             % summarize those fake datasets across subjects
-            sumstats = sumstats_fcn(hyperplotdata);
+            sumstats = sumstats_fcn(hyperplotdata, 'fields', fields);
             
             % save means for that summary
             for f = 1:length(fields)

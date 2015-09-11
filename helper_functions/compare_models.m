@@ -28,14 +28,12 @@ else
     flip_sign = false; % if lower number indicates better fit (most MCMs)
 end
 
-nModels = length(models)
+nModels = length(models);
 nDatasets = length(models(1).extracted);
 
 score = nan(nModels, nDatasets);
 for m = 1:nModels
     for d = 1:nDatasets
-        m
-        d
         score(m,d) = models(m).extracted(d).(MCM);
     end
 end
@@ -64,7 +62,7 @@ model_names = rename_models({models.name});
 switch fig_type
     case 'grid'
         
-        i = imagesc(score);
+        imagesc(score);
         set(gca,'looseinset',get(gca,'tightinset')) % get rid of white space
         colorsteps = 256;
         colormap(flipud(gray(colorsteps)));
@@ -144,7 +142,7 @@ switch fig_type
                 'mark_grate_ellipse', mark_grate_ellipse)
         end
 
-        yl = get(gca,'ylim')
+        yl = get(gca,'ylim');
         set(gca,'ticklength',[0 0],'box','off','xtick',1:nModels,'xticklabel',model_names,...
             'xaxislocation','top','fontweight','bold','fontname', fontname,'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
             'fontsize', fontsize, 'xticklabelrotation', 30)

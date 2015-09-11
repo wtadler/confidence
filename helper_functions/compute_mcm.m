@@ -9,9 +9,9 @@ datadir = check_datadir(datadir);
 
 datadir
 
-save cmtest
-
-stA = compile_data('datadir', datadir.A);
+if isfield(datadir, 'A')
+    stA = compile_data('datadir', datadir.A);
+end
 stB = compile_data('datadir', datadir.B);
 
 category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
@@ -30,7 +30,9 @@ for m = 1:nModels
     nSubjects = length(model_in(m).extracted);
     
     for d = 1:length(model_in(m).extracted)
-        
+        if isempty(model(m).extracted(d).p)
+            continue
+        end
         if model_in(m).joint_task_fit
             sm = prepare_submodels(model_in(m));
             loglik_fcn = @(p) two_task_ll_wrapper(p, stA.data(d).raw, stB.data(d).raw, sm, 51, category_params, true, true);
@@ -66,7 +68,7 @@ for m = 1:nModels
                 
                 tenth = floor(nSamples/10);
                 
-                for p = 1:nSamples
+                parfor(p = 1:nSamples, maxWorkers)
                     [~, ll_trials] = loglik_fcn(all_p(p,:));
                     loglikes(p, :) = ll_trials;
                     

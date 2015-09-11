@@ -16,6 +16,9 @@ decb_analysis = false; % set to true if you want to look at choice and confidenc
 datadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA';
 
 crossvalidate = false;
+old_attention_manipulation = false;
+attention_manipulation = false;
+
 k = 2; % for k-fold cross-validation
 
 training_data = false; % compiles training data instead of test data
@@ -48,7 +51,7 @@ end
 
 for subject = 1 : length(names)
     % load all files with name
-    subject_sessions = dir([datadir names{subject} '*.mat']);
+    subject_sessions = dir([datadir names{subject} '_*.mat']);
 
     % initialize raw fields
     clear raw
@@ -67,10 +70,12 @@ for subject = 1 : length(names)
         end
         
         if isfield(data, 'R2')
+            old_attention_manipulation = true;
+        elseif ndims(data.R.draws{1}) == 3
             attention_manipulation = true;
-        else
-            attention_manipulation = false;
         end
+        
+        
         %tmp.Training = Training; % maybe work on this later. it's going to
         %change how the data comes out and might mess with other scripts.
         %tmp.data = data;
@@ -80,27 +85,62 @@ for subject = 1 : length(names)
             for section = 1:size(data.responses{block}.c,1)
                 %                 start_trial = (session - 1) * data.n.blocks * data.n.sections * data.n.trials + (block - 1) * data.n.sections * data.n.trials + (section - 1) * data.n.trials + 1;
                 %                 end_trial   = (session - 1) * data.n.blocks * data.n.sections * data.n.trials + (block - 1) * data.n.sections * data.n.trials + (section - 1) * data.n.trials + data.n.trials;
-                nTrials = length(data.R.draws{block}(section,:));
+                nTrials = size(data.R.draws{block}, 2);
                 st.data(subject).name = names{subject};
                 
                 % trials
                 raw.C           = [raw.C        data.R.trial_order{block}(section,:) * 2 - 3];
-                raw.s           = [raw.s        data.R.draws{block}(section,:)];
-                raw.contrast    = [raw.contrast data.R.sigma{block}(section,:)];
                 
-%                 raw.C          (start_trial:end_trial) = data.R.trial_order{block}(section,:) * 2 - 3;
-%                 raw.s          (start_trial:end_trial) = data.R.draws      {block}(section,:);
-%                 raw.contrast   (start_trial:end_trial) = data.R.sigma      {block}(section,:);
-                
-                if ~attention_manipulation
-                    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);%,'flipsig',flipsig);
-                elseif attention_manipulation
+                if attention_manipulation
+                    draws = data.R.draws{block}(section, :, :);
+                    sigma = data.R.sigma{block}(section, :, :);
+                    probe = data.R.probe{block}(section,:);
+                    index = sub2ind(size(draws), ones(1, nTrials), 1:nTrials, probe);
+                    
+                    raw.s = [raw.s draws(index)];
+%                     raw.contrast = [raw.contrast sigma(index)];
+                    raw.cue_validity = [raw.cue_validity data.R.cue_validity{block}(section, :)];
+                    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity);
+                    raw.cue_validity_id = raw.contrast_id;
+                elseif old_attention_manipulation
                     raw.probe = [raw.probe data.R2.probe{block}(section,:)];
                     raw.cue   = [raw.cue   data.R2.cue{block}(section,:)];
                     
-%                     raw.probe  (start_trial:end_trial) = data.R2.probe{block}(section,:);
-%                     raw.cue    (start_trial:end_trial) = data.R2.cue  {block}(section,:);
+                    raw.cue_validity(raw.probe == raw.cue)                  =  1;  % valid cues
+                    raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
+                    raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
+                    
+                    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity);%, 'flipsig', flipsig);
+
+                    raw.cue_validity_id = 2 - raw.cue_validity; % maps [-1 0 1] onto [3 2 1]. i think this is the same as raw.contrast_id
+                    
+                    % vector of order of trials. eg, [1 2 3 2] indicates that trial 2 was repeated. nothing is recorded for the first attempt at trial 2
+                    trial_order = data.responses{block}.trial_order{section};
+                    
+                    % there must be a better way to do this part.
+                    % flip, go backwards, finding unique trial numbers. flip again. will result in, e.g., [1 3 2]
+                    flipped_trial_order = fliplr(trial_order);
+                    trials = [];
+                    for trial = 1:length(flipped_trial_order)
+                        if ~any(flipped_trial_order(trial)==trials)
+                            trials = [trials flipped_trial_order(trial)];
+                        end
+                    end
+                    trial_order = fliplr(trials);
+                    
+                    % re-order all trial info.
+                    fields = setdiff(fieldnames(raw), 'contrast_values'); % because contrast_values is not a nTrials list
+                    for f = 1:length(fields)
+                        cur_trials = raw.(fields{f})(end-nTrials+1:end);
+                        raw.(fields{f})(end-nTrials+1:end) = cur_trials(trial_order);
+                    end
+                else
+                    raw.s           = [raw.s        data.R.draws{block}(section,:)];
+                    raw.contrast    = [raw.contrast data.R.sigma{block}(section,:)];
+                    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);%,'flipsig',flipsig);
                 end
+                    
+                    
                 
 %                 if numel(contrast_values) ~= sig_levels  % group and average contrast values if sig_levels specifies something different than the normal 6 raw.contrast_values.
 %                     newcontrast       = nan(1,sig_levels);
@@ -123,46 +163,7 @@ for subject = 1 : length(names)
                 raw.resp    = [raw.resp data.responses{block}.conf(section,:) + conflevels + ...
                     (data.responses{block}.c(section,:)-2) .* ...
                     (2 * data.responses{block}.conf(section,:) - 1)];
-                
-%                 raw.Chat       (start_trial:end_trial) = data.responses{block}.c(section,:) * 2 - 3;
-%                 raw.tf         (start_trial:end_trial) = data.responses{block}.tf(section,:);
-%                 raw.g          (start_trial:end_trial) = data.responses{block}.conf(section,:);
-%                 raw.rt         (start_trial:end_trial) = data.responses{block}.rt(section,:);
-%                 raw.resp       (start_trial:end_trial) = ...
-%                     data.responses{block}.conf(section,:) + conflevels + ...
-%                     (data.responses{block}.c(section,:)-2) .* ...
-%                     (2 * data.responses{block}.conf(section,:) - 1); % this combines conf and class to give resp on 8 point scale.
-                
-                if attention_manipulation
-                    raw.cue_validity(raw.probe == raw.cue)                  =  1;  % valid cues
-                    raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
-                    raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
-                    
-                    raw.cue_validity_id = 2 - raw.cue_validity; % maps [-1 0 1] onto [3 2 1]
-                    
-                    [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity);%, 'flipsig', flipsig);
-
-                    % vector of order of trials. eg, [1 2 3 2] indicates that trial 2 was repeated. nothing is recorded for the first attempt at trial 2
-                    trial_order = data.responses{block}.trial_order{section};
-                    
-                    % there must be a better way to do this part.
-                    % flip, go backwards, finding unique trial numbers. flip again. will result in, e.g., [1 3 2]
-                    flipped_trial_order = fliplr(trial_order);
-                    trials = [];
-                    for trial = 1:length(flipped_trial_order)
-                        if ~any(flipped_trial_order(trial)==trials)
-                            trials = [trials flipped_trial_order(trial)];
-                        end
-                    end
-                    trial_order = fliplr(trials);
-                    
-                    % re-order all trial info.
-                    fields = setdiff(fieldnames(raw), 'contrast_values'); % because contrast_values is not a nTrials list
-                    for f = 1:length(fields)
-                        cur_trials = raw.(fields{f})(end-nTrials+1:end);
-                        raw.(fields{f})(end-nTrials+1:end) = cur_trials(trial_order);
-                    end
-                end
+                                
             end
         end
     end
