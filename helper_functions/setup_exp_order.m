@@ -51,9 +51,10 @@ for k = 1:n.blocks
         if nStimuli == 2
             R.cue{k}(invalid_idx) = 3 - R.cue{k}(invalid_idx); % flip 2 to 1, and 1 to 2
         elseif nStimuli > 2
-            for i = invalid_idx
+            for i = 1:numel(invalid_idx)
+                idx = invalid_idx(i);
                 % for each flipped trial, pick the cue randomly from the other stimulus numbers
-                R.cue{k}(i) = randsample(setdiff(1:nStimuli, R.cue{k}(i)), 1);
+                R.cue{k}(idx) = randsample(setdiff(1:nStimuli, R.cue{k}(idx)), 1);
             end
         end        
     end

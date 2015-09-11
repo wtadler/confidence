@@ -74,9 +74,15 @@ switch room_letter
         fw = 0; % line thickness = 2+2*fw pixels
         
         dir = ''; % fill me out
+        
+        [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
+            scr.key7, scr.key8, scr.key9, scr.key10] ...
+            = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
+        scr.keyenter=40; % return
+        scr.keyinsert=42;% normal delete
 end
 
-if strcmp(room_letter,'home') || strcmp(room_letter,'mbp') || strcmp(room_letter,'Carrasco_L1')
+if strcmp(room_letter,'home') || strcmp(room_letter,'mbp')
     [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
         scr.key7, scr.key8, scr.key9, scr.key10] ...
         = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
