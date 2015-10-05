@@ -273,7 +273,7 @@ try
             end
             responses.rt(section,trial) = tResp - t0;
             
-            if ~strcmp(type, 'Testing') % give trial by trial feedback unless testing.
+            if ~strcmp(type, 'Testing') && ~strcmp(type, 'Attention Training')% give trial by trial feedback unless testing.
                 if Chat == C
                     status = 'Correct!';
                     stat_col = color.grn;

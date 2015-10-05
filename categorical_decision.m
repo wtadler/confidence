@@ -104,7 +104,7 @@ close all;
 if new_subject
     nDemoTrials = 72;
 elseif ~new_subject
-    nDemoTrials = 30;
+    nDemoTrials = 10; % changed from 36 for Roshni
 end
 
 elapsed_mins = 0;
@@ -201,19 +201,19 @@ if nStimuli > 1
 
     ConfidenceTraining.n.blocks = 1;
     if new_subject
-        ConfidenceTraining.n.sections = 2;
-        ConfidenceTraining.n.trials = 36; % WTA: 16
+        ConfidenceTraining.n.sections = 1;
+        ConfidenceTraining.n.trials = 30; % changed from 36 for Roshni
     elseif ~new_subject
         ConfidenceTraining.n.sections = 1;
-        ConfidenceTraining.n.trials = 30;
+        ConfidenceTraining.n.trials = 8; % changed from 30 for Roshni
     end
     
 
     Training.t.betwtrials = 800;
 
     Test.n.blocks = 3; % 3
-    Test.n.sections = 4;
-    Test.n.trials = 36; % 9*numel(Test.sigma.int)*2 = 108
+    Test.n.sections = 3; % changed from 4 for Roshni
+    Test.n.trials = 36; % 36
 
     Test.t.betwtrials = 800;
     
@@ -576,7 +576,7 @@ try
                         scr, color, P, 'Confidence Training', k, new_subject, task_str, final_task, subject_name);
                 elseif nStimuli >= 2
                     if choice_only
-                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
+                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Training.t,...
                             scr, color, P, 'Attention Training', k, new_subject, task_str, final_task, subject_name);
                     elseif ~noconftraining
                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
