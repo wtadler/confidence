@@ -1,6 +1,7 @@
 function fake_datasets = dataset_generator(model, param_samples, nSamples, varargin)
 
 % this makes a bunch of fake datasets for each model/subject combination, and summarizes them
+% the tasks, tasks_in thing here is weird. figure it out. 9/23/15.
 
 raw_A = [];
 raw_B = [];
@@ -41,7 +42,15 @@ for task = 1:length(tasks)
     
     for s = 1:nSamples
         fake_datasets.(tasks{task}).dataset(s).p = param_samples(sample_ids(s), param_idx(task,:))';
-        fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'model_fitting_data', raw.(tasks{task}));
+        if ~isempty(raw) % if not providing real trials
+            try
+            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'model_fitting_data', raw.(tasks{task}));
+            catch
+                'bla'
+            end
+        else
+            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task));
+        end
         fake_datasets.(tasks{task}).dataset(s).stats = indiv_analysis_fcn(fake_datasets.(tasks{task}).dataset(s).raw, bins);
     end
     

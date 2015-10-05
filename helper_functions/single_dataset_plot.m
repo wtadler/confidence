@@ -35,7 +35,7 @@ for c = plot_reliabilities
                 errorbarheight = binned_stats.std.(stat_name)(c, :);
             end
         elseif ~fake_datasets
-            errorbarheight = binned_stats.sem.(stat_name)(c, :);
+            errorbarheight = binned_stats.sem.(stat_name)(c, :); % maybe this line should be edgar_sem
         elseif fake_datasets
             errorbarheight = binned_stats.std.(stat_name)(c, :);
         end

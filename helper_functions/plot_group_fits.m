@@ -58,6 +58,7 @@ for m = 1:length(models)
         
         models(m).extracted(subject).fake_datasets = dataset_generator(models(m), models(m).extracted(subject).p, nPlotSamples, ...
             'nBins', nBins, 'raw', raw(subject), 'tasks', tasks, 'dep_vars', dep_vars); % generates fake datasets for both tasks
+        warning('should tasks be tasks_in? figure this out!!! 9/23/15')
         
         prop_complete = ((m-1)*nSubjects+subject)/(length(models)*nSubjects);
         secs_remaining = (toc(t_start)/prop_complete - toc(t_start));
