@@ -144,8 +144,8 @@ switch fig_type
 
         yl = get(gca,'ylim');
         set(gca,'ticklength',[0 0],'box','off','xtick',1:nModels,'xticklabel',model_names,...
-            'xaxislocation','top','fontweight','bold','fontname', fontname,'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
-            'fontsize', fontsize, 'xticklabelrotation', 30)
+            'xaxislocation','top','fontweight','bold','fontname', fontname,...%'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
+            'fontsize', fontsize, 'xticklabelrotation', 30, 'ygrid', 'on')
         
         if strcmp(MCM, 'waic2') || strcmp(MCM, 'waic1')
             MCM_name = 'WAIC';

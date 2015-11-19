@@ -1,6 +1,8 @@
-function fake_sumstats = hyperplot(model, nHyperplots, varargin)
+function fake_sumstats = fake_group_datasets_and_stats(model, nFakeGroupDatasets, varargin)
 
-% for a list of models and their fits, summarize across subjects
+% for a list of models and their fits, generate some number of fake group datasets, each of which
+% consists of one fake dataset from each subject.
+% then save summary statistics for all of the fake group datasets
 % use this after having used dataset_generator.
 
 fields = {'tf','resp','g','Chat'};
@@ -14,7 +16,7 @@ for m = 1:length(model)
             hyperplot_means.(fields{f}) = [];
         end
 
-        for h = 1:nHyperplots
+        for h = 1:nFakeGroupDatasets
             clear hyperplotdata
             for subject = 1:length(model(m).extracted)
                 nPlotSamples = length(model(m).extracted(subject).fake_datasets.(tasks{task}).dataset);

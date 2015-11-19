@@ -108,6 +108,7 @@ elseif strcmp(fig_type, 'mcmc_figures')
                 'dic', ex.dic, 'gen_model', g, 'show_cornerplot', show_cornerplot);
             
             catch
+                'error'
                 toc
             end
             pause(1e-3); % to plot

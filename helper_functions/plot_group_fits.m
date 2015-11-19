@@ -2,8 +2,8 @@ function [ah, models]=plot_group_fits(models, varargin)
 
 nBins = 13; % should be odd
 marg_over_s = false; % this doesn't work yet
-nPlotSamples = 2;
-nHyperplots = 100; % number of times to take a random fake dataset from each subject. has only small effect on computation time.
+nFakeDatasetsPerSubject = 2;
+nFakeGroupDatasets = 100; % number of times to take a random fake dataset from each subject. has only small effect on computation time.
 dep_vars = {'resp','g','Chat','tf'};
 root_datadir = '/Users/will/Google Drive/Will - Confidence/Data/v3_all';
 tasks = {'A', 'B'};
@@ -48,6 +48,7 @@ end
 
 t_start = tic;
 
+
 for m = 1:length(models)
 %     model = models(m);
     clear fake
@@ -56,7 +57,8 @@ for m = 1:length(models)
             raw(subject).(tasks{task}) = streal.(tasks{task}).data(subject).raw;
         end
         
-        models(m).extracted(subject).fake_datasets = dataset_generator(models(m), models(m).extracted(subject).p, nPlotSamples, ...
+        % for each model/dataset combination, generate some number of fake datasets per subject
+        models(m).extracted(subject).fake_datasets = dataset_generator(models(m), models(m).extracted(subject).p, nFakeDatasetsPerSubject, ...
             'nBins', nBins, 'raw', raw(subject), 'tasks', tasks, 'dep_vars', dep_vars); % generates fake datasets for both tasks
         warning('should tasks be tasks_in? figure this out!!! 9/23/15')
         
@@ -65,7 +67,8 @@ for m = 1:length(models)
         fprintf('%.i%%, %.f secs remaining\n',round(100*prop_complete), secs_remaining)
     end
     
-    models(m).fake_sumstats = hyperplot(models(m), nHyperplots, 'fields', dep_vars);
+    % with the fake datasets, generate some number of fake group datasets, and their summary stats
+    models(m).fake_sumstats = fake_group_datasets_and_stats(models(m), nFakeGroupDatasets, 'fields', dep_vars);
 end
 
 ah = show_data('root_datadir', root_datadir, 'real_sumstats', real_sumstats, 'models', models, 'marg_over_s', marg_over_s, ...
