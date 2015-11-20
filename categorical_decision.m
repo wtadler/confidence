@@ -287,7 +287,7 @@ if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp wi
     scr.countdown_time = 5;
 end
 
-if strfind(subject_name,'notrain') > 0 || test_feedback % if 'notrain' is in the initials, the exp will not include training (for debugging). or if providing feedback on all trials
+if strfind(subject_name,'notrain') > 0 | test_feedback % if 'notrain' is in the initials, the exp will not include training (for debugging). or if providing feedback on all trials
     notrain = true;
 else
     notrain = false;

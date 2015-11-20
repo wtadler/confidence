@@ -8,7 +8,7 @@ if nargin==0
     initial = 'testshortfast';
 end
 
-exp_type = 'attention'; %'attention' or 'AB'
+exp_type = 'AB'; %'attention' or 'AB'
 new_subject = false;
 
 switch exp_type
@@ -26,7 +26,7 @@ switch exp_type
             room_letter, nStimuli, eye_tracking, stim_type, [], [], choice_only)
     case 'AB'
         cd('C:\GitHub\Confidence-Theory')
-        test_feedback = true;
+        test_feedback = false;
         two_response = true;
         
         stim_type = 'ellipse';
