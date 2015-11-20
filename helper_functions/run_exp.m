@@ -236,76 +236,62 @@ try
             
             C = R.trial_order{blok}(section, trial); % true category
             
+            [tCatResp, keyCode] = KbWait(-1, 1); % second argument waits for key release. this is going to make debugging tricky
             
-            while Chat == 0;
-                [~, tCatResp, keyCode] = KbCheck(-1);
+            if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
+                error('You cancelled the script by pressing the insert and enter keys simultaneously.')
+            end
+            
+            if choice_only
+                if keyCode(scr.key5) % cat 1
+                    Chat = 1;
+                elseif keyCode(scr.key6) % cat 2
+                    Chat = 2;
+                end
                 
-                if any(keyCode) % if any key is pressed
-                    %To quit script, press insert and enter ONLY
-                    %simultaneously
-                    if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
-                        error('You cancelled the script by pressing the insert and enter keys simultaneously.')
+            else % if collecting confidence responses
+                if two_response
+                    if keyCode(scr.key1)
+                        Chat = 1;
+                    elseif keyCode(scr.key2)
+                        Chat = 2;
                     end
                     
-                    if choice_only
-                        if keyCode(scr.key5) % cat 1
-                            Chat = 1;
-                        elseif keyCode(scr.key6) % cat 2
-                            Chat = 2;
-                        end
-                        
-                    else % if collecting confidence responses
-                        if two_response
-                            if keyCode(scr.key1)
-                                Chat = 1;
-                            elseif keyCode(scr.key2)
-                                Chat = 2;
-                            end
-                            
-                            if Chat ~= 0
-                                [~,ny] = center_print('Confidence?', scr.cy-50);
-                                t1=Screen('Flip', scr.win);
-                                WaitSecs(0.1);
-                                
-                                [tConfResp, keyCode] = KbWait(-1);
-                                if keyCode(scr.key1)
-                                    conf = 1;
-                                    confstr = 'VERY LOW';
-                                elseif keyCode(scr.key2)
-                                    conf = 2;
-                                    confstr = 'SOMEWHAT LOW';
-                                elseif keyCode(scr.key3)
-                                    conf = 3;
-                                    confstr = 'SOMEWHAT HIGH';
-                                elseif keyCode(scr.key4)
-                                    conf = 4;
-                                    confstr = 'VERY HIGH';
-                                end
-                            end
-                            
-                        elseif ~two_response
-                            if keyCode(scr.key1) || keyCode(scr.key2) || keyCode(scr.key3) || keyCode(scr.key4) %cat 1 keys
-                                Chat = 1;
-                            elseif keyCode(scr.key7) || keyCode(scr.key8) || keyCode(scr.key9) || keyCode(scr.key10) %cat 2 keys
-                                Chat = 2;
-                            end
-                            
-                            if keyCode(scr.key1) || keyCode(scr.key10)
-                                conf = 4;
-                                confstr = 'VERY HIGH';
-                            elseif keyCode(scr.key2) || keyCode(scr.key9)
-                                conf = 3;
-                                confstr = 'SOMEWHAT HIGH';
-                            elseif keyCode(scr.key3) || keyCode(scr.key8)
-                                conf = 2;
-                                confstr = 'SOMEWHAT LOW';
-                            elseif keyCode(scr.key4) || keyCode(scr.key7)
-                                conf = 1;
-                                confstr = 'VERY LOW';
-                            end
-                        end
+                    [~,ny] = center_print('Confidence?', scr.cy-50);
+                    t1=Screen('Flip', scr.win);
+                    WaitSecs(0.1);
+                    
+                    [tConfResp, keyCode] = KbWait(-1, 1);
+                    if keyCode(scr.key1)
+                        conf = 1;
+                    elseif keyCode(scr.key2)
+                        conf = 2;
+                    elseif keyCode(scr.key3)
+                        conf = 3;
+                    elseif keyCode(scr.key4)
+                        conf = 4;
+                    end
+                    
+                elseif ~two_response
+                    if keyCode(scr.key1) || keyCode(scr.key2) || keyCode(scr.key3) || keyCode(scr.key4) %cat 1 keys
+                        Chat = 1;
+                    elseif keyCode(scr.key7) || keyCode(scr.key8) || keyCode(scr.key9) || keyCode(scr.key10) %cat 2 keys
+                        Chat = 2;
+                    end
+                    
+                    if keyCode(scr.key1) || keyCode(scr.key10)
+                        conf = 4;
+                    elseif keyCode(scr.key2) || keyCode(scr.key9)
+                        conf = 3;
+                    elseif keyCode(scr.key3) || keyCode(scr.key8)
+                        conf = 2;
+                    elseif keyCode(scr.key4) || keyCode(scr.key7)
+                        conf = 1;
                     end
                 end
+                
+                confstrings = {'VERY LOW', 'SOMEWHAT LOW', 'SOMEWHAT HIGH', 'VERY HIGH'};
+                confstr = confstrings{conf};
             end
             
             %record 1 if correct, 0 if incorrect
