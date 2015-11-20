@@ -1,4 +1,4 @@
-function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, choice_only)
+function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, choice_only, two_response)
 
 if ~exist('choice_only', 'var')
     if strcmp(type, 'Category Training') || strcmp(type, 'Attention Training')
@@ -6,6 +6,10 @@ if ~exist('choice_only', 'var')
     else
         choice_only = false;
     end
+end
+
+if ~exist('two_response','var')
+    two_response = false;
 end
 
 nStimuli = size(R.draws{blok}, 3);
@@ -227,39 +231,72 @@ try
             
             
             while Chat == 0;
-                [~, tResp, keyCode] = KbCheck(-1);
+                [~, tCatResp, keyCode] = KbCheck(-1);
                 
-                %To quit script, press insert and enter ONLY
-                %simultaneously
-                if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
-                    error('You cancelled the script by pressing the insert and enter keys simultaneously.')
-                end
-                
-                if choice_only
-                    if keyCode(scr.key5) % cat 1
-                        Chat = 1;
-                    elseif keyCode(scr.key6) % cat 2
-                        Chat = 2;
-                    end
-                else % if collecting confidence responses
-                    if keyCode(scr.key1) || keyCode(scr.key2) || keyCode(scr.key3) || keyCode(scr.key4) %cat 1 keys
-                        Chat = 1;
-                    elseif keyCode(scr.key7) || keyCode(scr.key8) || keyCode(scr.key9) || keyCode(scr.key10) %cat 2 keys
-                        Chat = 2;
+                if any(keyCode) % if any key is pressed
+                    %To quit script, press insert and enter ONLY
+                    %simultaneously
+                    if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
+                        error('You cancelled the script by pressing the insert and enter keys simultaneously.')
                     end
                     
-                    if keyCode(scr.key1) || keyCode(scr.key10)
-                        conf = 4;
-                        confstr = 'VERY HIGH';
-                    elseif keyCode(scr.key2) || keyCode(scr.key9)
-                        conf = 3;
-                        confstr = 'SOMEWHAT HIGH';
-                    elseif keyCode(scr.key3) || keyCode(scr.key8)
-                        conf = 2;
-                        confstr = 'SOMEWHAT LOW';
-                    elseif keyCode(scr.key4) || keyCode(scr.key7)
-                        conf = 1;
-                        confstr = 'VERY LOW';
+                    if choice_only
+                        if keyCode(scr.key5) % cat 1
+                            Chat = 1;
+                        elseif keyCode(scr.key6) % cat 2
+                            Chat = 2;
+                        end
+                        
+                    else % if collecting confidence responses
+                        if two_response
+                            if keyCode(scr.key1)
+                                Chat = 1;
+                            elseif keyCode(scr.key2)
+                                Chat = 2;
+                            end
+                            
+                            if Chat ~= 0
+                                [~,ny] = center_print('Confidence?', scr.cy-50);
+                                t1=Screen('Flip', scr.win);
+                                WaitSecs(0.1);
+                                
+                                [tConfResp, keyCode] = KbWait(-1);
+                                if keyCode(scr.key1)
+                                    conf = 1;
+                                    confstr = 'VERY LOW';
+                                elseif keyCode(scr.key2)
+                                    conf = 2;
+                                    confstr = 'SOMEWHAT LOW';
+                                elseif keyCode(scr.key3)
+                                    conf = 3;
+                                    confstr = 'SOMEWHAT HIGH';
+                                elseif keyCode(scr.key4)
+                                    conf = 4;
+                                    confstr = 'VERY HIGH';
+                                end
+                            end
+                            
+                        elseif ~two_response
+                            if keyCode(scr.key1) || keyCode(scr.key2) || keyCode(scr.key3) || keyCode(scr.key4) %cat 1 keys
+                                Chat = 1;
+                            elseif keyCode(scr.key7) || keyCode(scr.key8) || keyCode(scr.key9) || keyCode(scr.key10) %cat 2 keys
+                                Chat = 2;
+                            end
+                            
+                            if keyCode(scr.key1) || keyCode(scr.key10)
+                                conf = 4;
+                                confstr = 'VERY HIGH';
+                            elseif keyCode(scr.key2) || keyCode(scr.key9)
+                                conf = 3;
+                                confstr = 'SOMEWHAT HIGH';
+                            elseif keyCode(scr.key3) || keyCode(scr.key8)
+                                conf = 2;
+                                confstr = 'SOMEWHAT LOW';
+                            elseif keyCode(scr.key4) || keyCode(scr.key7)
+                                conf = 1;
+                                confstr = 'VERY LOW';
+                            end
+                        end
                     end
                 end
             end
@@ -271,7 +308,8 @@ try
             if ~choice_only
                 responses.conf(section, trial) = conf;
             end
-            responses.rt(section,trial) = tResp - t0;
+            responses.rt(section,trial) = tCatResp - t0;
+%             responses.rt2(section,trial) = tConfResp - t1;
             
             if ~strcmp(type, 'Testing') && ~strcmp(type, 'Attention Training')% give trial by trial feedback unless testing.
                 if Chat == C
@@ -289,7 +327,7 @@ try
                     [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 20); % -50
                 end
                 
-                Screen('Flip',scr.win, tResp+t.pause/1000);
+                Screen('Flip',scr.win, tCatResp+t.pause/1000);
                 
                 WaitSecs(t.feedback/1000);
                 

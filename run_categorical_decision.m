@@ -26,6 +26,9 @@ switch exp_type
             room_letter, nStimuli, eye_tracking, stim_type, [], [], choice_only)
     case 'AB'
         cd('C:\GitHub\Confidence-Theory')
+        test_feedback = true;
+        two_response = true;
+        
         stim_type = 'ellipse';
         room_letter = '1139';
         nStimuli = 1;
@@ -37,7 +40,8 @@ switch exp_type
         end
         for i = 1:2
             categorical_decision(category_types{i}, initial, new_subject, ...
-                room_letter, nStimuli, eye_tracking, stim_type, i, 2)
+                room_letter, nStimuli, eye_tracking, stim_type, i, 2, [], ...
+                test_feedback, two_response)
         end
 
 end

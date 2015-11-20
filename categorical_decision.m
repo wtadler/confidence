@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, test_feedback, two_response)
 
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
@@ -16,6 +16,14 @@ end
 
 if ~exist('choice_only', 'var')
     choice_only = false;
+end
+
+if ~exist('test_feedback', 'var')
+    test_feedback = false;
+end
+
+if ~exist('two_response', 'var')
+    two_response = false;
 end
 
 try
