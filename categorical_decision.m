@@ -545,56 +545,57 @@ try
                     category_demo
                 end
                 
-                Training.initial.n.blocks = Training.n.blocks;
-                [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, ...
-                    color, P, 'Category Training', k, new_subject, task_str, final_task, subject_name);
-                if flag ==1,  break;  end
-                
-                if new_subject && nStimuli > 1
-                    demostim = struct('phase', num2cell(360*rand(1,nStimuli)), 'cur_sigma', Test.category_params.test_sigmas);
-                    if nStimuli == 2
-                        % attention and probe demo
-                        demostim(1).ort = -45;
-                        demostim(2).ort = -4;
-                    elseif nStimuli == 4
-                        % attention and probe demo
-                        demostim(1).ort = 4;
-                        demostim(2).ort = -35;
-                        demostim(3).ort = 10;
-                        demostim(4).ort = -5.5;
+                if ~test_feedback
+                    Training.initial.n.blocks = Training.n.blocks;
+                    [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, ...
+                        color, P, 'Category Training', k, new_subject, task_str, final_task, subject_name);
+                    if flag ==1,  break;  end
+                    
+                    if new_subject && nStimuli > 1
+                        demostim = struct('phase', num2cell(360*rand(1,nStimuli)), 'cur_sigma', Test.category_params.test_sigmas);
+                        if nStimuli == 2
+                            % attention and probe demo
+                            demostim(1).ort = -45;
+                            demostim(2).ort = -4;
+                        elseif nStimuli == 4
+                            % attention and probe demo
+                            demostim(1).ort = 4;
+                            demostim(2).ort = -35;
+                            demostim(3).ort = 10;
+                            demostim(4).ort = -5.5;
+                        end
+                        
+                        % display static 2-stimulus screen
+                        flip_key_flip(scr, 'continue', scr.cy, color, true);
+                        grate(P, scr, Test.t, demostim, true)
+                        flip_key_flip(scr, 'continue', scr.cy, color, true);
+                        
+                        % display probe
+                        if nStimuli == 2
+                            Screen('DrawTexture', scr.win, scr.resp_cueL);
+                        elseif nStimuli == 4
+                            Screen('DrawTexture', scr.win, scr.resp_cueL, [], [], 45); % probe location 2
+                        end
+                        flip_key_flip(scr, 'continue', scr.cy, color, true);
+                        flip_key_flip(scr, 'continue', scr.cy, color, true);
+                        
                     end
                     
-                    % display static 2-stimulus screen
-                    flip_key_flip(scr, 'continue', scr.cy, color, true);
-                    grate(P, scr, Test.t, demostim, true)
-                    flip_key_flip(scr, 'continue', scr.cy, color, true);
-                    
-                    % display probe
-                    if nStimuli == 2
-                        Screen('DrawTexture', scr.win, scr.resp_cueL);
-                    elseif nStimuli == 4
-                        Screen('DrawTexture', scr.win, scr.resp_cueL, [], [], 45); % probe location 2
-                    end
-                    flip_key_flip(scr, 'continue', scr.cy, color, true);
-                    flip_key_flip(scr, 'continue', scr.cy, color, true);
-                    
-                end
-                
-                if nStimuli == 1 && ~choice_only && ~noconftraining
-                    [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
-                        scr, color, P, 'Confidence Training', k, new_subject, task_str, final_task, subject_name);
-                elseif nStimuli >= 2
-                    if choice_only
-                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Training.t,...
-                            scr, color, P, 'Attention Training', k, new_subject, task_str, final_task, subject_name);
-                    elseif ~noconftraining
+                    if nStimuli == 1 && ~choice_only && ~noconftraining
                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
-                            scr, color, P, 'Confidence and Attention Training', k, new_subject, task_str, final_task, subject_name);
+                            scr, color, P, 'Confidence Training', k, new_subject, task_str, final_task, subject_name);
+                    elseif nStimuli >= 2
+                        if choice_only
+                            [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Training.t,...
+                                scr, color, P, 'Attention Training', k, new_subject, task_str, final_task, subject_name);
+                        elseif ~noconftraining
+                            [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
+                                scr, color, P, 'Confidence and Attention Training', k, new_subject, task_str, final_task, subject_name);
+                        end
                     end
+                    
+                    if flag ==1,  break;  end
                 end
-                
-                if flag ==1,  break;  end
-
             else
                 [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr,...
                     color, P, 'Category Training',k, new_subject, task_str, final_task, subject_name);
