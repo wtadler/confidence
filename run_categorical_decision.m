@@ -41,7 +41,7 @@ switch exp_type
         for i = 1:2
             categorical_decision(category_types{i}, initial, new_subject, ...
                 room_letter, nStimuli, eye_tracking, stim_type, i, 2, [], ...
-                test_feedback, two_response)
+                two_response, test_feedback)
         end
 
 end

@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, test_feedback, two_response)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback)
 
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
@@ -287,11 +287,12 @@ if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp wi
     scr.countdown_time = 5;
 end
 
-if strfind(subject_name,'notrain') > 0 % if 'notrain' is in the initials, the exp will not include training (for debugging)
+if strfind(subject_name,'notrain') > 0 || test_feedback % if 'notrain' is in the initials, the exp will not include training (for debugging). or if providing feedback on all trials
     notrain = true;
 else
     notrain = false;
 end
+
 
 if strfind(subject_name, 'nodemo') > 0
     nodemo = true;
@@ -602,8 +603,12 @@ try
             end
         end
         
-        [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing', k, new_subject, task_str, final_task, subject_name, choice_only);
-        if flag ==1,  break;  end
+        if ~test_feedback
+            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing', k, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback);
+        elseif test_feedback
+            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing Feedback', k, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback);
+        end
+        if flag == 1,  break;  end
         
         elapsed_mins = toc(start_t)/60;
         save(strrep([datadir '/backup/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins') % block by block backup. strrep makes the file separator system-dependent.

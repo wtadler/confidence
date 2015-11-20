@@ -1,4 +1,4 @@
-function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, choice_only, two_response)
+function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback)
 
 if ~exist('choice_only', 'var')
     if strcmp(type, 'Category Training') || strcmp(type, 'Attention Training')
@@ -10,6 +10,10 @@ end
 
 if ~exist('two_response','var')
     two_response = false;
+end
+
+if ~exist('test_feedback','var')
+    test_feedback = false;
 end
 
 nStimuli = size(R.draws{blok}, 3);
@@ -25,6 +29,9 @@ flag = 0;
 responses.c = zeros(n.sections, n.trials); % cat response
 responses.conf = zeros(n.sections, n.trials); % conf response
 responses.rt = zeros(n.sections, n.trials); % rt
+if two_response
+    responses.rtConf = zeros(n.sections, n.trials);
+end
 %bool matrix of correct/incorrect responses
 responses.tf = zeros(n.sections, n.trials);
 
@@ -309,9 +316,11 @@ try
                 responses.conf(section, trial) = conf;
             end
             responses.rt(section,trial) = tCatResp - t0;
-%             responses.rt2(section,trial) = tConfResp - t1;
+            if two_response
+                responses.rtConf(section,trial) = tConfResp - t1;
+            end
             
-            if ~strcmp(type, 'Testing') && ~strcmp(type, 'Attention Training')% give trial by trial feedback unless testing.
+            if (strcmp(type,'Testing') && test_feedback) || (~strcmp(type, 'Testing') && ~strcmp(type, 'Attention Training')) % give trial by trial feedback unless testing.
                 if Chat == C
                     status = 'Correct!';
                     stat_col = color.grn;
@@ -325,6 +334,9 @@ try
                     [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
                 elseif ~choice_only
                     [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 20); % -50
+                    if test_feedback
+                        [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
+                    end
                 end
                 
                 Screen('Flip',scr.win, tCatResp+t.pause/1000);
@@ -458,6 +470,9 @@ catch
     responses.c(section, trial) = -1;
     responses.conf(section, trial) = -1;
     responses.rt(section, trial) = -1;
+    if two_response
+        responses.rtConf(section,trial) = -1;
+    end
     
     
     psychrethrow(psychlasterror)
