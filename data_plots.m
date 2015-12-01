@@ -11,9 +11,10 @@ cdsandbox
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 show_fit = true;
 if show_fit
-    cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations/v3')
-    load('v3_combined_and_cleaned_POSTER_DATA.mat')
-    plot_model = 1 : length(opt_models); % can make figs for each model or just one
+%     cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations/v3')
+    load('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations/v3_all_MASTER.mat')
+%     load('v3_combined_and_cleaned_POSTER_DATA.mat')
+    plot_model = 1 : length(modelmaster); % can make figs for each model or just one
 else
     plot_model = 1;
 end
@@ -30,8 +31,8 @@ set(0,'DefaultLineLineWidth','remove')
 nBins = 13; %13 for cosyne poster
 % [real_bins_rt, real_axis_rt] = bin_generator(n_bins_real,'binstyle','rt');
 
-ori_labels = [-16 -8 -4 -2 -1 0 1 2 4 8 16]; % make sure that this only has nBins entries or fewer
-ori_label_bin_value = interp1(axis, 1:nBins, ori_labels);
+% ori_labels = [-16 -8 -4 -2 -1 0 1 2 4 8 16]; % make sure that this only has nBins entries or fewer
+% ori_label_bin_value = interp1(axis, 1:nBins, ori_labels);
 % o_bound = [1 nBins]; % does this make any sense?????
 o_bound = [-20 20];
 
@@ -63,8 +64,8 @@ cdsandbox
 %%%%%%%%%%%%%%% LOAD REAL DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-streal.A = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskA')
-streal.B = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskB')
+streal.A = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskA')
+streal.B = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskB')
 %streal = st; % use this if you've generated fake data in optimize
 
 if length(streal.A.data)==length(streal.B.data) % sanity check, not foolproof.
@@ -175,6 +176,7 @@ end
 set(gcf,'position',[870 34 1656 783]);
 
 
+
 %% plot conf as function of choice. 5/12/15 for VSS
 cd('/Users/will/Google Drive/Will - Confidence/Presentations/cosyne')
 load 9bin_hyperplots
@@ -255,9 +257,76 @@ end
 
 set(gcf, 'position', [40 1 913 804]); % 5/12
 
+%% plot performance, as a function of resp and confidence (11/30/15)
+% do sumstats above
+
+active_contrasts = [2 4 6];
+contrast_colors = [10 94 0;...
+    181 172 69;...
+    189 189 189]...
+    /256;
+
+tasks = {'A','B'};
+
+for task = 1:2
+    tight_subplot(3, 2, task, 2, [.042 .016]);
+    
+    
+
+%% plot response hists, as a function of contrast (11/30/15)
+
+streal.A = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskA')
+streal.B = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskB')
+tasks = {'A', 'B'};
+
+figure(1)
+clf
+
+active_contrasts = [2 4 6];
+contrast_colors = [10 94 0;...
+    181 172 69;...
+    189 189 189]...
+    /256;
+
+facealpha = .65;
+
+for task = 1:2
+    tight_subplot(3, 2, task, 2, [.042 .016]);
+    all_g = [];
+    all_Chat = [];
+    all_tf = [];
+    all_contrast_id = [];
+    all_resp = [];
+    for subject = 1:length(streal.(tasks{task}).data)
+        % make a function that does this.
+        all_g           = [all_g     streal.(tasks{task}).data(subject).raw.g];
+        all_Chat        = [all_Chat  streal.(tasks{task}).data(subject).raw.Chat];
+        all_tf          = [all_tf  streal.(tasks{task}).data(subject).raw.tf];
+        all_contrast_id = [all_contrast_id streal.(tasks{task}).data(subject).raw.contrast_id];
+        all_resp        = [all_resp streal.(tasks{task}).data(subject).raw.resp];
+    end
+    
+    count = 0;
+    for c = active_contrasts
+        count = count+1;
+        h=hist(all_resp(all_contrast_id==c),8)
+        p=fill([1:8 fliplr(1:8)],[h zeros(1,8)],contrast_colors(count,:),'edgecolor','none','facealpha',facealpha)
+        hold on
+    end
+     
+    xlim([1 8])
+    set(gca,'xtick',1:8,'xticklabel','','ytick',[],axes_defaults)
+    ylabel('frequency')
+    if task == 2
+        set(gca,'xticklabel',1:8)
+        xlabel('resp')
+    end
+end
+
+
 %% plot choice as function of conf (discrete version of the above). 5/12/15 for VSS.
-streal.A = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskA')
-streal.B = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3/taskB')
+streal.A = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskA')
+streal.B = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskB')
 tasks = {'A', 'B'};
 
 figure(1)
@@ -277,11 +346,14 @@ for task = 1:2
     all_Chat = [];
     all_tf = [];
     all_contrast_id = [];
+    all_resp = [];
     for subject = 1:length(streal.(tasks{task}).data)
+        % this is not the right way to get the error bars.
         all_g           = [all_g     streal.(tasks{task}).data(subject).raw.g];
         all_Chat        = [all_Chat  streal.(tasks{task}).data(subject).raw.Chat];
         all_tf          = [all_tf  streal.(tasks{task}).data(subject).raw.tf];
         all_contrast_id = [all_contrast_id streal.(tasks{task}).data(subject).raw.contrast_id];
+        all_resp        = [all_resp streal.(tasks{task}).data(subject).raw.resp];
     end
     
     mean_Chat = zeros(length(active_contrasts), 4);
@@ -868,7 +940,7 @@ end
 % rows are responses, following each possible response
 %clear all
 %close all
-streal=compile_data('shuffle',true);
+% streal=compile_data('shuffle',true);
 nDatasets = length(streal.data);
 nTrials = length(streal.data(1).raw.C);
 resp_levels = 8;

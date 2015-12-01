@@ -34,29 +34,54 @@ if ismember(2, raw.Chat)
 end
 
 stats.all.index = true(1,length(raw.C));
-% stats.all.index       = 1 : length(raw.C); % these indices just go into histc
-% stats.correct.index   = find(raw.tf == 1);
-% stats.incorrect.index = find(raw.tf == 0);
-% stats.Chat1.index     = find(raw.Chat == -1); % this should be logical indexing
-% stats.Chat2.index     = find(raw.Chat == 1);
-% stats.C1.index        = find(raw.C == -1);
-% stats.C2.index        = find(raw.C == 1);
-% idx = stats.Chat1.index + 1;
-% stats.after_Chat1.index= idx(idx<length(raw.C));
-% idx = stats.Chat2.index + 1;
-% stats.after_Chat2.index= idx(idx<length(raw.C));
+% stats.correct.index   = raw.tf == 1;
+% stats.incorrect.index = raw.tf == 0;
+% stats.Chat1.index     = raw.Chat == -1;
+% stats.Chat2.index     = raw.Chat == 1;
+% stats.C1.index        = raw.C == -1;
+% stats.C2.index        = raw.C == 1;
 
 
 trial_types = setdiff(fieldnames(stats), 'sig_levels'); % the field names defined above.
 
-% cut out sig sorting thing here, moved to compile_and_analyze
 
-for type = 1 : length(trial_types)    
+fields = {'C','s','x','Chat','tf','resp','g','rt'};
+output_fields = {'tf','resp','g','rt','Chat'};
+
+for type = 1 : length(trial_types)
     st=stats.(trial_types{type});
+    
+    
+    if g_exists
+        for f = 1:length(output_fields)
+        % BIN BY CONFIDENCE %%%%%%%%%%%%
+        for g = 1:conf_levels
+            idx = raw.g == g;
+            [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+            st.g.mean.(output_fields{f})(g) = Mean;
+            st.g.std.(output_fields{f})(g) = STD;
+            if f == 1
+                st.g.bin_counts(g) = sum(idx);
+            end
+        end
+        
+        % BIN BY RESPONSE %%%%%%%%%%%%
+        for resp = 1:2*conf_levels
+            idx = raw.resp == resp;
+            [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+            st.resp.mean.(output_fields{f})(resp) = Mean;
+            st.resp.std.(output_fields{f})(resp) = STD;
+            if f == 1
+                st.resp.bin_counts(resp) = sum(idx);
+            end
+        end
+        end
+    end
+    
+    
     for contrast = 1 : stats.sig_levels;
         % These vectors contain all the trials for a given contrast and
         % trial_type. intersection of two indices.
-        fields = {'C','s','x','Chat','tf','resp','g','rt'};
         
         % sort trials by reliability (sig) and trial type
         if isfield(raw, 'cue_validity_id')
@@ -72,120 +97,98 @@ for type = 1 : length(trial_types)
             end
         end
         
-        
-%         st.Chat1_prop_over_c(contrast) = .5 - .5 * mean(sr.Chat);
-%         st.percent_correct_over_c(contrast) = mean(sr.tf);
-%         st.resp_over_c(contrast) = mean(sr.resp);
-%         
-%         if g_exists
-%             for conf_level = 1 : conf_levels
-%                 st.Chat1_prop_over_c_and_g     (sig_levels + 1 - contrast, conf_level) = .5 - .5 * mean(sr.Chat(sr.g == conf_level));
-%                 st.percent_correct_over_c_and_g(sig_levels + 1 - contrast, conf_level) = mean(sr.tf(sr.g == conf_level));
-%             end
-%             for response = 1:conf_levels*2
-%                 st.percent_correct_over_c_and_resp(sig_levels + 1 - contrast, response) = mean(sr.tf(sr.resp == response));
-%             end
-%             st.resp_mean_over_c(contrast) = mean(sr.resp);
-%             st.g_mean_over_c(contrast) = mean(sr.g);
-%             for i = [1 2]
-%                 choice = 2*i-3;
-%                 st.g_mean_over_c_and_Chat(sig_levels + 1 - contrast, i) = mean(sr.g(sr.Chat == choice));
-%                 st.resp_mean_over_c_and_Chat(sig_levels + 1 - contrast, i) = mean(sr.resp(sr.Chat == choice));
-%             end
-%         end
-
-        
         % bin trials by s
-        [n, st.bin_index] = histc(sr.s, [-Inf, bins, Inf]);
-        st.bin_counts (contrast,:) = n(1 : end - 1); % number in each s bin, at this contrast level
-        output_fields = {'tf','resp','g','rt'};
-
-        std_beta_dist = @(a,b) sqrt(a*b/((a+b)^2*(a+b+1)));
-
-        for bin = 1 : length(bins) + 1; % calc stats for each bin over s
-            for f = 1:length(output_fields)
-                if isfield(sr,output_fields{f})
-                    st.mean.(output_fields{f})(contrast,bin) = mean(sr.(output_fields{f})(st.bin_index == bin));
-                    st.std.(output_fields{f})(contrast,bin) = std(  sr.(output_fields{f})(st.bin_index == bin));
-                    st.sem.(output_fields{f})(contrast,bin) = st.std.(output_fields{f})(contrast,bin)/sqrt(st.bin_counts(contrast,bin));
-                end
-            end
-            st.mean.Chat(contrast,bin) = .5 - .5 * mean(sr.Chat(st.bin_index == bin)); % this is actually chat prop
-            st.std.Chat(contrast,bin) = .5 * std(sr.Chat(st.bin_index == bin));
-            st.sem.Chat(contrast,bin) = st.std.Chat(contrast,bin) / sqrt(st.bin_counts(contrast,bin)); % this is sem chat prop
-            
-            nChatn1 = sum(sr.Chat(st.bin_index == bin)==-1);
-            nChat1 = sum(sr.Chat(st.bin_index == bin)==1);
-            st.std_beta_dist.Chat(contrast, bin) = std_beta_dist(nChatn1, nChat1);
-            
-            nHits = sum(sr.tf(st.bin_index == bin) == 1);
-            nMisses = sum(sr.tf(st.bin_index == bin) == 0);
-            st.std_beta_dist.tf(contrast, bin) = std_beta_dist(nHits, nMisses);
-            
-            % might want to do sem of beta dist for binary vars like choice or tf??
-            %                             if strcmp(dep_vars{dep_var}, 'tf') % standard deviation of the beta distribution instead of SEM
-%                 nHits = sum(raw.(dep_vars{dep_var})(idx));
-%                 nMisses = nTrials - nHits;
-%                 sems (bin, i) = sqrt(nHits*nMisses/((nHits+nMisses)^2*(nHits+nMisses+1)));
-
-        end
+        [n, sr.bin_index] = histc(sr.s, [-Inf, bins, Inf]);
+        %         st.bin_counts (contrast,:) = n(1 : end - 1); % number in each s bin, at this contrast level
         
-        % bin trials by reliability
+        
         for f = 1:length(output_fields)
             if isfield(sr,output_fields{f})
-                st.mean_marg_over_s.(output_fields{f})(contrast) = mean(sr.(output_fields{f}));
-                st.std_marg_over_s.(output_fields{f})(contrast) = std(  sr.(output_fields{f}));
-                st.sem_marg_over_s.(output_fields{f})(contrast) = st.std_marg_over_s.(output_fields{f})(contrast)/sqrt(sum(st.bin_counts(contrast,:)));
+                
+                % BIN BY CONTRAST %%%%%%%%%%%%
+                idx = true(1, length(sr.(output_fields{f})));
+                [Mean, STD] = mean_and_std(sr, output_fields{f}, idx);
+                st.c.mean.(output_fields{f})(contrast) = Mean;
+                st.c.std.(output_fields{f})(contrast) = STD;
+                if f == 1 % only need to do this once for each bin, so only do it for the first run field
+                    st.c.bin_counts(contrast) = sum(idx);
+                end
+                
+                % BIN BY CONTRAST AND S %%%%%%%%%%%%
+                for bin = 1 : length(bins) + 1
+                    idx = sr.bin_index == bin;
+                    [Mean, STD] = mean_and_std(sr, output_fields{f}, idx);
+                    st.c_s.mean.(output_fields{f})(contrast, bin) = Mean;
+                    st.c_s.std.(output_fields{f})(contrast, bin) = STD;
+                    if f == 1
+                        st.c_s.bin_counts(contrast, bin) = sum(idx);
+                    end
+                end
+                
+                % BIN BY CONTRAST AND CHOICE %%%%%%%%%%%%
+                for Chat = 1:2
+                    idx = sr.Chat == 2*Chat-3; % convert [1 2] to [-1 1]
+                    [Mean, STD] = mean_and_std(sr, output_fields{f}, idx);
+                    st.c_Chat.mean.(output_fields{f})(contrast, Chat) = Mean;
+                    st.c_Chat.std.(output_fields{f})(contrast, Chat) = STD;
+                    if f == 1
+                        st.c_Chat.bin_counts(contrast, Chat) = sum(idx);
+                    end
+                end
+                
+                
+                if g_exists                    
+                    % BIN BY CONTRAST AND CONFIDENCE %%%%%%%%%%%%
+                    for g = 1:conf_levels
+                        idx = sr.g == g;
+                        [Mean, STD] = mean_and_std(sr, output_fields{f}, idx);
+                        st.c_g.mean.(output_fields{f})(contrast, g) = Mean;
+                        st.c_g.std.(output_fields{f})(contrast, g) = STD;
+                        if f == 1
+                            st.c_g.bin_counts(contrast, g) = sum(idx);
+                        end
+                    end
+                    
+                    % BIN BY CONTRAST AND RESPONSE %%%%%%%%%%%%
+                    for resp = 1:2*conf_levels
+                        idx = sr.resp == resp;
+                        [Mean, STD] = mean_and_std(sr, output_fields{f}, idx);
+                        st.c_resp.mean.(output_fields{f})(contrast, resp) = Mean;
+                        st.c_resp.std.(output_fields{f})(contrast, resp) = STD;
+                        if f == 1
+                            st.c_resp.bin_counts(contrast, resp) = sum(idx);
+                        end
+                    end
+                end
             end
-            st.mean_marg_over_s.Chat(contrast) = .5 - .5 * mean(sr.Chat);
-            st.std_marg_over_s.Chat(contrast) = .5 * std(sr.Chat);
-            st.sem_marg_over_s.Chat(contrast) = st.std_marg_over_s.Chat(contrast)/sqrt(sum(st.bin_counts(contrast,:)));
-
-            nChatn1 = sum(sr.Chat==-1);
-            nChat1 = sum(sr.Chat==1);
-            st.std_beta_dist_over_s.Chat(contrast) = std_beta_dist(nChatn1, nChat1);
-            
-            nHits = sum(sr.tf == 1);
-            nMisses = sum(sr.tf == 0);
-            st.std_beta_dist_over_s.tf(contrast) = std_beta_dist(nHits, nMisses);
         end
-
-        
-%         
-%         if rt_exists
-%             % bin trials by rt. MERGE THIS WITH TOP. also, add resp to this if you want
-%             bins_rt = bin_generator(length(bins)+1,'binstyle','rt'); % need new kinds of bins
-%             [n, st.bin_index] = histc(sr.rt, [0, bins_rt, Inf]);
-%             st.bin_counts_rt (contrast,:) = n(1 : end - 1);
-%             
-%             for bin = 1 : length(bins_rt) + 1; % calc stats for each bin over s
-%                 if g_exists
-%                     st.g_mean_rt            (contrast,bin) =     mean(sr.g    (st.bin_index == bin));
-%                     st.g_std_rt             (contrast,bin) =     std (sr.g    (st.bin_index == bin));
-%                 end
-%                 
-%                 st.percent_correct_rt   (contrast,bin) =     mean(sr.tf   (st.bin_index == bin));
-%                 st.Chat1_prop_rt        (contrast,bin) = .5 - .5 * mean(sr.Chat (st.bin_index == bin));
-%                 st.rt_mean_rt           (contrast,bin) =     mean(sr.rt   (st.bin_index == bin));
-%             end
-%         end
-%         
-        
-%         if g_exists
-%             [st.g_mean_sorted(contrast, :), st.g_mean_sort_index(contrast,:)] = sort(st.g_mean(contrast,:),2); % sort g_mean to plot against std
-%             % sort according to sort index of <g>
-%             st.g_std_sorted_by_g_mean(contrast, :)           = st.g_std           (contrast, st.g_mean_sort_index(contrast,:));
-%             st.percent_correct_sorted_by_g_mean(contrast, :) = st.percent_correct (contrast, st.g_mean_sort_index(contrast,:));
-%             st.Chat1_prop_sorted_by_g_mean(contrast, :)      = st.Chat1_prop      (contrast, st.g_mean_sort_index(contrast,:));
-%         end
-%         if rt_exists
-%             st.rt_mean_sorted_by_g_mean(contrast, :)         = st.rt_mean         (contrast, st.g_mean_sort_index(contrast,:));
-%         end
-        
         sorted_raw.(trial_types{type}){contrast} = sr;
-
     end
-    
     stats.(trial_types{type}) = st;
+end
 
+
+    function [Mean, STD] = mean_and_std(sr, field, idx)
+        std_beta_dist = @(a,b) sqrt(a*b/((a+b)^2*(a+b+1)));
+        
+        switch field
+            case 'Chat'
+                Mean = .5 - .5 * mean(sr.Chat(idx)); % this is actually Chat prop
+                %                 struct.std = .5 * std(sr.(field)(idx)); % regular std
+                nChatn1 = sum(sr.Chat(idx)==-1);
+                nChat1 = sum(sr.Chat(idx)==1);
+                STD = std_beta_dist(nChatn1, nChat1);
+                
+            case 'tf'
+                Mean = mean(sr.tf(idx));
+                nHits = sum(sr.tf(idx)==1);
+                nMisses = sum(sr.tf(idx)==0);
+                STD = std_beta_dist(nHits, nMisses);
+                
+            otherwise
+                Mean = mean(sr.(field)(idx));
+                STD = std(sr.(field)(idx));
+                
+        end
+    end
 end
