@@ -257,21 +257,276 @@ end
 
 set(gcf, 'position', [40 1 913 804]); % 5/12
 
-%% plot performance, as a function of resp and confidence (11/30/15)
+%% plot performance (11/30/15). MAKE ALL THESE CELLS INTO A FUNCTION
 % do sumstats above
+load('/Users/will/Google Drive/MATLAB/utilities/MyColorMaps.mat')
 
-active_contrasts = [2 4 6];
-contrast_colors = [10 94 0;...
-    181 172 69;...
-    189 189 189]...
-    /256;
+active_contrasts = 1:6;
 
 tasks = {'A','B'};
+y = 'tf';
+yl = [.4 .9];
+yticks = .4:.1:.9;
+yname = 'prop. correct';
+flip_y = false;
+slices = {'c_g',    'c_resp',   'c_s',      ''};
+means = {'g',       'resp',     's',         'c'}; % 'c'
+xlims = [1 4;       1 8;        1 13;       1 6];
+xlabels= {'confidence', 'response (1 = high conf cat 1)', 's bin', 'c'};
 
+nSlices = length(slices);
 for task = 1:2
-    tight_subplot(3, 2, task, 2, [.042 .016]);
-    
-    
+    for slice = 1:nSlices
+        tight_subplot(2, nSlices, task, slice, [.015 .016], [.06 .01 .09 .03]);
+        
+        if ~isempty(slices{slice})
+            hold on
+            for c = active_contrasts
+                errorbar(streal.(tasks{task}).sumstats.all.(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.all.(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
+            end
+        end
+        if ~isempty(means{slice})
+            errorbar(streal.(tasks{task}).sumstats.all.(means{slice}).mean.(y), streal.(tasks{task}).sumstats.all.(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
+        end
+        
+        ylim(yl)
+        xl = xlims(slice,:);
+        xlim([min(xl)-.5 max(xl)+.5])
+        
+        set(gca,axes_defaults, 'ytick', yticks, 'yticklabel', '', 'xtick', min(xl):max(xl))
+        if flip_y
+            set(gca,'ydir','reverse')
+        end
+        
+        if task == 1
+            set(gca,'xticklabel','')
+        else
+            xlabel(xlabels{slice})
+        end
+        if slice == 1
+            set(gca,'yticklabel', yticks)
+            ylabel(sprintf('%s, Task %s', yname, tasks{task}))
+        end
+        
+    end
+end
+
+%% plot confidence (11/30/15)
+% do sumstats above
+load('/Users/will/Google Drive/MATLAB/utilities/MyColorMaps.mat')
+
+active_contrasts = 1:6;
+
+tasks = {'A','B'};
+y = 'g';
+yl = [1 4];
+yname = 'confidence';
+yticks = 1:4;
+flip_y = false;
+slices = {'c_Chat',   'c_s',       ''};
+means = {'Chat',      's',         'c'}; % 'c'
+xlims = [1 2;         1 13;        1 6];
+xlabels= {'Chat', 's bin', 'c'};
+
+nSlices = length(slices);
+for task = 1:2
+    for slice = 1:nSlices
+        tight_subplot(2, nSlices, task, slice, [.015 .016], [.06 .01 .09 .03]);
+        
+        if ~isempty(slices{slice})
+            hold on
+            for c = active_contrasts
+                errorbar(streal.(tasks{task}).sumstats.all.(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.all.(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
+            end
+        end
+        if ~isempty(means{slice})
+            errorbar(streal.(tasks{task}).sumstats.all.(means{slice}).mean.(y), streal.(tasks{task}).sumstats.all.(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
+        end
+        
+        ylim(yl)
+        xl = xlims(slice,:);
+        xlim([min(xl)-.5 max(xl)+.5])
+        
+        set(gca,axes_defaults, 'ytick', yticks, 'yticklabel', '', 'xtick', min(xl):max(xl))
+        if flip_y
+            set(gca,'ydir','reverse')
+        end
+        
+        if task == 1
+            set(gca,'xticklabel','')
+        else
+            xlabel(xlabels{slice})
+        end
+        if slice == 1
+            set(gca,'yticklabel', yticks)
+            ylabel(sprintf('%s, Task %s', yname, tasks{task}))
+        end
+        
+    end
+end
+
+%% plot resp (11/30/15)
+% do sumstats above
+load('/Users/will/Google Drive/MATLAB/utilities/MyColorMaps.mat')
+
+active_contrasts = 1:6;
+
+tasks = {'A','B'};
+y = 'resp';
+yl = [1 8];
+yname = 'response (1 = high conf cat 1)';
+yticks = 1:8;
+flip_y = true;
+slices = {'c_Chat',   'c_s',       ''};
+means = {'Chat',      's',         'c'}; % 'c'
+xlims = [1 2;         1 13;        1 6];
+xlabels= {'Chat', 's bin', 'c'};
+
+nSlices = length(slices);
+for task = 1:2
+    for slice = 1:nSlices
+        tight_subplot(2, nSlices, task, slice, [.015 .016], [.06 .01 .09 .03]);
+        
+        if ~isempty(slices{slice})
+            hold on
+            for c = active_contrasts
+                errorbar(streal.(tasks{task}).sumstats.all.(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.all.(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
+            end
+        end
+        if ~isempty(means{slice})
+            errorbar(streal.(tasks{task}).sumstats.all.(means{slice}).mean.(y), streal.(tasks{task}).sumstats.all.(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
+        end
+        
+        ylim(yl)
+        xl = xlims(slice,:);
+        xlim([min(xl)-.5 max(xl)+.5])
+        
+        set(gca,axes_defaults, 'ytick', yticks, 'yticklabel', '', 'xtick', min(xl):max(xl))
+        if flip_y
+            set(gca,'ydir','reverse')
+        end
+        
+        if task == 1
+            set(gca,'xticklabel','')
+        else
+            xlabel(xlabels{slice})
+        end
+        if slice == 1
+            set(gca,'yticklabel', yticks)
+            ylabel(sprintf('%s, Task %s', yname, tasks{task}))
+        end
+        
+    end
+end
+
+
+%% plot choice (11/30/15)
+% do sumstats above
+load('/Users/will/Google Drive/MATLAB/utilities/MyColorMaps.mat')
+
+active_contrasts = 1:6;
+
+tasks = {'A','B'};
+y = 'Chat';
+yl = [0 1];
+yname = 'Chat';
+yticks = 0:2;
+flip_y = false;
+slices = {'c_g',   'c_s',       ''};
+means = {'g',      's',         'c'}; % 'c'
+xlims = [1 4;       1 13;        1 6];
+xlabels= {'confidence', 's bin', 'c'};
+
+nSlices = length(slices);
+for task = 1:2
+    for slice = 1:nSlices
+        tight_subplot(2, nSlices, task, slice, [.015 .016], [.06 .01 .09 .03]);
+        
+        if ~isempty(slices{slice})
+            hold on
+            for c = active_contrasts
+                errorbar(streal.(tasks{task}).sumstats.all.(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.all.(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
+            end
+        end
+        if ~isempty(means{slice})
+            errorbar(streal.(tasks{task}).sumstats.all.(means{slice}).mean.(y), streal.(tasks{task}).sumstats.all.(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
+        end
+        
+        ylim(yl)
+        xl = xlims(slice,:);
+        xlim([min(xl)-.5 max(xl)+.5])
+        
+        set(gca,axes_defaults, 'ytick', yticks, 'yticklabel', '', 'xtick', min(xl):max(xl))
+        if flip_y
+            set(gca,'ydir','reverse')
+        end
+
+        if task == 1
+            set(gca,'xticklabel','')
+        else
+            xlabel(xlabels{slice})
+        end
+        if slice == 1
+            set(gca,'yticklabel', yticks)
+            ylabel(sprintf('%s, Task %s', yname, tasks{task}))
+        end
+        
+    end
+end
+
+%% plot rt (11/30/15)
+% do sumstats above
+load('/Users/will/Google Drive/MATLAB/utilities/MyColorMaps.mat')
+
+active_contrasts = 1:6;
+
+tasks = {'A','B'};
+y = 'rt';
+yl = [.25 2.5];
+yname = 'rt';
+yticks = .5:.5:2.5;
+flip_y = false;
+slices = {'c_g',    'c_resp',   'c_s',      ''};
+means = {'g',       'resp',     's',         'c'}; % 'c'
+xlims = [1 4;       1 8;        1 13;       1 6];
+xlabels= {'confidence', 'response (1 = high conf cat 1)', 's bin', 'c'};
+
+nSlices = length(slices);
+for task = 1:2
+    for slice = 1:nSlices
+        tight_subplot(2, nSlices, task, slice, [.015 .016], [.06 .01 .09 .03]);
+        
+        if ~isempty(slices{slice})
+            hold on
+            for c = active_contrasts
+                errorbar(streal.(tasks{task}).sumstats.all.(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.all.(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
+            end
+        end
+        if ~isempty(means{slice})
+            errorbar(streal.(tasks{task}).sumstats.all.(means{slice}).mean.(y), streal.(tasks{task}).sumstats.all.(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
+        end
+        
+        ylim(yl)
+        xl = xlims(slice,:);
+        xlim([min(xl)-.5 max(xl)+.5])
+        
+        set(gca,axes_defaults, 'ytick', yticks, 'yticklabel', '', 'xtick', min(xl):max(xl))
+        if flip_y
+            set(gca,'ydir','reverse')
+        end
+
+        if task == 1
+            set(gca,'xticklabel','')
+        else
+            xlabel(xlabels{slice})
+        end
+        if slice == 1
+            set(gca,'yticklabel', yticks)
+            ylabel(sprintf('%s, Task %s', yname, tasks{task}))
+        end
+        
+    end
+end
 
 %% plot response hists, as a function of contrast (11/30/15)
 

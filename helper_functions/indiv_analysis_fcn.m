@@ -50,33 +50,59 @@ output_fields = {'tf','resp','g','rt','Chat'};
 
 for type = 1 : length(trial_types)
     st=stats.(trial_types{type});
+    [~, bin_index] = histc(raw.s, [-Inf, bins, Inf]);
     
-    
-    if g_exists
-        for f = 1:length(output_fields)
-        % BIN BY CONFIDENCE %%%%%%%%%%%%
-        for g = 1:conf_levels
-            idx = raw.g == g;
-            [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
-            st.g.mean.(output_fields{f})(g) = Mean;
-            st.g.std.(output_fields{f})(g) = STD;
-            if f == 1
-                st.g.bin_counts(g) = sum(idx);
+    for f = 1:length(output_fields)
+        if isfield(raw, output_fields{f})
+            if g_exists
+                % BIN BY CONFIDENCE %%%%%%%%%%%%
+                for g = 1:conf_levels
+                    idx = raw.g == g;
+                    [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+                    st.g.mean.(output_fields{f})(g) = Mean;
+                    st.g.std.(output_fields{f})(g) = STD;
+                    if f == 1
+                        st.g.bin_counts(g) = sum(idx);
+                    end
+                end
+                
+                % BIN BY RESPONSE %%%%%%%%%%%%
+                for resp = 1:2*conf_levels
+                    idx = raw.resp == resp;
+                    [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+                    st.resp.mean.(output_fields{f})(resp) = Mean;
+                    st.resp.std.(output_fields{f})(resp) = STD;
+                    if f == 1
+                        st.resp.bin_counts(resp) = sum(idx);
+                    end
+                end
             end
-        end
-        
-        % BIN BY RESPONSE %%%%%%%%%%%%
-        for resp = 1:2*conf_levels
-            idx = raw.resp == resp;
-            [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
-            st.resp.mean.(output_fields{f})(resp) = Mean;
-            st.resp.std.(output_fields{f})(resp) = STD;
-            if f == 1
-                st.resp.bin_counts(resp) = sum(idx);
+            
+            % BIN BY S %%%%%%%%%%%%
+            for bin = 1 : length(bins) + 1
+                idx = bin_index == bin;
+                [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+                st.s.mean.(output_fields{f})(bin) = Mean;
+                st.s.std.(output_fields{f})(bin) = STD;
+                if f == 1
+                    st.s.bin_counts(bin) = sum(idx);
+                end
             end
-        end
+            
+            % BIN BY CHAT %%%%%%%%
+            for Chat = 1:2
+                idx = raw.Chat == 2*Chat-3; % convert [1 2] to [-1 1]
+                [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+                st.Chat.mean.(output_fields{f})(Chat) = Mean;
+                st.Chat.std.(output_fields{f})(Chat) = STD;
+                if f == 1
+                    st.Chat.bin_counts(Chat) = sum(idx);
+                end
+            end
         end
     end
+    
+    
     
     
     for contrast = 1 : stats.sig_levels;
@@ -98,9 +124,7 @@ for type = 1 : length(trial_types)
         end
         
         % bin trials by s
-        [n, sr.bin_index] = histc(sr.s, [-Inf, bins, Inf]);
-        %         st.bin_counts (contrast,:) = n(1 : end - 1); % number in each s bin, at this contrast level
-        
+        [~, sr.bin_index] = histc(sr.s, [-Inf, bins, Inf]);        
         
         for f = 1:length(output_fields)
             if isfield(sr,output_fields{f})

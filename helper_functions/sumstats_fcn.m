@@ -12,7 +12,7 @@ trial_types = setdiff(fieldnames(data(1).stats), 'sig_levels');
 slices = setdiff(fieldnames(data(1).stats.all), 'index');
 
 % fields = {'bin_counts','percent_correct','Chat1_prop','g_mean','resp_mean'}
-fields = {'tf','resp','g','Chat'};%'rt'
+fields = {'tf','resp','g','Chat', 'rt'};%'rt'
 % eventually, move all the if statement checks to the beginning here
 assignopts(who,varargin);
 
@@ -38,7 +38,7 @@ for type = 1 : length(trial_types)
             nDatasets = length(data);
             st.sem = st.std / sqrt(nDatasets);
             st.edgar_sem = sqrt(st.std.^2 ./ nDatasets + ...
-                nanmean(STD.^2./(nDatasets*bin_counts), 3));
+                nanmean(STD.^2./(nDatasets*bin_counts), 3)); % use bin counts to determine which cells have trials. also, how can std of beta dist be 0???
             
             stats = fieldnames(st);
             for s = 1:length(stats)
