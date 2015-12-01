@@ -64,8 +64,8 @@ cdsandbox
 %%%%%%%%%%%%%%% LOAD REAL DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-streal.A = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskA')
-streal.B = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskB')
+streal.A = compile_data('datadir','~/Google Drive/Will - Confidence/Data/v3_all/taskA')
+streal.B = compile_data('datadir','~/Google Drive/Will - Confidence/Data/v3_all/taskB')
 %streal = st; % use this if you've generated fake data in optimize
 
 if length(streal.A.data)==length(streal.B.data) % sanity check, not foolproof.
@@ -257,10 +257,9 @@ end
 
 set(gcf, 'position', [40 1 913 804]); % 5/12
 
-%% plot performance (11/30/15). MAKE ALL THESE CELLS INTO A FUNCTION
+%% plot performance (11/30/15). MAKE ALL THESE CELLS INTO A FUNCTION. figure out how it overlaps with show_data
 % do sumstats above
-load('/Users/will/Google Drive/MATLAB/utilities/MyColorMaps.mat')
-
+load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat')
 active_contrasts = 1:6;
 
 tasks = {'A','B'};

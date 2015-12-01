@@ -207,7 +207,7 @@ end
                 Mean = mean(sr.tf(idx));
                 nHits = sum(sr.tf(idx)==1);
                 nMisses = sum(sr.tf(idx)==0);
-                STD = std_beta_dist(nHits, nMisses);
+                STD = std_beta_dist(nHits+1, nMisses+1); % this seems a reasonable way to add a prior and fix the zero problem, but error bars disappear?
                 
             otherwise
                 Mean = mean(sr.(field)(idx));
