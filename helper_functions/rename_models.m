@@ -67,5 +67,8 @@ if regexp(name_in, 'measurement_fixed')
     name_out = [name_out, ', measurement noise fixed'];
 end
 
+if regexp(name_in, 'free_cats')
+    name_out = [name_out, ', free cat. sigs'];
+end
 
 end

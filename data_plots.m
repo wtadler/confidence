@@ -12,7 +12,7 @@ cdsandbox
 show_fit = true;
 if show_fit
 %     cd('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations/v3')
-    load('/Users/will/Google Drive/Will - Confidence/Analysis/optimizations/v3_all_MASTER.mat')
+    load('~/Google Drive/Will - Confidence/Analysis/optimizations/v3_all_MASTER.mat')
 %     load('v3_combined_and_cleaned_POSTER_DATA.mat')
     plot_model = 1 : length(modelmaster); % can make figs for each model or just one
 else
@@ -263,9 +263,10 @@ load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat')
 active_contrasts = 1:6;
 
 tasks = {'A','B'};
+trial_type = 'incorrect';
 y = 'tf';
-yl = [.4 .9];
-yticks = .4:.1:.9;
+yl = [.45 1];
+yticks = .4:.1:1;
 yname = 'prop. correct';
 flip_y = false;
 slices = {'c_g',    'c_resp',   'c_s',      ''};
@@ -281,11 +282,11 @@ for task = 1:2
         if ~isempty(slices{slice})
             hold on
             for c = active_contrasts
-                errorbar(streal.(tasks{task}).sumstats.all.(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.all.(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
+                errorbar(streal.(tasks{task}).sumstats.(trial_type).(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.(trial_type).(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
             end
         end
         if ~isempty(means{slice})
-            errorbar(streal.(tasks{task}).sumstats.all.(means{slice}).mean.(y), streal.(tasks{task}).sumstats.all.(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
+            errorbar(streal.(tasks{task}).sumstats.(trial_type).(means{slice}).mean.(y), streal.(tasks{task}).sumstats.(trial_type).(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
         end
         
         ylim(yl)
@@ -326,6 +327,7 @@ slices = {'c_Chat',   'c_s',       ''};
 means = {'Chat',      's',         'c'}; % 'c'
 xlims = [1 2;         1 13;        1 6];
 xlabels= {'Chat', 's bin', 'c'};
+trial_type = 'incorrect';
 
 nSlices = length(slices);
 for task = 1:2
@@ -335,11 +337,11 @@ for task = 1:2
         if ~isempty(slices{slice})
             hold on
             for c = active_contrasts
-                errorbar(streal.(tasks{task}).sumstats.all.(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.all.(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
+                errorbar(streal.(tasks{task}).sumstats.(trial_type).(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.(trial_type).(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
             end
         end
         if ~isempty(means{slice})
-            errorbar(streal.(tasks{task}).sumstats.all.(means{slice}).mean.(y), streal.(tasks{task}).sumstats.all.(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
+            errorbar(streal.(tasks{task}).sumstats.(trial_type).(means{slice}).mean.(y), streal.(tasks{task}).sumstats.(trial_type).(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
         end
         
         ylim(yl)
@@ -380,6 +382,8 @@ slices = {'c_Chat',   'c_s',       ''};
 means = {'Chat',      's',         'c'}; % 'c'
 xlims = [1 2;         1 13;        1 6];
 xlabels= {'Chat', 's bin', 'c'};
+trial_type = 'incorrect';
+
 
 nSlices = length(slices);
 for task = 1:2
@@ -389,11 +393,11 @@ for task = 1:2
         if ~isempty(slices{slice})
             hold on
             for c = active_contrasts
-                errorbar(streal.(tasks{task}).sumstats.all.(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.all.(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
+                errorbar(streal.(tasks{task}).sumstats.(trial_type).(slices{slice}).mean.(y)(c,:)', streal.(tasks{task}).sumstats.(trial_type).(slices{slice}).edgar_sem.(y)(c,:)', 'color', hot_contrast_colors(c,:));
             end
         end
         if ~isempty(means{slice})
-            errorbar(streal.(tasks{task}).sumstats.all.(means{slice}).mean.(y), streal.(tasks{task}).sumstats.all.(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
+            errorbar(streal.(tasks{task}).sumstats.(trial_type).(means{slice}).mean.(y), streal.(tasks{task}).sumstats.(trial_type).(means{slice}).edgar_sem.(y), 'color', 'b', 'linewidth', 3)
         end
         
         ylim(yl)
@@ -528,7 +532,7 @@ for task = 1:2
 end
 
 %% plot response hists, as a function of contrast (11/30/15)
-
+load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat')
 streal.A = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskA')
 streal.B = compile_data('datadir','/Users/will/Google Drive/Will - Confidence/Data/v3_all/taskB')
 tasks = {'A', 'B'};
@@ -536,16 +540,12 @@ tasks = {'A', 'B'};
 figure(1)
 clf
 
-active_contrasts = [2 4 6];
-contrast_colors = [10 94 0;...
-    181 172 69;...
-    189 189 189]...
-    /256;
+active_contrasts = 1:6;
 
 facealpha = .65;
 
 for task = 1:2
-    tight_subplot(3, 2, task, 2, [.042 .016]);
+    tight_subplot(2, 1, task, 1, [.042 .03],[.06 .01 .1 .04]);
     all_g = [];
     all_Chat = [];
     all_tf = [];
@@ -564,7 +564,8 @@ for task = 1:2
     for c = active_contrasts
         count = count+1;
         h=hist(all_resp(all_contrast_id==c),8)
-        p=fill([1:8 fliplr(1:8)],[h zeros(1,8)],contrast_colors(count,:),'edgecolor','none','facealpha',facealpha)
+%         p=fill([1:8 fliplr(1:8)],[h zeros(1,8)],contrast_colors(count,:),'edgecolor','none','facealpha',facealpha)
+        plot(1:8, h, 'color', hot_contrast_colors(count,:))
         hold on
     end
      
