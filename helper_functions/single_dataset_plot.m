@@ -2,10 +2,10 @@ function single_dataset_plot(binned_stats, stat_name, marginalized_over_s, xtick
 % TO ADD: smart default values for xticklabels and ylims.
 
 if ~marginalized_over_s
-    nBins = size(binned_stats.mean.(stat_name), 2);
-    nReliabilities = size(binned_stats.mean.(stat_name), 1);
+    nBins = size(binned_stats.c_s.mean.(stat_name), 2);
+    nReliabilities = size(binned_stats.c_s.mean.(stat_name), 1);
 else
-    nReliabilities = length(binned_stats.mean_marg_over_s.(stat_name));
+    nReliabilities = length(binned_stats.c.mean.(stat_name));
 end
 plot_reliabilities = [];
 hhh = hot;
@@ -27,17 +27,11 @@ for c = plot_reliabilities
     color = colors(c,:);
     
     if ~marginalized_over_s
-        m = binned_stats.mean.(stat_name)(c, :);
-        if ~fake_datasets && (strcmp(stat_name, 'tf') || strcmp(stat_name, 'Chat')) 
-            try
-                errorbarheight = binned_stats.std_beta_dist.(stat_name)(c, :);
-            catch
-                errorbarheight = binned_stats.std.(stat_name)(c, :);
-            end
-        elseif ~fake_datasets
-            errorbarheight = binned_stats.sem.(stat_name)(c, :); % maybe this line should be edgar_sem
+        m = binned_stats.c_s.mean.(stat_name)(c, :);
+        if ~fake_datasets 
+            errorbarheight = binned_stats.c_s.std.(stat_name)(c, :);
         elseif fake_datasets
-            errorbarheight = binned_stats.std.(stat_name)(c, :);
+            errorbarheight = binned_stats.c_s.sem.(stat_name)(c, :); % maybe this line should be edgar_sem
         end
         
         if symmetrify
@@ -55,12 +49,8 @@ for c = plot_reliabilities
         end
         
     else
-        m = binned_stats.mean_marg_over_s.(stat_name)(c);
-        if ~strcmp(stat_name, 'tf') && ~strcmp(stat_name, 'Chat')
-            errorbarheight = binned_stats.sem_marg_over_s.(stat_name)(c);
-        else
-            errorbarheight = binned_stats.std_beta_dist_over_s.(stat_name)(c);
-        end
+        m = binned_stats.c.mean.(stat_name)(c);
+        errorbarheight = binned_stats.c.std.(stat_name)(c);
         
         errorbarwidth = .5;
         

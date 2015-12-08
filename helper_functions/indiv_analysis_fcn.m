@@ -5,16 +5,18 @@ function [stats, sorted_raw] = indiv_analysis_fcn(raw, bins, varargin)
 
 % define defaults
 conf_levels = 4; % used for discrete variance
+% data_type = 'subject';
+flipsig = 1; % implement this 12/4/15
+% discrete = 0;
+trial_types = {'all'};
+output_fields = {'tf','resp','g','rt','Chat'};
+assignopts(who,varargin);
+
 if isfield(raw, 'cue_validity_id')
     stats.sig_levels = length(unique(raw.cue_validity_id));
 else
     stats.sig_levels = length(unique(raw.contrast));
 end
-
-data_type = 'subject';
-flipsig = 1;
-discrete = 0;
-assignopts(who,varargin);
 
 g_exists  = isfield(raw, 'g');
 rt_exists = isfield(raw, 'rt');
@@ -33,32 +35,66 @@ if ismember(2, raw.Chat)
     raw.Chat(raw.Chat==2)=1;
 end
 
+% will only use the indices specified in trial_types
 stats.all.index = true(1,length(raw.C));
-% stats.correct.index   = raw.tf == 1;
-% stats.incorrect.index = raw.tf == 0;
-% stats.Chat1.index     = raw.Chat == -1;
-% stats.Chat2.index     = raw.Chat == 1;
-% stats.C1.index        = raw.C == -1;
-% stats.C2.index        = raw.C == 1;
+stats.correct.index   = raw.tf == 1;
+stats.incorrect.index = raw.tf == 0;
+stats.Chat1.index     = raw.Chat == -1;
+stats.Chat2.index     = raw.Chat == 1;
+stats.C1.index        = raw.C == -1;
+stats.C2.index        = raw.C == 1;
 
+fields = {'C','s','x','Chat','tf','resp','g','rt','contrast_id'};
 
-trial_types = setdiff(fieldnames(stats), 'sig_levels'); % the field names defined above.
+for type = 1:length(trial_types)
+    % sort raw data
+    for f = 1:length(fields)
+        if isfield(raw, fields{f})
+            raw_by_type.(trial_types{type}).(fields{f}) = raw.(fields{f})(stats.(trial_types{type}).index);
+        end
+    end
+%     
+%     % bin requested output fields
+%     for f = 1:length(output_fields)
+%         % bin, marginalizing over contrast
+%         stats = bin_by_field(stats, raw_by_type.(trial_types{type}), output_fields{f});
+%     end
 
+end
+% 
+% % not sure if this is the right approach, 12/4/15
+%     function stats = bin_by_field(stats, raw, output_field)
+%         switch output_field
+%             case 'tf'
+%             case 'Chat'
+%             case 'g'
+%             case 'resp'
+%             case 'rt'
+%         end
+%     end
+%         
+        
 
-fields = {'C','s','x','Chat','tf','resp','g','rt'};
-output_fields = {'tf','resp','g','rt','Chat'};
-
+% refactor this!!
 for type = 1 : length(trial_types)
     st=stats.(trial_types{type});
-    [~, bin_index] = histc(raw.s, [-Inf, bins, Inf]);
     
+    % sort trials by type
+    for f = 1:length(fields)
+        if isfield(raw, fields{f})
+            raw_type.(fields{f}) = raw.(fields{f})(st.index);
+        end
+    end
+    
+    [~, bin_index] = histc(raw_type.s, [-Inf, bins, Inf]);
+        
     for f = 1:length(output_fields)
-        if isfield(raw, output_fields{f})
+        if isfield(raw_type, output_fields{f})
             if g_exists
                 % BIN BY CONFIDENCE %%%%%%%%%%%%
                 for g = 1:conf_levels
-                    idx = raw.g == g;
-                    [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+                    idx = raw_type.g == g;
+                    [Mean, STD] = mean_and_std(raw_type, output_fields{f}, idx);
                     st.g.mean.(output_fields{f})(g) = Mean;
                     st.g.std.(output_fields{f})(g) = STD;
                     if f == 1
@@ -68,8 +104,8 @@ for type = 1 : length(trial_types)
                 
                 % BIN BY RESPONSE %%%%%%%%%%%%
                 for resp = 1:2*conf_levels
-                    idx = raw.resp == resp;
-                    [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+                    idx = raw_type.resp == resp;
+                    [Mean, STD] = mean_and_std(raw_type, output_fields{f}, idx);
                     st.resp.mean.(output_fields{f})(resp) = Mean;
                     st.resp.std.(output_fields{f})(resp) = STD;
                     if f == 1
@@ -81,7 +117,7 @@ for type = 1 : length(trial_types)
             % BIN BY S %%%%%%%%%%%%
             for bin = 1 : length(bins) + 1
                 idx = bin_index == bin;
-                [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+                [Mean, STD] = mean_and_std(raw_type, output_fields{f}, idx);
                 st.s.mean.(output_fields{f})(bin) = Mean;
                 st.s.std.(output_fields{f})(bin) = STD;
                 if f == 1
@@ -91,8 +127,8 @@ for type = 1 : length(trial_types)
             
             % BIN BY CHAT %%%%%%%%
             for Chat = 1:2
-                idx = raw.Chat == 2*Chat-3; % convert [1 2] to [-1 1]
-                [Mean, STD] = mean_and_std(raw, output_fields{f}, idx);
+                idx = raw_type.Chat == 2*Chat-3; % convert [1 2] to [-1 1]
+                [Mean, STD] = mean_and_std(raw_type, output_fields{f}, idx);
                 st.Chat.mean.(output_fields{f})(Chat) = Mean;
                 st.Chat.std.(output_fields{f})(Chat) = STD;
                 if f == 1
@@ -109,17 +145,17 @@ for type = 1 : length(trial_types)
         % These vectors contain all the trials for a given contrast and
         % trial_type. intersection of two indices.
         
-        % sort trials by reliability (sig) and trial type
-        if isfield(raw, 'cue_validity_id')
-            sig_idx = raw.cue_validity_id == contrast;
+        % trials are already sorted by type. sort them by reliability too
+        if isfield(raw_type, 'cue_validity_id')
+            sig_idx = raw_type.cue_validity_id == contrast;
         else
-            sig_idx = raw.contrast_id == contrast;
+            sig_idx = raw_type.contrast_id == contrast;
         end
         
         for f = 1:length(fields)
             if isfield(raw,fields{f})
                 sr.(fields{f}) = ...
-                    raw.(fields{f})(sig_idx & st.index);
+                    raw_type.(fields{f})(sig_idx);
             end
         end
         
@@ -201,13 +237,13 @@ end
                 %                 struct.std = .5 * std(sr.(field)(idx)); % regular std
                 nChatn1 = sum(sr.Chat(idx)==-1);
                 nChat1 = sum(sr.Chat(idx)==1);
-                STD = std_beta_dist(nChatn1, nChat1);
+                STD = std_beta_dist(nChatn1+1, nChat1+1);
                 
             case 'tf'
                 Mean = mean(sr.tf(idx));
                 nHits = sum(sr.tf(idx)==1);
                 nMisses = sum(sr.tf(idx)==0);
-                STD = std_beta_dist(nHits+1, nMisses+1); % this seems a reasonable way to add a prior and fix the zero problem, but error bars disappear?
+                STD = std_beta_dist(nHits+1, nMisses+1); % this seems a reasonable way to add a tiny prior and fix the zero problem
                 
             otherwise
                 Mean = mean(sr.(field)(idx));

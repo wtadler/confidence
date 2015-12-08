@@ -34,13 +34,14 @@ for type = 1 : length(trial_types)
             
             % sum, mean, SEM, edgar SEM over subjects
             st.mean = nanmean(Mean, 3); % have to use nanmean and nanstd because there are missing data. for instance, some subjects never say high confidence in certain bins.
-            st.std = nanstd(STD, 0, 3);
+            st.std = nanstd(Mean, 0, 3);
 %             nDatasets = length(data);
             nDatasets = sum(bin_counts~=0, 3); % how many datasets have data in each bin?
+            bin_counts(bin_counts==0) = nan;
+            
             st.sem = st.std ./ sqrt(nDatasets);
-            error('figure this out!')
             st.edgar_sem = sqrt(st.std.^2 ./ nDatasets + ...
-                nanmean(STD.^2./(nDatasets*bin_counts), 3)); % this is the line I'm not sure about...
+                nanmean(STD.^2./(bsxfun(@times, nDatasets, bin_counts)), 3));
             
             stats = fieldnames(st);
             for s = 1:length(stats)
