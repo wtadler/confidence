@@ -21,7 +21,7 @@ stagger_titles = false;
 assignopts(who, varargin);
 
 % blue to red colormap
-map = load('/Users/will/Google Drive/MATLAB/utilities/MyColorMaps.mat')
+map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat')
 map = map.confchoicemap;
 button_colors = map(round(linspace(1,256,8)),:);
 datadir = check_datadir(root_datadir);
