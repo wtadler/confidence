@@ -1,6 +1,6 @@
 function ah = show_data(varargin)
 
-root_datadir = '/Users/will/Google Drive/Will - Confidence/Data/attention1';
+root_datadir = '~/Google Drive/Will - Confidence/Data/attention1';
 dep_vars = {'tf',       'g',        'Chat',     'resp',     'rt'};
 nBins = 7; % make this odd
 % plot_error_bars = true; % could eventually add functionality to just show means. or to not show means
