@@ -11,6 +11,8 @@ for s = 1:length(str_in)
             out = 'prop. response "cat. 1"';
         case 'rt'
             out = 'reaction time (s)';
+        case 'proportion'
+            out = 'prop.';
     end
     
     str_out{s} = out;

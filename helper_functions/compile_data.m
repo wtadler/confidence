@@ -2,24 +2,25 @@ function st = compile_data(varargin)
 % compiles all real data. formerly, generated stats. now thinking that that
 % should be left out.
 % define defaults
-sig_levels = 6; % defines by how much we group the sigma values. 6 is no grouping. can do 1,2,3,6
+% sig_levels = 6; % defines by how much we group the sigma values. 6 is no grouping. can do 1,2,3,6
 % flipsig = true;
-n_bins=19; % must be odd to plot a point at 0.
-binstyle = 'quantile';
-o_boundary=25;
+% n_bins=19; % must be odd to plot a point at 0.
+% binstyle = 'quantile';
+% o_boundary=25;
 shuffle = false;
 
 conflevels = 4;
-decb_analysis = false; % set to true if you want to look at choice and confidence at the decision boundary.
-    window = 1; % binning window (in degrees) around decision boundary
-    decb   = 5.16; % decision boundary (in degrees)
+% decb_analysis = false; % set to true if you want to look at choice and confidence at the decision boundary.
+%     window = 1; % binning window (in degrees) around decision boundary
+%     decb   = 5.16; % decision boundary (in degrees)
 datadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA';
 
 crossvalidate = false;
+    k = 2; % for k-fold cross-validation
+
 old_attention_manipulation = false;
 attention_manipulation = false;
 
-k = 2; % for k-fold cross-validation
 
 training_data = false; % compiles training data instead of test data
 
@@ -28,7 +29,7 @@ assignopts(who,varargin);
 if ~any(regexp(datadir, '/$'))
     datadir = [datadir '/'];
 end
-datadir
+
 % load all complete sessions
 session_files = what(datadir);
 session_files = session_files.mat;
@@ -44,10 +45,10 @@ st = struct; % probably want to pre-allocate this in some way.
 
 %[st.bins, st.axis] = bin_generator(n_bins, 'binstyle', binstyle);
 % optionally, to examine what's happening at the decision boundary, make different bins:
-if decb_analysis
-    [st.bins, st.axis, n_bins] = bin_generator(n_bins, 'binstyle', 'defined','o_axis',...
-        [-decb-window -decb -decb+window decb-window decb decb+window]); % redefine bins in this case
-end
+% if decb_analysis
+%     [st.bins, st.axis, n_bins] = bin_generator(n_bins, 'binstyle', 'defined','o_axis',...
+%         [-decb-window -decb -decb+window decb-window decb decb+window]); % redefine bins in this case
+% end
 
 for subject = 1 : length(names)
     % load all files with name
@@ -204,5 +205,3 @@ for subject = 1 : length(names)
     
     
 end
-% SUMMARY STATS
-%st.sumstats = sumstats_fcn(st.data, 'decb_analysis', decb_analysis); % big function that generates summary stats across subjects.

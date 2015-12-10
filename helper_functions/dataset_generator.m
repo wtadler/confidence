@@ -43,15 +43,11 @@ for task = 1:length(tasks)
     for s = 1:nSamples
         fake_datasets.(tasks{task}).dataset(s).p = param_samples(sample_ids(s), param_idx(task,:))';
         if ~isempty(raw) % if not providing real trials
-            try
             fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'model_fitting_data', raw.(tasks{task}));
-            catch
-                'bla'
-            end
         else
             fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task));
         end
-        fake_datasets.(tasks{task}).dataset(s).stats = indiv_analysis_fcn(fake_datasets.(tasks{task}).dataset(s).raw, bins);
+        fake_datasets.(tasks{task}).dataset(s).stats = indiv_analysis_fcn(fake_datasets.(tasks{task}).dataset(s).raw, bins, 'output_fields', dep_vars);
     end
     
     fake_datasets.(tasks{task}).sumstats = sumstats_fcn(fake_datasets.(tasks{task}).dataset, 'fields', dep_vars);
