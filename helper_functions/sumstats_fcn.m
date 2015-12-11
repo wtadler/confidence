@@ -9,7 +9,7 @@ function sumstats = sumstats_fcn(data, varargin)
 % g_exists  = isfield(data(1).raw, 'g');
 % rt_exists = isfield(data(1).raw, 'rt');
 trial_types = setdiff(fieldnames(data(1).stats), 'sig_levels');
-slices = setdiff(fieldnames(data(1).stats.all), 'index');
+slices = setdiff(fieldnames(data(1).stats.all), {'index', 'subindex_by_c'});
 
 % fields = {'bin_counts','percent_correct','Chat1_prop','g_mean','resp_mean'}
 fields = {'tf','resp','g','Chat', 'rt'};%'rt'
@@ -42,7 +42,7 @@ for type = 1 : length(trial_types)
             st.sem = st.std ./ sqrt(nDatasets);
             st.edgar_sem = sqrt(st.std.^2 ./ nDatasets + ...
                 nanmean(STD.^2./(bsxfun(@times, nDatasets, bin_counts)), 3));
-            
+                        
             stats = fieldnames(st);
             for s = 1:length(stats)
                 sumstats.(trial_types{type}).(slices{slice}).(stats{s}).(fields{f}) = st.(stats{s});

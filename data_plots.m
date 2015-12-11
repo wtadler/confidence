@@ -91,6 +91,7 @@ for task = 1:length(data_tasks)
     streal.(data_tasks{task}).sumstats = sumstats_fcn(streal.(data_tasks{task}).data);
 end
 
+%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%% GENERATE/ANALYZE FAKE DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -180,7 +181,7 @@ set(gcf,'position',[870 34 1656 783]);
 %% plot conf as function of choice. 5/12/15 for VSS
 cd('/Users/will/Google Drive/Will - Confidence/Presentations/cosyne')
 load 9bin_hyperplots
-%%
+
 active_contrasts = [2 4 6];
 contrast_colors = [10 94 0;...
     181 172 69;...
@@ -263,7 +264,7 @@ load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat')
 active_contrasts = 1:6;
 
 tasks = {'A','B'};
-trial_type = 'incorrect';
+trial_type = 'all';
 y = 'tf';
 yl = [.45 1];
 yticks = .4:.1:1;

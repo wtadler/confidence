@@ -1,11 +1,13 @@
-function datadir = check_datadir(datadir)
+function datadir = check_datadir(datadir_path)
 
-if regexp(datadir, '/v3')
-    A = [datadir '/taskA'];
-    B = [datadir '/taskB'];
+datadir = struct;
+
+if regexp(datadir_path, '/v3')
+    A = [datadir_path '/taskA'];
+    B = [datadir_path '/taskB'];
     datadir.A = A;
 else
-    B = datadir;
+    B = datadir_path;
 end
 
 
