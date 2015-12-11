@@ -69,7 +69,7 @@ nTasks = length(tasks);
 ylims = [];
 for dv = 1:length(dep_vars)
     if strcmp(dep_vars{dv}, 'tf')
-        ylims = [ylims;.5 1];
+        ylims = [ylims;.3 1];
     elseif strcmp(dep_vars{dv}, 'g')
         ylims = [ylims;1 4];
     elseif strcmp(dep_vars{dv}, 'Chat')
@@ -77,7 +77,7 @@ for dv = 1:length(dep_vars)
     elseif strcmp(dep_vars{dv}, 'resp')
         ylims = [ylims;1 8];
     elseif strcmp(dep_vars{dv}, 'rt')
-        ylims = [ylims;.3 4];
+        ylims = [ylims;0 4];
     end
 end
 
