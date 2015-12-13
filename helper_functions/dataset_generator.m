@@ -9,6 +9,9 @@ nBins = 13;
 raw = [];
 tasks_in = [];
 dep_vars = {'resp','g','Chat'};
+symmetrify = false;
+bin_types = {'c_s'};
+attention_task = false;
 assignopts(who,varargin);
 
 [tasks, modelstruct, param_idx] = submodels_for_analysis(model);
@@ -43,11 +46,14 @@ for task = 1:length(tasks)
     for s = 1:nSamples
         fake_datasets.(tasks{task}).dataset(s).p = param_samples(sample_ids(s), param_idx(task,:))';
         if ~isempty(raw) % if not providing real trials
-            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'model_fitting_data', raw.(tasks{task}));
+            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'model_fitting_data', raw.(tasks{task}), 'attention_task', attention_task);
         else
-            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task));
+            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'attention_task', attention_task);
         end
-        fake_datasets.(tasks{task}).dataset(s).stats = indiv_analysis_fcn(fake_datasets.(tasks{task}).dataset(s).raw, bins, 'output_fields', dep_vars);
+        if symmetrify && strcmp(tasks{task}, 'B')
+            fake_datasets.(tasks{task}).dataset(s).raw.s = abs(fake_datasets.(tasks{task}).dataset(s).raw.s);
+        end
+        fake_datasets.(tasks{task}).dataset(s).stats = indiv_analysis_fcn(fake_datasets.(tasks{task}).dataset(s).raw, bins, 'output_fields', dep_vars, 'bin_types', bin_types);
     end
     
     fake_datasets.(tasks{task}).sumstats = sumstats_fcn(fake_datasets.(tasks{task}).dataset, 'fields', dep_vars);

@@ -1,7 +1,14 @@
 function ah = show_data(varargin)
+% this function does a lot of things. some options:
+% 1. show individual data
+% 2. (and individual fits)
+% 3. show grouped data
+% 4. (and group fits)
+
+% it's gotten unwieldy. maybe break it up to allow more flexible plotting.
 
 root_datadir = '~/Google Drive/Will - Confidence/Data/v3_all';
-dep_vars = {'tf'};%,       'g',        'Chat',     'resp',     'rt'};
+depvars = {'tf'};%,       'g',        'Chat',     'resp',     'rt'};
 nBins = 7;
 conf_levels = 4;
 % plot_error_bars = true; % could eventually add functionality to just show means. or to not show means
@@ -19,13 +26,13 @@ trial_type = 'all'; % 'all', 'correct', 'incorrect', etc...
 linewidth = 2;
 meanlinewidth = 4;
 ticklength = .018;
-errorbarwidth = .7; % matlab errorbar is silly. errorbar width can't be set, is 2% of total range. so we make a dummy point. only applies to marg_over_s case
 gutter = [.0175 .025];
 margins = [.06 .01 .06 .04]; % L R B T
 models = [];
+nPlotSamples = 10;
+nFakeGroupDatasets = 100;
 plot_reliabilities = [];
 show_legend = false;
-stagger_titles = false;
 s_labels = -8:2:8;
 assignopts(who, varargin);
 
@@ -38,57 +45,86 @@ end
 if rem(nBins, 2) == 0; nBins = nBins +1; end % make sure nBins is odd.
 
 % blue to red colormap
-map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat')
+map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
 map = map.confchoicemap;
 button_colors = map(round(linspace(1,256,8)),:);
-datadir = check_datadir(root_datadir);
 
-if ~isempty(models)
-    show_fits = true;
-    nModels = length(models);
-else
-    show_fits = false;
-    nModels = 0;
-end
-
-nDepvars = length(dep_vars)
+nDepvars = length(depvars);
 nSlices = length(slices);
 nTasks = length(tasks);
 
-ylims = [];
-for dv = 1:length(dep_vars)
-    if strcmp(dep_vars{dv}, 'tf')
-        ylims = [ylims;.3 1];
-    elseif strcmp(dep_vars{dv}, 'g')
-        ylims = [ylims;1 4];
-    elseif strcmp(dep_vars{dv}, 'Chat')
-        ylims = [ylims;0 1];
-    elseif strcmp(dep_vars{dv}, 'resp')
-        ylims = [ylims;1 8];
-    elseif strcmp(dep_vars{dv}, 'rt')
-        ylims = [ylims;0 4];
+ylims = zeros(nDepvars, 2);
+for dv = 1:nDepvars
+    if strcmp(depvars{dv}, 'tf')
+        ylims(dv,:) = [.3 1];
+    elseif strcmp(depvars{dv}, 'g')
+        ylims(dv,:) = [1 4];
+    elseif strcmp(depvars{dv}, 'Chat')
+        ylims(dv,:) = [0 1];
+    elseif strcmp(depvars{dv}, 'resp')
+        ylims(dv,:) = [1 8];
+    elseif strcmp(depvars{dv}, 'rt')
+        ylims(dv,:) = [0 4];
     end
 end
 
 for task = 1:nTasks
-    real_st.(tasks{task}) = compile_data('datadir',datadir.(tasks{task}));
     [edges.(tasks{task}), centers.(tasks{task})] = bin_generator(nBins, 'task', tasks{task});
+end
+
+real_data = compile_and_analyze_data(root_datadir, 'nBins', nBins,...
+    'symmetrify', symmetrify, 'conf_levels', conf_levels, 'trial_types', {trial_type},...
+    'output_fields', depvars, 'bin_types', union(slices, means), 'group_plot', group_plot);
+
+nSubjects = length(real_data.(tasks{1}).data);
+
+
+if isfield(real_data.(tasks{1}).data(1).raw, 'cue_validity') && ~isempty(real_data.(tasks{1}).data(1).raw.cue_validity)
+    % attention
     
-    nSubjects = length(real_st.(tasks{task}).data);
-    for dataset = 1:nSubjects
-        if symmetrify
-            real_st.(tasks{task}).data(dataset).raw.s = abs(real_st.(tasks{task}).data(dataset).raw.s);
-        end
-        real_st.(tasks{task}).data(dataset).stats = indiv_analysis_fcn(real_st.(tasks{task}).data(dataset).raw,...
-            edges.(tasks{task}),'conf_levels', conf_levels,...
-            'trial_types', {trial_type}, 'output_fields', dep_vars,...
-            'bin_types', union(slices,means));
-    end
+    nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.cue_validity_id));
+    attention_task = true;
+    colors = flipud([.7 0 0;.6 .6 .6;0 .7 0]);
     
-    if group_plot
-        real_st.(tasks{task}).sumstats = sumstats_fcn(real_st.(tasks{task}).data, ...
-            'fields', dep_vars);
-    end
+else
+    nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.contrast_id));
+    attention_task = false;
+    
+    if isempty(plot_reliabilities); plot_reliabilities = 1:nReliabilities; end
+    
+    if max(plot_reliabilities) > nReliabilities; error('you requested to plot more reliabilities than there are'); end
+        
+    hhh = hot(64);
+    colors = hhh(round(linspace(1,40,nReliabilities)),:); % black to orange indicate high to low contrast
+end
+
+if ~isempty(models)
+    show_fits = true;
+    nModels = length(models);
+    
+    models = generate_and_analyze_fitted_data(models, tasks, 'real_data', real_data, 'nBins', nBins, 'nPlotSamples', nPlotSamples,...
+        'depvars', depvars, 'symmetrify', symmetrify, 'bin_types', union(slices, means),...
+        'attention_task', attention_task, 'group_plot', group_plot);
+    
+    
+%     for m = 1:nModels
+%         for dataset = 1:nSubjects
+%             for task = 1:nTasks
+%                 raw.(tasks{task}) = real_data.(tasks{task}).data(dataset).raw;
+%             end
+%             models(m).extracted(dataset).fake_datasets = dataset_generator(models(m),...
+%                 models(m).extracted(dataset).p, nPlotSamples, 'nBins', nBins,...
+%                 'raw', raw, 'tasks', tasks, 'dep_vars', depvars, 'symmetrify', symmetrify,...
+%                 'bin_types', union(slices,means), 'attention_task', attention_task);
+%             fprintf('\nGenerating data from model %i/%i for subject %i/%i...', m, nModels, dataset, nSubjects);
+%         end
+% 
+%         models(m).fake_sumstats = fake_group_datasets_and_stats(models(m), nFakeGroupDatasets, 'fields', depvars);
+%         fprintf('\nAnalyzing generated data from model %i/%i...', m, nModels);
+%     end
+else
+    show_fits = false;
+    nModels = 0;
 end
 
 
@@ -111,52 +147,7 @@ for i = 1:3
     end
 end
 
-ylims = nan(nDepvars,2);
-for dv = 1:nDepvars
-    switch dep_vars{dv}
-        case 'tf'
-            ylims(dv,:) = [.3 1];
-        case 'g'
-            ylims(dv,:) = [1 4];
-        case 'Chat'
-            ylims(dv,:) = [0 1];
-        case 'resp'
-            ylims(dv,:) = [1 8];
-        case 'rt'
-            ylims(dv,:) = [.3 4];
-        case 'proportion'
-            ylims(dv,:) = [0 .5];
-    end
-end
-
-if isfield(real_st.(tasks{1}).data(1).raw, 'cue_validity') && ~isempty(real_st.(tasks{1}).data(1).raw.cue_validity)
-    % attention
-    
-    nReliabilities = length(unique(real_st.(tasks{1}).data(1).raw.cue_validity_id));
-    attention_task = true;
-    colors = flipud([.7 0 0;.6 .6 .6;0 .7 0]);
-    
-else
-    nReliabilities = length(unique(real_st.(tasks{1}).data(1).raw.contrast_id));
-    attention_task = false;
-    
-    if isempty(plot_reliabilities); plot_reliabilities = 1:nReliabilities; end
-    
-    if max(plot_reliabilities) > nReliabilities; error('you requested to plot more reliabilities than there are'); end
-    
-    %     contrasts = unique(real_st.(tasks{1}).data(1).raw.contrast);
-    %     strings = strsplit(sprintf('%.1f%% ', contrasts*100), ' ');
-    %     labels = fliplr(strings(1:end-1));
-    %     xl = 'contrast/eccentricity';
-    
-    hhh = hot(64);
-    colors = hhh(round(linspace(1,40,nReliabilities)),:); % black to orange indicate high to low contrast
-    
-    %     if length(plot_reliabilities) == 3;
-    %         colors = [30 95 47;181 172 68; 208 208 208];
-    %         colors = kron(colors,ones(2,1))/255;
-    %     end
-end
+ah = zeros(n.row, n.col, n.fig);
 
 xticklabels = cell(1, nSlices);
 xticks = cell(nTasks, nSlices);
@@ -191,19 +182,20 @@ for slice = 1:nSlices
                 xticks{task, slice} = interp1(centers.(tasks{task}), 1:nBins, s_labels);
             end
             
-            if symmetrify
-                xlabels{slice} = '|s|';
-                xticklabels{slice} = abs(s_labels);
-            else
+%             if symmetrify
+%                 xlabels{slice} = '|s|';
+%                 xticklabels{slice} = abs(s_labels);
+%             else
                 xlabels{slice} = 's';
                 xticklabels{slice} = s_labels;
-            end
+%             end
     end
 end
 
-ylabels = rename_var_labels(dep_vars); % translate from variable names to something other people can understand.
+ylabels = rename_var_labels(depvars); % translate from variable names to something other people can understand.
 
 [depvar, task, model, slice, subject] = deal(1); % update these in the for loop switch below.
+
 %%
 for fig = 1:n.fig
     figure(fig)
@@ -230,49 +222,68 @@ for fig = 1:n.fig
             
             ah(row, col, fig) = tight_subplot(n.row, n.col, row, col, gutter, margins);
             
-            if symmetrify && any(strcmp(slices{slice}, {'s', 'c_s'}))
+            if symmetrify && any(strcmp(slices{slice}, {'s', 'c_s'})) && strcmp(tasks{task}, 'B')
                 symmetrify_s = true;
             else
                 symmetrify_s = false;
             end
             
             shortcutplot = @(data, fake_data, colors, linewidth, plot_reliabilities)...
-                single_dataset_plot(data, dep_vars{depvar},...
+                single_dataset_plot(data, depvars{depvar},...
                     'fake_data', fake_data, 'group_plot', group_plot, ...
                     'symmetrify', symmetrify_s, 'colors', colors, ...
-                    'linewidth', linewidth, 'errorbarwidth', errorbarwidth,...
+                    'linewidth', linewidth, ...
                     'plot_reliabilities', plot_reliabilities);
                 
+                % clean this section up!!
+                fake_data = false;
+                % plot real sliced data
                 if ~isempty(slices{slice})
-                    fake_data = false;
                     if ~group_plot
-                        data = real_st.(tasks{task}).data(subject).stats.(trial_type).(slices{slice});
+                        data = real_data.(tasks{task}).data(subject).stats.(trial_type).(slices{slice});
                     else
-                        data = real_st.(tasks{task}).sumstats.(trial_type).(slices{slice});
+                        data = real_data.(tasks{task}).sumstats.(trial_type).(slices{slice});
                     end
                     shortcutplot(data, fake_data, colors, linewidth, plot_reliabilities);
                 end
                 
-                if show_fits
-                    fake_data = true;
+                % plot real "mean" data
+                if ~isempty(means{slice})
                     if ~group_plot
-                        data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(slices{slice});
+                        data = real_data.(tasks{task}).data(subject).stats.(trial_type).(means{slice});
                     else
-                        data = models(model).fake_sumstats.(trial_type).(slices{slice});
-                    end
-                    shortcutplot(data, fake_data, colors, linewidth, plot_reliabilities);
-                elseif ~isempty(means{slice})
-                    fake_data = false;
-                    if ~group_plot
-                        data = real_st.(tasks{task}).data(subject).stats.(trial_type).(means{slice});
-                    else
-                        data = real_st.(tasks{task}).sumstats.(trial_type).(means{slice});
+                        data = real_data.(tasks{task}).sumstats.(trial_type).(means{slice});
                     end
                     shortcutplot(data, fake_data, mean_color, meanlinewidth, []);
                 end
+                
+                % plot fitted sliced data
+                if show_fits
+                    fake_data = true;
+                    if ~isempty(slices{slice})
+                        if ~group_plot
+                            data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(slices{slice});
+                        else
+                            data = models(model).fake_sumstats.(tasks{task}).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_type. i think that's okay 12/11/15
+                        end
+                        try
+                        shortcutplot(data, fake_data, colors, linewidth, plot_reliabilities);
+                        catch
+                            'bla'
+                        end
+                    end
+                    
+                    if ~isempty(means{slice})
+                        if ~group_plot
+                            data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(means{slice});
+                        else
+                            data = models(model).fake_sumstats.(tasks{task}).(means{slice});
+                        end
+                        shortcutplot(data, fake_data, mean_color, meanlinewidth, []);
+                    end
 
-                        
-                        
+                end
+                
             % x axis labels for bottom row
             if row == n.row
                 xlabel(xlabels{slice})
@@ -281,30 +292,16 @@ for fig = 1:n.fig
                 xlabel('')
                 set(gca, 'xticklabel', '')
             end
-            
-            % y axis labels for left column
-            if col == 1
-                yl=ylabel([ylabels{depvar},', Task ' tasks{task}]); % make this more flexible. use: rename_models(model.name)]);
-                if ~strcmp(dep_vars{depvar}, 'resp')
-                    set(gca, 'yticklabelmode', 'auto')
-                else
-                    set(gca, 'clipping', 'off')
-                    set(gcf,'units','normalized','outerposition',[0 0 1 1])
-                    %                     ar = pbaspect;
-                    %                     ar = ar(2)/ar(1);
-                    range_ratio = diff(get(gca,'xlim')) / diff(get(gca, 'ylim'));
-                    square = .5;
-                    width = square*range_ratio;
-                    %                     curv = 0;
-                    for r = 1:8
-                        rectangle('position',[-1-width, r-square/2, width, square], 'facecolor',button_colors(r,:), 'edgecolor','none');
-                    end
-                end % figure out how to do this for x
+                       
+                
+            set(gca, 'ticklength', [ticklength ticklength], 'xtick', xticks{task, slice})
+            if any(strcmp(slices{slice}, {'s', 'c_s'}))
+                xlim([.5 nBins+.5])
             else
-                set(gca, 'yticklabel', '')
+                xlim([xticks{task, slice}(1)-.5 xticks{task, slice}(end)+.5])
             end
             
-            switch dep_vars{depvar}
+            switch depvars{depvar}
                 case {'tf','Chat'}
                     plot_halfway_line(.5)
                 case 'resp'
@@ -312,16 +309,33 @@ for fig = 1:n.fig
                     plot_halfway_line(4.5)
             end
             
-            set(gca, 'ticklength', [ticklength ticklength], 'box', 'off', 'tickdir', 'out', 'xtick', xticks{task, slice}, 'ylim', ylims(depvar,:))
-            
+            % y axis labels for left column
+            if col == 1
+                yl=ylabel([ylabels{depvar},', Task ' tasks{task}]); % make this more flexible. use: rename_models(model.name)]);
+                if ~strcmp(depvars{depvar}, 'resp')
+                    set(gca, 'yticklabelmode', 'auto')
+                else
+                    set(gca, 'clipping', 'off', 'yticklabel', '')
+                    xl = get(gca, 'xlim');
+                    xrange = diff(xl);
+                    for r = 1:8
+                        plot(xl(1)-.16*xrange, r, 'square', 'markerfacecolor', button_colors(r,:), 'markeredgecolor', button_colors(r,:), 'markersize', 12)
+                    end
+                    ylpos = get(yl, 'position');
+                    set(yl, 'position', ylpos-[.8 0 0]);
+                end % figure out how to do these squares for x
+            else
+                set(gca, 'yticklabel', '')
+            end
+
             
             % title (and maybe legend) for top row
             if row == 1
                 switch axis.col
                     case 'subject'
-                        t=title(real_st.(tasks{task}).data(subject).name);
+                        title(real_data.(tasks{task}).data(subject).name);
                     case 'model'
-                        t=title(rename_models(models(model).name));
+                        title(rename_models(models(model).name));
                 end
                 
                 if col == 1
@@ -329,7 +343,7 @@ for fig = 1:n.fig
                         legend(labels)
                         
                         if ~group_fits
-                            t=title(upper(real_st.(tasks{task}).data(col).name))
+                            t=title(upper(real_data.(tasks{task}).data(col).name))
                         elseif group_fits
                             t=title(rename_models(model.name));
                             set(gca, 'xticklabel', ori_labels.(tasks{task}))
@@ -340,13 +354,6 @@ for fig = 1:n.fig
                                 warning('add legend functionality')
                             end
                         end
-                        
-                        %                 if stagger_titles && mod(col,2)==0 % every other column. this needs to be after set(gca, 'ydir', 'reverse')
-                        %                     tpos = get(t, 'position');
-                        %                     yrange = ylims(row,2)-ylims(row,1);
-                        %                     set(t, 'position', tpos+[0 .04*yrange 0])
-                        %                 end
-                        
                     end
                     set(gca,'color','none')
                 end

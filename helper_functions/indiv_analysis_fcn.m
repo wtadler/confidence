@@ -24,7 +24,7 @@ end
 fields = {};
 rawfields = fieldnames(raw);
 for f = 1:length(rawfields)
-    if ~isempty(raw.(rawfields{f})) && ~strcmp(rawfields{f}, 'contrast_values')
+    if ~isempty(raw.(rawfields{f})) && ~any(strcmp(rawfields{f}, {'contrast_values', 'cue_validity_values'}))
         fields = [fields rawfields{f}];
     end
 end

@@ -19,15 +19,20 @@ end
 
 % FAMILIES
 if regexp(name_in, '^opt')
-    if regexp(name_in, 'symmetric')
-        if regexp(name_in, 'joint_d')
-            name_out = ['Bayes_{Sym,Joint}'];
-        else
-            name_out = ['Bayes_{Sym}'];
-        end
+    if regexp(name_in, 'joint_d')
+        name_out = ['Bayes_{Strong}'];    
+    elseif regexp(name_in, 'choice_only')
+        name_out = ['Bayes'];
+    elseif regexp(name_in, 'symmetric')
+        name_out = ['Bayes_{Weak}'];
     else
-        name_out = ['Bayes_{Free}'];
+        name_out = ['Bayes_{Ultraweak}'];
     end
+    
+    if regexp(name_in, 'd_noise')
+        name_out = [name_out, ' + D noise'];
+    end
+    
 elseif regexp(name_in, '^lin')
     name_out = ['Lin'];
 elseif regexp(name_in, '^quad')

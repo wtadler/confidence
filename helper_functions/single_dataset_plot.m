@@ -7,9 +7,10 @@ hhh = hot;
 colors = hhh(round(linspace(1, 40, nReliabilities)),:);
 linewidth = 2;
 symmetrify = false;
-fill_alpha = .7;
+fill_alpha = .5;
 fake_data = false;
 group_plot = false;
+errorbarwidth = 1.7; % arbitrary unit
 assignopts(who, varargin);
 
 if isempty(plot_reliabilities)
@@ -23,55 +24,44 @@ for c = plot_reliabilities
     
     if ~group_plot
         if fake_data
-            errorbarheight = binned_stats.sem.(stat_name)(c, :); % is this right?
+            errorbarheight = binned_stats.std.(stat_name)(c, :); % is this right?
         else
             errorbarheight = binned_stats.std.(stat_name)(c, :);
         end 
     else
         if fake_data
-            errorbarheight = binned_stats.sem.(stat_name)(c, :); % is this right?
+            errorbarheight = binned_stats.std.(stat_name)(c, :);
         else
-            errorbarheight = binned_stats.edgar_sem.(stat_name)(c, :);
+            errorbarheight = binned_stats.edgar_sem.(stat_name)(c, :); % this is hardly diff than sem
         end
     end
     
     if symmetrify
-            m(1:ceil(len/2)-1) = fliplr(m(ceil(len/2)+1:end));
-            errorbarheight(1:ceil(len/2)-1) = fliplr(errorbarheight(ceil(len/2)+1:end));
+        m(1:ceil(len/2)-1) = fliplr(m(ceil(len/2)+1:end));
+        errorbarheight(1:ceil(len/2)-1) = fliplr(errorbarheight(ceil(len/2)+1:end));
     end
         
     if ~fake_data
-        errorbar(1:len, m, errorbarheight, 'linewidth', linewidth, 'color', color)
+        % errorbar is stupid. to customize width, have to plot a dummy point, with no connecting line. and then plot a line.
+        dummy_point = len*errorbarwidth;
+        errorbar([dummy_point 1:len], [-100 m], [0 errorbarheight], '.', 'linewidth', linewidth, 'color', color)
+        hold on
+        plot(1:len, m, '-', 'linewidth', linewidth, 'color', color);
     else
         x = [1:len fliplr(1:len)];
         y = [m + errorbarheight, fliplr(m - errorbarheight)];
         f = fill(x, y, color);
         set(f, 'edgecolor', 'none', 'facealpha', fill_alpha);
     end
-    
-%         errorbarwidth = .5;
-%         
-%         dummy_point = xticklabels(c) + errorbarwidth * 50;
-%         
-%         if ~fill_instead_of_errorbar
-%             errorbar([dummy_point xticklabels(c)], [0 m], [0 errorbarheight], '.', 'linewidth', linewidth, 'color', color)
-%         else
-%             boxwidth = errorbarwidth * .65;
-%             x = [xticklabels(c) - boxwidth, xticklabels(c) + boxwidth];
-%             x = [x fliplr(x)];
-%             y = [m - errorbarheight, m - errorbarheight, m + errorbarheight, m + errorbarheight];
-%             f = fill(x, y, color);
-%             set(f, 'edgecolor', 'none', 'facealpha', fill_alpha);
-%         end
-    
+        
     hold on
-    
-    % axes stuff for every plot
-    
-%     set(gca,'box', 'off', 'ylim', ylim, 'ticklength', [ticklength ticklength], 'tickdir','out', 'xtick', xticklabels, 'xticklabel', '', 'yticklabel', '')
-%     if ~marginalized_over_s
-%         xlim([0 len+1])
-%     else
-%         xlim([xticklabels(1)-.5 xticklabels(end)+.5])
-%     end
 end
+
+yl.tf = [.3 1];
+yl.g  = [1 4];
+yl.Chat = [0 1];
+yl.resp = [1 8];
+yl.rt = [.3 4];
+yl.proportion = [0 .5];
+
+set(gca, 'box', 'off', 'tickdir', 'out', 'ylim', yl.(stat_name));

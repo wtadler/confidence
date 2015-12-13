@@ -12,8 +12,12 @@ for m = 1:length(model)
     tasks = submodels_for_analysis(model);
     
     for task = 1:length(tasks)
+        bin_types = setdiff(fieldnames(model(m).extracted(1).fake_datasets.(tasks{task}).sumstats.all), {'index', 'subindex_by_c'});
+
         for f = 1:length(fields)
-            hyperplot_means.(fields{f}) = [];
+            for b = 1:length(bin_types)
+                hyperplot_means.(bin_types{b}).(fields{f}) = [];
+            end
         end
 
         for h = 1:nFakeGroupDatasets
@@ -28,15 +32,19 @@ for m = 1:length(model)
             
             % save means for that summary
             for f = 1:length(fields)
-                hyperplot_means.(fields{f}) = cat(3, hyperplot_means.(fields{f}), sumstats.all.mean.(fields{f}));
+                for b = 1:length(bin_types)
+                    hyperplot_means.(bin_types{b}).(fields{f}) = cat(3, hyperplot_means.(bin_types{b}).(fields{f}), sumstats.all.(bin_types{b}).mean.(fields{f}));
+                end
             end
 
         end
         
         % mean and std the means over all hyperplots
         for f = 1:length(fields)
-            fake_sumstats.(tasks{task}).mean.(fields{f}) = mean(hyperplot_means.(fields{f}),    3);
-            fake_sumstats.(tasks{task}).std.(fields{f})  = std (hyperplot_means.(fields{f}), 0, 3);
+            for b = 1:length(bin_types)
+                fake_sumstats.(tasks{task}).(bin_types{b}).mean.(fields{f}) = mean(hyperplot_means.(bin_types{b}).(fields{f}),    3);
+                fake_sumstats.(tasks{task}).(bin_types{b}).std.(fields{f})  = std (hyperplot_means.(bin_types{b}).(fields{f}), 0, 3);
+            end
         end
     end
 end
