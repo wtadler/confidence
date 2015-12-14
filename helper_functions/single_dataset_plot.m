@@ -1,7 +1,8 @@
-function single_dataset_plot(binned_stats, stat_name, varargin)
+function single_dataset_plot(binned_stats, y_name, x_name, varargin)
+% this function needs renaming.
 
-len = size(binned_stats.mean.(stat_name), 2);
-nReliabilities = size(binned_stats.mean.(stat_name), 1);
+len = size(binned_stats.mean.(y_name), 2);
+nReliabilities = size(binned_stats.mean.(y_name), 1);
 plot_reliabilities = [];
 hhh = hot;
 colors = hhh(round(linspace(1, 40, nReliabilities)),:);
@@ -11,6 +12,12 @@ fill_alpha = .5;
 fake_data = false;
 group_plot = false;
 errorbarwidth = 1.7; % arbitrary unit
+label_x = true;
+label_y = true;
+attention_task = false;
+task = 'A';
+s_labels = -8:2:8;
+resp_square_offset = .05;
 assignopts(who, varargin);
 
 if isempty(plot_reliabilities)
@@ -20,19 +27,19 @@ end
 for c = plot_reliabilities
     color = colors(c,:);
     
-    m = binned_stats.mean.(stat_name)(c, :);
+    m = binned_stats.mean.(y_name)(c, :);
     
     if ~group_plot
         if fake_data
-            errorbarheight = binned_stats.std.(stat_name)(c, :); % is this right?
+            errorbarheight = binned_stats.std.(y_name)(c, :); % is this right?
         else
-            errorbarheight = binned_stats.std.(stat_name)(c, :);
+            errorbarheight = binned_stats.std.(y_name)(c, :);
         end 
     else
         if fake_data
-            errorbarheight = binned_stats.std.(stat_name)(c, :);
+            errorbarheight = binned_stats.std.(y_name)(c, :);
         else
-            errorbarheight = binned_stats.edgar_sem.(stat_name)(c, :); % this is hardly diff than sem
+            errorbarheight = binned_stats.edgar_sem.(y_name)(c, :); % this is hardly diff than sem
         end
     end
     
@@ -58,10 +65,79 @@ for c = plot_reliabilities
 end
 
 yl.tf = [.3 1];
+yt.tf = [.3:.1:1];
 yl.g  = [1 4];
+yt.g = 1:4;
 yl.Chat = [0 1];
+yt.Chat = 0:.25:1;
 yl.resp = [1 8];
+yt.resp = 1:8;
 yl.rt = [.3 4];
+yt.rt = 0:4;
 yl.proportion = [0 .5];
+yt.proportion = 0:.1:.5;
 
-set(gca, 'box', 'off', 'tickdir', 'out', 'ylim', yl.(stat_name));
+set(gca, 'box', 'off',...
+    'tickdir', 'out', 'ylim', yl.(y_name),...
+    'ytick', yt.(y_name),...
+    'xlim', [.5 len+.5], 'ticklength', [.018 .018],...
+    'yticklabel', '', 'xticklabel', '', 'color', 'none');
+
+if label_y
+    if ~strcmp(y_name, 'resp')
+        set(gca, 'yticklabelmode', 'auto')
+    else
+        set(gca, 'clipping', 'off')
+        % blue to red colormap
+        map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
+        map = map.confchoicemap;
+        button_colors = map(round(linspace(1,256,8)),:);
+
+        for r = 1:8
+            plot(.5-resp_square_offset*len, r, 'square', 'markerfacecolor', button_colors(r,:), 'markersize', 12, 'markeredgecolor','none')
+        end
+    end
+end
+
+if any(strcmp(x_name, {'s', 'c_s'}))
+    [~, centers] = bin_generator(len, 'task', task);
+
+    set(gca, 'xtick', interp1(centers, 1:len, s_labels));
+else
+    set(gca, 'xtick', 1:len)
+end
+
+if label_x
+    set(gca, 'xticklabelmode', 'auto')
+    switch x_name
+        case {'g', 'c_g'}
+            xlabel('confidence');
+        case {'resp', 'c_resp'}
+            xlabel('button press');
+        case {'Chat', 'c_Chat'}
+            xlabel('cat. choice');
+        case 'c'
+            if attention_task
+                xlabel('cue validity')
+            else
+                xlabel('contrast/eccentricity')
+            end
+        case {'s', 'c_s'}
+            if symmetrify
+                xlabel('|s|')
+                set(gca, 'xticklabel', abs(s_labels))
+            else
+                xlabel('s')
+                set(gca, 'xticklabel', s_labels)
+            end
+            
+    end
+end
+    
+switch y_name
+    case {'tf','Chat'}
+        plot_halfway_line(.5)
+    case 'resp'
+        set(gca, 'ydir', 'reverse')
+        plot_halfway_line(4.5)
+end
