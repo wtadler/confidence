@@ -4,9 +4,9 @@ nBins = 7;
 symmetrify = false;
 conf_levels = 4;
 trial_types = {'all'};
-output_fields = {'tf', 'resp'};
-bin_types = {'c_s'};
-group_plot = false;
+output_fields = {'tf','resp','g','rt','Chat','proportion'};
+bin_types = {'c', 's', 'Chat', 'g', 'resp', 'c_s', 'c_Chat', 'c_g', 'c_resp'};
+group_stats = false;
 assignopts(who, varargin)
 
 datadir = check_datadir(root_datadir);
@@ -14,6 +14,8 @@ tasks = fieldnames(datadir);
 nTasks = length(tasks)
 
 for task = 1:nTasks;
+    fprintf('\nTask %i/%i: Analyzing subject data...', task, nTasks);
+
     real_data.(tasks{task}) = compile_data('datadir',datadir.(tasks{task}));
     [edges.(tasks{task}), centers.(tasks{task})] = bin_generator(nBins, 'task', tasks{task});
     
@@ -28,9 +30,8 @@ for task = 1:nTasks;
             'bin_types', bin_types);
     end
     
-    fprintf('\nTask %i/%i: Analyzing subject data...', task, nTasks);
 
-    if group_plot
+    if group_stats
         real_data.(tasks{task}).sumstats = sumstats_fcn(real_data.(tasks{task}).data, ...
             'fields', output_fields);
     end

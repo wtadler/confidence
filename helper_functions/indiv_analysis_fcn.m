@@ -9,7 +9,7 @@ conf_levels = 4; % used for discrete variance
 flipsig = 1; % implement this. 12/4/15
 % discrete = 0;
 trial_types = {'all'};
-output_fields = {'tf','resp','g','rt','Chat'};
+output_fields = {'tf','resp','g','rt','Chat','proportion'};
 bin_types = {'c', 's', 'Chat', 'g', 'resp', 'c_s', 'c_Chat', 'c_g', 'c_resp'};
 assignopts(who,varargin);
 

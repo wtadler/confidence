@@ -1,6 +1,5 @@
-function single_dataset_plot(binned_stats, y_name, x_name, varargin)
-% this function needs renaming.
-
+function handle=single_dataset_plot(binned_stats, y_name, x_name, varargin)
+% plot data or fits in a "smart" way. adjusts ylim and labels according to y_name and x_name.
 len = size(binned_stats.mean.(y_name), 2);
 nReliabilities = size(binned_stats.mean.(y_name), 1);
 plot_reliabilities = [];
@@ -53,26 +52,26 @@ for c = plot_reliabilities
         dummy_point = len*errorbarwidth;
         errorbar([dummy_point 1:len], [-100 m], [0 errorbarheight], '.', 'linewidth', linewidth, 'color', color)
         hold on
-        plot(1:len, m, '-', 'linewidth', linewidth, 'color', color);
+        handle(c)=plot(1:len, m, '-', 'linewidth', linewidth, 'color', color);
     else
         x = [1:len fliplr(1:len)];
         y = [m + errorbarheight, fliplr(m - errorbarheight)];
-        f = fill(x, y, color);
-        set(f, 'edgecolor', 'none', 'facealpha', fill_alpha);
+        handle(c) = fill(x, y, color);
+        set(handle(c), 'edgecolor', 'none', 'facealpha', fill_alpha);
     end
         
     hold on
 end
 
 yl.tf = [.3 1];
-yt.tf = [.3:.1:1];
+yt.tf = [.25:.25:1];
 yl.g  = [1 4];
 yt.g = 1:4;
 yl.Chat = [0 1];
 yt.Chat = 0:.25:1;
 yl.resp = [1 8];
 yt.resp = 1:8;
-yl.rt = [.3 4];
+yl.rt = [0 4];
 yt.rt = 0:4;
 yl.proportion = [0 .5];
 yt.proportion = 0:.1:.5;
@@ -120,8 +119,12 @@ if label_x
             if attention_task
                 xlabel('cue validity')
             else
-                xlabel('contrast/eccentricity')
+                xlabel('reliability')
             end
+            xtl = cell(1,len);
+            xtl{1} = 'high';
+            xtl{end} = 'low';
+            set(gca, 'xticklabel', xtl);
         case {'s', 'c_s'}
             if symmetrify
                 xlabel('|s|')
@@ -133,11 +136,15 @@ if label_x
             
     end
 end
-    
+
+if strcmp(x_name, 'c')
+    set(gca, 'xdir', 'reverse')
+end
+
 switch y_name
     case {'tf','Chat'}
-        plot_halfway_line(.5)
+        plot_horizontal_line(.5, '-')
     case 'resp'
         set(gca, 'ydir', 'reverse')
-        plot_halfway_line(4.5)
+        plot_horizontal_line(4.5, '-')
 end

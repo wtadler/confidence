@@ -1,5 +1,5 @@
-function ah = show_data(varargin)
-% this function does a lot of things. needs re-naming. some options:
+function ah = show_data_or_fits(varargin)
+% this function does a lot of things. some options:
 % 1. show individual data
 % 2. (and individual fits)
 % 3. show grouped data
@@ -10,8 +10,8 @@ depvars = {'tf'};%,       'g',        'Chat',     'resp',     'rt'};
 nBins = 7;
 conf_levels = 4;
 symmetrify = false;
-slices = {'c_g', 'c_resp', 'c_s', ''}; % 's', 'c_s', 'c_resp', etc etc etc. figure out how to add a blank
-means = {'g',   'resp',   's', 'c'};
+slices = {'c_s'}; % 's', 'c_s', 'c_resp', etc etc etc. figure out how to add a blank
+means = {};% 'g', 'resp', 's', 'c', etc etc
 mean_color = [0 0 .8];
 tasks = {'A','B'};
 axis = struct;
@@ -22,7 +22,7 @@ trial_type = 'all'; % 'all', 'correct', 'incorrect', etc...
 linewidth = 2;
 meanlinewidth = 4;
 gutter = [.0175 .025];
-margins = [.06 .01 .06 .04]; % L R B T
+margins = [0 .01 .06 .04]; % L R B T
 models = [];
 nPlotSamples = 10;
 nFakeGroupDatasets = 100;
@@ -49,7 +49,7 @@ end
 
 real_data = compile_and_analyze_data(root_datadir, 'nBins', nBins,...
     'symmetrify', symmetrify, 'conf_levels', conf_levels, 'trial_types', {trial_type},...
-    'output_fields', depvars, 'bin_types', union(slices, means), 'group_plot', group_plot);
+    'output_fields', depvars, 'bin_types', union(slices, means), 'group_stats', group_plot);
 
 nSubjects = length(real_data.(tasks{1}).data);
 
@@ -175,7 +175,7 @@ for fig = 1:n.fig
                 end
                 
                 % plot real "mean" data
-                if ~isempty(means{slice})
+                if ~isempty(means) && ~isempty(means{slice})
                     if ~group_plot
                         data = real_data.(tasks{task}).data(subject).stats.(trial_type).(means{slice});
                     else
@@ -196,7 +196,7 @@ for fig = 1:n.fig
                         shortcutplot(data, fake_data, slices{slice}, colors, linewidth, plot_reliabilities);
                     end
                     
-                    if ~isempty(means{slice})
+                    if ~isempty(means) && ~isempty(means{slice})
                         if ~group_plot
                             data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(means{slice});
                         else
@@ -209,10 +209,11 @@ for fig = 1:n.fig
                             
             % y axis labels for left column
             if col == 1
-                if strcmp(axis.col, 'model')
-                    yl = ylabel(sprintf('%s, Task %s, %s',ylabels{depvar}, tasks{task}, rename_models(model(model).name)));
+                if strcmp(axis.row, 'model')
+                    yl=ylabel({ylabels{depvar}, ['Task ' tasks{task}], rename_models(models(model).name)});
+                    set(yl, 'fontsize', 9)
                 else
-                    yl=ylabel(sprintf('%s, Task %s', ylabels{depvar}, tasks{task})); % make this more flexible. use: rename_models(model.name)]);
+                    yl=ylabel({ylabels{depvar}, ['Task ' tasks{task}]});
                 end
                 if strcmp(depvars{depvar}, 'resp')
                     ylpos = get(yl, 'position');
