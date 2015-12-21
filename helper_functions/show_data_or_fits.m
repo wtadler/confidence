@@ -191,7 +191,7 @@ for fig = 1:n.fig
                         if ~group_plot
                             data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(slices{slice});
                         else
-                            data = models(model).fake_sumstats.(tasks{task}).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_type. i think that's okay 12/11/15
+                            data = models(model).(tasks{task}).sumstats.(trial_type).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_type. i think that's okay 12/11/15
                         end
                         shortcutplot(data, fake_data, slices{slice}, colors, linewidth, plot_reliabilities);
                     end
@@ -200,7 +200,7 @@ for fig = 1:n.fig
                         if ~group_plot
                             data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(means{slice});
                         else
-                            data = models(model).fake_sumstats.(tasks{task}).(means{slice});
+                            data = models(model).(tasks{task}).sumstats.(trial_type).(means{slice});
                         end
                         shortcutplot(data, fake_data, means{slice}, mean_color, meanlinewidth, []);
                     end

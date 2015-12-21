@@ -11,7 +11,7 @@ fig_type = 'grid'; % 'grid' or 'bar' or 'mean'
 inter_group_gutter=.2;
 intra_group_gutter= 0.02;
 show_names = true;
-fontname = 'Helvetica Neue';
+fontname = 'Helvetica';
 
 % GRID OPTIONS
 mark_best_and_worst = true;
