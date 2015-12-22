@@ -22,14 +22,24 @@ trial_type = 'all'; % 'all', 'correct', 'incorrect', etc...
 linewidth = 2;
 meanlinewidth = 4;
 gutter = [.0175 .025];
-margins = [0 .01 .06 .04]; % L R B T
+margins = [0.06 .01 .06 .04]; % L R B T
 models = [];
 nPlotSamples = 10;
 nFakeGroupDatasets = 100;
 plot_reliabilities = [];
 show_legend = false;
 s_labels = -8:2:8;
+errorbarwidth = 1.7;
+MCM = ''; % 'dic', 'waic2', whatever. add extra row with MCM scores.
+    MCM_size = .45; % percentage of plot height taken up by model comparison.
 assignopts(who, varargin);
+
+if ~isempty(MCM) && strcmp(axis.col, 'model')
+    show_MCM = true;
+    margins(3) = MCM_size;
+else
+    show_MCM = false;
+end
 
 if strcmp(axis.col, 'subject') % in all non-group plots, subjects are along the col axis
     group_plot = false;
@@ -160,7 +170,7 @@ for fig = 1:n.fig
                     'linewidth', linewidth, ...
                     'plot_reliabilities', plot_reliabilities, ...
                     'label_x', label_x, 'label_y', label_y, 's_labels', s_labels,...
-                    'task', tasks{task});
+                    'task', tasks{task}, 'errorbarwidth', errorbarwidth);
                 
                 % clean this section up?
                 fake_data = false;
@@ -191,7 +201,7 @@ for fig = 1:n.fig
                         if ~group_plot
                             data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(slices{slice});
                         else
-                            data = models(model).fake_sumstats.(tasks{task}).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_type. i think that's okay 12/11/15
+                            data = models(model).(tasks{task}).sumstats.(trial_type).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_type. i think that's okay 12/11/15
                         end
                         shortcutplot(data, fake_data, slices{slice}, colors, linewidth, plot_reliabilities);
                     end
@@ -200,7 +210,7 @@ for fig = 1:n.fig
                         if ~group_plot
                             data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(means{slice});
                         else
-                            data = models(model).fake_sumstats.(tasks{task}).(means{slice});
+                            data = models(model).(tasks{task}).sumstats.(trial_type).(means{slice});
                         end
                         shortcutplot(data, fake_data, means{slice}, mean_color, meanlinewidth, []);
                     end
@@ -252,4 +262,13 @@ for fig = 1:n.fig
             end
         end
     end
+    
+    if show_MCM
+        tight_subplot(1,1,1,1,[0 0],[margins(1), margins(2), .1, 1-MCM_size+.07])
+        compare_models(models, 'show_names', true, 'show_model_names', false, 'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005)
+        set(gca,'xcolor','w')
+    end
+%     if show_MCM
+%         compare_models(models, 'fig_type', 'bar', 'MCM', MCM);
+%     end
 end

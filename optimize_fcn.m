@@ -381,6 +381,20 @@ for gen_model_id = active_gen_models
                             [s_tmp,ll_tmp,lp_tmp] = deal(cell(1,nOptimizations));
                             fclose(log_fid);
 
+                            % I WAS HAVING PROBLEMS, SO I COPIED THIS FROM
+                            % ABOVE. 12/21/15. WE'LL SEE IF IT WORKS
+                            if ~o.joint_task_fit
+                                loglik_wrapper = @(p) -nloglik_fcn(p, data, o, nDNoiseSets, category_params);%, optimization_method, randn_samples{dataset});
+                            elseif o.joint_task_fit
+                                loglik_wrapper = @(p) two_task_ll_wrapper(p, data_taskA, data_taskB, sm, nDNoiseSets, category_params);
+                            end
+                            
+                            logprior_wrapper = @log_prior;
+                            
+                            nloglik_wrapper = @(p) -loglik_wrapper(p);% -logprior_wrapper(p); % uncomment this for log posterior
+
+                            
+                            
                             % HERE FOLLOWS SOME TERRIBLE, REDUNDANT CODE.
                             if maxWorkers == 0
                                 for optimization = 1:nOptimizations
