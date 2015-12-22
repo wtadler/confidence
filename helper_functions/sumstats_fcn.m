@@ -21,27 +21,27 @@ for type = 1 : length(trial_types)
         for f = 1:length(fields)
             
             % initialize
-            Mean = [];
-            STD = [];
-            bin_counts = [];
+            st.Mean = [];
+            st.STD = [];
+            st.bin_counts = [];
             
             % append
             for dataset = 1 : length(data); % concatenate along 3rd dim for other datasets/subjects
-                Mean        = cat(3, Mean,       data(dataset).stats.(trial_types{type}).(slices{slice}).mean.(fields{f}));
-                STD         = cat(3, STD,        data(dataset).stats.(trial_types{type}).(slices{slice}).std.(fields{f}));
-                bin_counts  = cat(3, bin_counts, data(dataset).stats.(trial_types{type}).(slices{slice}).bin_counts);
+                st.Mean        = cat(3, st.Mean,       data(dataset).stats.(trial_types{type}).(slices{slice}).mean.(fields{f}));
+                st.STD         = cat(3, st.STD,        data(dataset).stats.(trial_types{type}).(slices{slice}).std.(fields{f}));
+                st.bin_counts  = cat(3, st.bin_counts, data(dataset).stats.(trial_types{type}).(slices{slice}).bin_counts);
             end
             
             % sum, mean, SEM, edgar SEM over subjects
-            st.mean = nanmean(Mean, 3); % have to use nanmean and nanstd because there are missing data. for instance, some subjects never say high confidence in certain bins.
-            st.std = nanstd(Mean, 0, 3);
+            st.mean = nanmean(st.Mean, 3); % have to use nanmean and nanstd because there are missing data. for instance, some subjects never say high confidence in certain bins.
+            st.std = nanstd(st.Mean, 0, 3);
 %             nDatasets = length(data);
-            nDatasets = sum(bin_counts~=0, 3); % how many datasets have data in each bin?
-            bin_counts(bin_counts==0) = nan;
+            nDatasets = sum(st.bin_counts~=0, 3); % how many datasets have data in each bin?
+            st.bin_counts(st.bin_counts==0) = nan;
             
             st.sem = st.std ./ sqrt(nDatasets);
             st.edgar_sem = sqrt(st.std.^2 ./ nDatasets + ...
-                nanmean(STD.^2./(bsxfun(@times, nDatasets, bin_counts)), 3));
+                nanmean(st.STD.^2./(bsxfun(@times, nDatasets, st.bin_counts)), 3));
                         
             stats = fieldnames(st);
             for s = 1:length(stats)
