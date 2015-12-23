@@ -13,7 +13,9 @@ fig_type = 'bar'; % 'grid' or 'bar'
 group_gutter=.02;
 bar_gutter= 0.001;
 show_names = true;
+    anonymize = false;
 fontname = 'Helvetica';
+show_model_names = true;
 
 % GRID OPTIONS
 mark_best_and_worst = true;
