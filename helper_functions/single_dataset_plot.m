@@ -17,6 +17,7 @@ attention_task = false;
 task = 'A';
 s_labels = -8:2:8;
 resp_square_offset = .05;
+plot_connecting_line = true;
 assignopts(who, varargin);
 
 if isempty(plot_reliabilities)
@@ -26,7 +27,11 @@ end
 for c = plot_reliabilities
     color = colors(c,:);
     
-    m = binned_stats.mean.(y_name)(c, :);
+    if ~strcmp(y_name, 'proportion')
+        m = binned_stats.trial_weighted_mean.(y_name)(c, :);
+    else
+        m = binned_stats.mean.(y_name)(c, :);
+    end
     
     if ~group_plot
         if fake_data
@@ -53,6 +58,9 @@ for c = plot_reliabilities
         errorbar([dummy_point 1:len], [-100 m], [0 errorbarheight], '.', 'linewidth', linewidth, 'color', color)
         hold on
         handle(c)=plot(1:len, m, '-', 'linewidth', linewidth, 'color', color);
+        if ~plot_connecting_line
+            set(handle(c), 'visible', 'off') % this is weird, but have to do it to show up in legend
+        end
     else
         x = [1:len fliplr(1:len)];
         y = [m + errorbarheight, fliplr(m - errorbarheight)];

@@ -6,17 +6,18 @@ opt_models(1).family = 'opt';
 opt_models(1).multi_lapse = 0;
 opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
-opt_models(1).choice_only = 0;
-opt_models(1).diff_mean_same_std = 1;
-opt_models(1).ori_dep_noise = 1;
-opt_models(1).symmetric = 1;
+opt_models(1).choice_only = 1;
+opt_models(1).diff_mean_same_std = 0;
+opt_models(1).ori_dep_noise = 0;
+opt_models(1).symmetric = 0;
 opt_models(1).joint_task_fit = 0;
-opt_models(1).nFreesigs = 0;
+opt_models(1).nFreesigs = 3;
 opt_models(1).d_noise = 0;
 opt_models(1).joint_d = 0;
 opt_models(1).separate_measurement_and_inference_noise = 0;
 
-
+opt_models(2) = opt_models(1);
+opt_models(2).family = 'fixed';
 opt_models = parameter_constraints(opt_models);
 
 %%
@@ -48,7 +49,7 @@ data_type = 'real'; % 'real' or 'fake'
 % 'real' takes real trials and real responses, to extract parameters
 
 %% fake data generation parameters
-fake_data_params =  'random'; % 'extracted' or 'random'
+fake_data_params =  'random'; % 'arbitrary' or 'random'
 % category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 attention_manipulation = false;
 
@@ -125,7 +126,7 @@ elseif strcmp(data_type,'fake')
     nDatasets = 6;
     assignopts(who,varargin);
     datasets = 1:nDatasets;
-    extracted_param_file = '';
+    fake_params = {};
 elseif strcmp(data_type,'fake_pre_generated')
     gen = struct;
     assignopts(who,varargin); % gen is assigned in the argument
@@ -150,8 +151,8 @@ if strcmp(data_type, 'fake')
             category_type = 'same_mean_diff_std';
         end
         
-        if attention_manipulation && g.nFreesigs ~= 3
-            error('attention_manipulation is indicated, but you don''t have nFreesigs equal to 3.')
+        if attention_manipulation && g.nFreesigs == 0
+            error('attention_manipulation is indicated, but you don''t have nFreesigs on.')
         end
             
         % generate parameters, or use previously extracted parameters
@@ -168,16 +169,16 @@ if strcmp(data_type, 'fake')
                 gen(gen_model_id).p = random_param_generator(nDatasets, g, 'fixed_params', fixed_params_gen, 'generating_flag', true);
                 gen(gen_model_id).p
 
-            case 'extracted' % previously extracted using this script (deprecated, add model(i)... or something)
+            case 'arbitrary' % formerly 'extracted'
                 
-                if hpc
-                    exm=load(extracted_param_file);
-                else
-                    exm=load('/Users/will/Google Drive/Will - Confidence/Analysis/4confmodels.mat');
-                end
+%                 if hpc
+%                     exm=load(extracted_param_file);
+%                 else
+%                     exm=load('~/Google Drive/Will - Confidence/Analysis/4confmodels.mat');
+%                 end
                 
                 for dataset = 1 : nDatasets;
-                    gen(gen_model_id).p(:,dataset) = exm.m(gen_model_id).extracted(dataset).best_params;
+                    gen(gen_model_id).p(:,dataset) = fake_params{gen_model_id}(:, dataset);
                 end
         end
         for dataset = datasets;

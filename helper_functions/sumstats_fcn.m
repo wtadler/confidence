@@ -35,6 +35,8 @@ for type = 1 : length(trial_types)
             % sum, mean, SEM, edgar SEM over subjects
             st.mean = nanmean(st.Mean, 3); % have to use nanmean and nanstd because there are missing data. for instance, some subjects never say high confidence in certain bins.
             st.std = nanstd(st.Mean, 0, 3);
+            st.trial_weighted_mean = nansum(st.bin_counts.*st.Mean, 3) ./ nansum(st.bin_counts, 3);
+            
 %             nDatasets = length(data);
             nDatasets = sum(st.bin_counts~=0, 3); % how many datasets have data in each bin?
             st.bin_counts(st.bin_counts==0) = nan;

@@ -17,7 +17,7 @@ category_params.uniform_range = 1;
 
 category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 
-attention_task = false;
+attention_manipulation = false;
 
 assignopts(who,varargin);
 
@@ -29,7 +29,7 @@ elseif ~model.diff_mean_same_std
 end
 
 
-if ~attention_task
+if ~attention_manipulation
     contrasts = exp(linspace(-5.5,-2,6));
 else
     contrasts = .08;
@@ -51,22 +51,36 @@ if isempty(model_fitting_data)
     raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);
     raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1), category_type);
     
-    if attention_task
-        cue_validity = .7;
+    if attention_manipulation
+        if model.nFreesigs==3
+            cue_validities = [(1-.8)/3 .25 .8];
+            freq = [(1-1/3)*(1-.8) 1/3 (1-1/3)*.8];
+        elseif model.nFreesigs==5
+            cue_validities = [.1/3 .05 .25 .45 .9];
+            freq = [(1/3)*(1-.9) (1/3)*(1-.9) 1/3 (1/3)*.9 (1/3)*.9];
+        end
+        raw.cue_validity = rand(1, n_samples);
+        temp_freq = [0 cumsum(freq)];
+        for i = 1:model.nFreesigs
+            raw.cue_validity(raw.cue_validity>temp_freq(i) & raw.cue_validity<temp_freq(i+1)) = i;
+        end
+        % do we need probe and cue?
         
-        raw.cue = randsample([-1 0 1], n_samples, 'true');
-        raw.probe = raw.cue;
-        
-        % make 30% of cues invalid
-        flip_idx = rand(1, n_samples) > cue_validity;
-        raw.cue(flip_idx) = -raw.cue(flip_idx);
-        
-        neutral_cue_idx = raw.cue == 0;
-        raw.probe(neutral_cue_idx) = randsample([-1 1], nnz(neutral_cue_idx), true);
-        
-        raw.cue_validity(raw.probe == raw.cue)                  =  1;  % valid cues
-        raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
-        raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
+%         cue_validity = .7;
+%         
+%         raw.cue = randsample([-1 0 1], n_samples, 'true');
+%         raw.probe = raw.cue;
+%         
+%         % make 30% of cues invalid
+%         flip_idx = rand(1, n_samples) > cue_validity;
+%         raw.cue(flip_idx) = -raw.cue(flip_idx);
+%         
+%         neutral_cue_idx = raw.cue == 0;
+%         raw.probe(neutral_cue_idx) = randsample([-1 1], nnz(neutral_cue_idx), true);
+%         
+%         raw.cue_validity(raw.probe == raw.cue)                  =  1;  % valid cues
+%         raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
+%         raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
     end
     
 else % take real data
@@ -74,7 +88,7 @@ else % take real data
     raw.contrast    = model_fitting_data.contrast;
     raw.s           = model_fitting_data.s;
     
-    if attention_task
+    if attention_manipulation
         raw.probe        = model_fitting_data.probe;
         raw.cue          = model_fitting_data.cue;
         raw.cue_validity = model_fitting_data.cue_validity;
@@ -87,7 +101,7 @@ if ~model.choice_only
     raw.g = zeros(1, n_samples);
 end
 
-if ~attention_task
+if ~attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast, 'flipsig', true); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
     raw.sig = p.unique_sigs(raw.contrast_id);
     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
@@ -98,7 +112,7 @@ if ~attention_task
     %     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
     %     sigs =    sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast_values .^ -p.beta); % the list of possible sigma values
     %     raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
-elseif attention_task
+elseif attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
     [raw.cue_validity_values, raw.cue_validity_id] = unique_contrasts(raw.cue_validity);
     raw.sig = p.unique_sigs(raw.cue_validity_id);

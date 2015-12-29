@@ -22,13 +22,14 @@ trial_type = 'all'; % 'all', 'correct', 'incorrect', etc...
 linewidth = 2;
 meanlinewidth = 4;
 gutter = [.0175 .025];
-margins = [0 .01 .06 .04]; % L R B T
+margins = [0.08 .01 .1 .08]; % L R B T
 models = [];
 nPlotSamples = 10;
 nFakeGroupDatasets = 100;
 plot_reliabilities = [];
 show_legend = false;
 s_labels = -8:2:8;
+fig_width = 1400;
 assignopts(who, varargin);
 
 if strcmp(axis.col, 'subject') % in all non-group plots, subjects are along the col axis
@@ -113,6 +114,7 @@ ylabels = rename_var_labels(depvars); % translate from variable names to somethi
 %%
 for fig = 1:n.fig
     figure(fig)
+    set(gcf,'position', [60 60 250*n.col 200*n.row])
     clf
     
     for col = 1:n.col
