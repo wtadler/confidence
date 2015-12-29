@@ -42,7 +42,7 @@ elseif regexp(name_in, '^neural1')
 elseif regexp(name_in, '^fixed')
     name_out = ['Fixed'];
 elseif regexp(name_in, '^MAP')
-    name_out = ['MAP'];
+    name_out = ['Orientation Estimation'];
 end
 
 if isempty(regexp(name_in, 'joint_task_fit'))

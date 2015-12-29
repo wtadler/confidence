@@ -199,7 +199,7 @@ end
                 nMisses = sum(sr.tf(idx)==0);
                 STD = std_beta_dist(nHits+1, nMisses+1); % this seems a reasonable way to add a tiny prior and fix the zero problem
                 
-            otherwise
+            otherwise % should RT's have a different kind of errorbar?
                 Mean = mean(sr.(field)(idx));
                 STD = std(sr.(field)(idx));
                 
