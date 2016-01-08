@@ -40,8 +40,8 @@ nContrasts = length(contrasts);
 p = parameter_variable_namer(p_in, model.parameter_names, model);
 
 if model.free_cats
-    category_params.sigma_1 = p.category_params.sigma_1;
-    category_params.sigma_2 = p.category_params.sigma_2;
+    category_params.sigma_1 = p.sig1;
+    category_params.sigma_2 = p.sig2;
 end
 
 

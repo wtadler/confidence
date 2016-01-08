@@ -27,7 +27,7 @@ end
 for c = plot_reliabilities
     color = colors(c,:);
     
-    if ~strcmp(y_name, 'proportion')
+    if ~strcmp(y_name, 'proportion') && isfield(binned_stats, 'trial_weighted_mean')
         m = binned_stats.trial_weighted_mean.(y_name)(c, :);
     else
         m = binned_stats.mean.(y_name)(c, :);
@@ -41,7 +41,7 @@ for c = plot_reliabilities
         end 
     else
         if fake_data
-            errorbarheight = binned_stats.std.(y_name)(c, :);
+            errorbarheight = binned_stats.edgar_sem.(y_name)(c, :); % should this be std or edgar_sem?
         else
             errorbarheight = binned_stats.edgar_sem.(y_name)(c, :); % this is hardly diff than sem
         end

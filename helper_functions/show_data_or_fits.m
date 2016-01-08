@@ -237,7 +237,7 @@ for fig = 1:n.fig
             if row == 1
                 switch axis.col
                     case 'subject'
-                        title(real_data.(tasks{task}).data(subject).name);
+                        title(upper(real_data.(tasks{task}).data(subject).name));
                     case 'model'
                         title(rename_models(models(model).name));
                 end
@@ -269,7 +269,4 @@ for fig = 1:n.fig
         compare_models(models, 'show_names', true, 'show_model_names', false, 'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005)
         set(gca,'xcolor','w')
     end
-%     if show_MCM
-%         compare_models(models, 'fig_type', 'bar', 'MCM', MCM);
-%     end
 end

@@ -43,8 +43,9 @@ for type = 1 : length(trial_types)
             
             st.sem = st.std ./ sqrt(nDatasets);
             st.edgar_sem = sqrt(st.std.^2 ./ nDatasets + ...
-                nanmean(st.STD.^2./(bsxfun(@times, nDatasets, st.bin_counts)), 3));
-                        
+                nanmean(st.STD.^2./(bsxfun(@times, nDatasets, st.bin_counts)), 3)); % January 2015
+            st.edgar_sem2 = st.std.^2 + (nDatasets-1)./nDatasets.^2 .* nansum(st.STD.^2./st.bin_counts,3); % January 2016
+                                    
             stats = fieldnames(st);
             for s = 1:length(stats)
                 sumstats.(trial_types{type}).(slices{slice}).(stats{s}).(fields{f}) = st.(stats{s});
