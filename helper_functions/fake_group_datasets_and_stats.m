@@ -22,15 +22,19 @@ for m = 1:length(model)
             for f = 1:length(fields)
                 for b = 1:length(bin_types)
                     hyperplot_means.(trial_types{t}).(bin_types{b}).(fields{f}) = [];
+                                        fake_sumstats.(tasks{task}).(trial_types{t}).(bin_types{b}).std.(fields{f})  = std (hyperplot_means.(trial_types{t}).(bin_types{b}).(fields{f}), 0, 3);
+                    hyperplot_sems.(trial_types{t}).(bin_types{b}).(fields{f}) = [];
                 end
             end
         end
         
         for h = 1:nFakeGroupDatasets
             clear hyperplotdata
-            for subject = 1:length(model(m).extracted)
+            nSubjects = length(model(m).extracted);
+            for dataset = 1:nSubjects
+                subject = randi(nSubjects); % 'randi(nSubjects)' if sampling w replacement (as luigi recommends); 'dataset' if sampling from subjects without replacement 
                 nPlotSamples = length(model(m).extracted(subject).fake_datasets.(tasks{task}).dataset);
-                hyperplotdata(subject) = model(m).extracted(subject).fake_datasets.(tasks{task}).dataset(randi(nPlotSamples));
+                hyperplotdata(dataset) = model(m).extracted(subject).fake_datasets.(tasks{task}).dataset(randi(nPlotSamples));
             end
             
             % summarize those fake datasets across subjects
@@ -42,6 +46,7 @@ for m = 1:length(model)
                 for f = 1:length(fields)
                     for b = 1:length(bin_types)
                         hyperplot_means.(trial_types{t}).(bin_types{b}).(fields{f}) = cat(3, hyperplot_means.(trial_types{t}).(bin_types{b}).(fields{f}), sumstats.(trial_types{t}).(bin_types{b}).mean.(fields{f}));
+                        hyperplot_sems.(trial_types{t}).(bin_types{b}).(fields{f})   = cat(3, hyperplot_sems.(trial_types{t}).(bin_types{b}).(fields{f}), sumstats.(trial_types{t}).(bin_types{b}).sem.(fields{f}));
                     end
                 end
             end
@@ -54,6 +59,7 @@ for m = 1:length(model)
                 for b = 1:length(bin_types)
                     fake_sumstats.(tasks{task}).(trial_types{t}).(bin_types{b}).mean.(fields{f}) = mean(hyperplot_means.(trial_types{t}).(bin_types{b}).(fields{f}),    3);
                     fake_sumstats.(tasks{task}).(trial_types{t}).(bin_types{b}).std.(fields{f})  = std (hyperplot_means.(trial_types{t}).(bin_types{b}).(fields{f}), 0, 3);
+                    fake_sumstats.(tasks{task}).(trial_types{t}).(bin_types{b}).mean_sem.(fields{f}) = mean(hyperplot_sems.(trial_types{t}).(bin_types{b}).(fields{f}), 3);
                 end
             end
         end

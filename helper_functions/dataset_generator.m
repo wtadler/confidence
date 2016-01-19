@@ -3,8 +3,6 @@ function fake_datasets = dataset_generator(model, param_samples, nSamples, varar
 % this makes a bunch of fake datasets for each model/subject combination, and summarizes them
 % the tasks, tasks_in thing here is weird. figure it out. 9/23/15.
 
-raw_A = [];
-raw_B = [];
 nBins = 13;
 raw = [];
 tasks_in = [];

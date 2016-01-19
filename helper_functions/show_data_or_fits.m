@@ -123,7 +123,7 @@ ylabels = rename_var_labels(depvars); % translate from variable names to somethi
 %%
 for fig = 1:n.fig
     figure(fig)
-    set(gcf,'position', [60 60 250*n.col 200*n.row])
+    set(gcf,'position', [60 60 250*n.col 600*n.row])
     clf
     
     for col = 1:n.col

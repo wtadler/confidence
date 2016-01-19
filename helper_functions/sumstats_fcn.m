@@ -1,7 +1,5 @@
 function sumstats = sumstats_fcn(data, varargin)
 
-% takes
-
 % define default
 % decb_analysis = 0;
 % assignopts(who,varargin);
@@ -24,7 +22,7 @@ for type = 1 : length(trial_types)
             st.Mean = [];
             st.STD = [];
             st.bin_counts = [];
-            
+
             % append
             for dataset = 1 : length(data); % concatenate along 3rd dim for other datasets/subjects
                 st.Mean        = cat(3, st.Mean,       data(dataset).stats.(trial_types{type}).(slices{slice}).mean.(fields{f}));
@@ -42,9 +40,15 @@ for type = 1 : length(trial_types)
             st.bin_counts(st.bin_counts==0) = nan;
             
             st.sem = st.std ./ sqrt(nDatasets);
-            st.edgar_sem = sqrt(st.std.^2 ./ nDatasets + ...
-                nanmean(st.STD.^2./(bsxfun(@times, nDatasets, st.bin_counts)), 3)); % January 2015
-            st.edgar_sem2 = st.std.^2 + (nDatasets-1)./nDatasets.^2 .* nansum(st.STD.^2./st.bin_counts,3); % January 2016
+            edgar_sem = @(var) sqrt(var ./ nDatasets + nanmean(st.STD.^2./(bsxfun(@times, nDatasets, st.bin_counts)), 3));
+            
+            st.edgar_sem = edgar_sem(st.std.^2);%sqrt(st.std.^2 ./ nDatasets + ...
+%                 nanmean(st.STD.^2./(bsxfun(@times, nDatasets, st.bin_counts)), 3)); % January 2015
+            
+            varpop = 1./(nDatasets - 1) .* nansum(bsxfun(@minus, st.Mean, st.mean).^2, 3) - (nDatasets - 1)./(nDatasets.^2).*nansum(st.STD.^2./st.bin_counts,3);
+            
+            st.edgar_sem2 = edgar_sem(varpop);
+            
                                     
             stats = fieldnames(st);
             for s = 1:length(stats)
