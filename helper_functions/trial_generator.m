@@ -53,11 +53,14 @@ if isempty(model_fitting_data)
     
     if attention_manipulation
         if model.nFreesigs==3
-            cue_validities = [(1-.8)/3 .25 .8];
-            freq = [(1-1/3)*(1-.8) 1/3 (1-1/3)*.8];
+            v = .8;
+            cue_validities = [(1-v)/3 .25 v];
+            freq = [(1-1/3)*(1-v) 1/3 (1-1/3)*v];
         elseif model.nFreesigs==5
-            cue_validities = [.1/3 .05 .25 .45 .9];
-            freq = [(1/3)*(1-.9) (1/3)*(1-.9) 1/3 (1/3)*.9 (1/3)*.9];
+            v = .9;
+            v2= .45;
+            cue_validities = [(1-v)/3 (1-2*v2)/2 .25 v2 v];
+            freq = [(1/3)*(1-v) (1/3)*(1-2*v2) 1/3 (1/3)*2*v2 (1/3)*v];
         end
         raw.cue_validity = rand(1, n_samples);
         temp_freq = [0 cumsum(freq)];
@@ -407,7 +410,16 @@ else % models with full lapse
 end
 Chat_lapse_trials = randvals < Chat_lapse_rate; % lapse Chat at each conf level
 n_Chat_lapse_trials = sum(Chat_lapse_trials);
-raw.Chat(Chat_lapse_trials) = randsample([-1 1], n_Chat_lapse_trials, 'true');
+
+if ~model.biased_lapse
+    p.lambda_bias = .5; % p_lapse(Chat = -1)
+end
+
+lapse_Chat = rand(1, n_Chat_lapse_trials);
+lapse_Chat(lapse_Chat < p.lambda_bias) = -1;
+lapse_Chat(lapse_Chat >= p.lambda_bias) = 1;
+raw.Chat(Chat_lapse_trials) = lapse_Chat;
+
 if ~model.choice_only && ~model.multi_lapse
     raw.g(Chat_lapse_trials) = randsample(conf_levels, n_Chat_lapse_trials, 'true');
 end

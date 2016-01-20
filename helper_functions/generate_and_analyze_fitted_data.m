@@ -21,6 +21,8 @@ for m = 1:nModels
         for task = 1:length(tasks)
             raw.(tasks{task}) = real_data.(tasks{task}).data(dataset).raw;
         end
+        
+        % for each subject and model, generate and analyze nPlotSamples datasets
         models(m).extracted(dataset).fake_datasets = dataset_generator(models(m),...
             models(m).extracted(dataset).p, nPlotSamples, 'nBins', nBins,...
             'raw', raw, 'tasks', tasks, 'dep_vars', depvars, 'symmetrify', symmetrify,...
@@ -29,6 +31,8 @@ for m = 1:nModels
     end
     
     if group_plot
+        % randomly sample 1 fake dataset from each subject
+        % nFakeGroupDatasets times and analyze that grouped dataset
         fake_sumstats = fake_group_datasets_and_stats(models(m), nFakeGroupDatasets, 'fields', depvars);
         tasks = fieldnames(fake_sumstats);
         for t = 1:length(tasks);

@@ -512,10 +512,22 @@ if isfield(p, 'lambda_i')
     p_full_lapse = p.lambda_i(raw.g)/2;
     p.lambda = sum(p.lambda_i);
 else
-    if ~isfield(p, 'lambda') % this is only for a few d_noise models that are probably deprecated
+    if ~isfield(p, 'lambda')
         p.lambda=0;
     end
-    p_full_lapse = p.lambda/(conf_levels*2); % only goes into conf models below
+    if model.choice_only
+        if ~isfield(p, 'lambda_bias')
+            p.lambda_bias = .5;
+        end
+        p_full_lapse = nan(1, nTrials);
+        p_full_lapse(raw.Chat == -1) = p.lambda_bias;
+        p_full_lapse(raw.Chat ==  1) = 1 - p.lambda_bias;
+        
+        p_full_lapse = p.lambda * p_full_lapse;
+        
+    else
+        p_full_lapse = p.lambda / (conf_levels*2);
+    end
 end
 
 if ~isfield(p, 'lambda_g') % partial lapse
@@ -545,14 +557,14 @@ if ~model.choice_only
         p.lambda_r * p_repeat + ...
         (1 - p.lambda - p.lambda_g - p.lambda_r) * p_conf_choice); % can also do 1 - lapse_sum instead of (1 - stuff - stuff).
 else % choice models
-    ll_trials = log(p.lambda / 2 + ...
+    ll_trials = log(p_full_lapse + ...
         p.lambda_r * p_repeat + ...
         (1 - p.lambda - p.lambda_r) * p_choice); % can also do 1 - lapse_sum instead of (1 - stuff - stuff).
 end
 % Set all -Inf logliks to a very negative number. These are usually trials where
 % the subject reports something very strange. Usually lapse rate accounts for this.
 ll_trials(ll_trials < -1e5) = -1e5;
-nll = - sum(ll_trials);
+nll = -sum(ll_trials);
 
 if ~isreal(nll)
     % in case things go wrong. this shouldn't execute.
