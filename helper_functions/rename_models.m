@@ -28,10 +28,10 @@ if regexp(name_in, '^opt')
     else
         name_out = ['Bayes_{Ultraweak}'];
     end
-    
-    if regexp(name_in, 'd_noise')
-        name_out = [name_out, ' + D noise'];
-    end
+%     
+%     if regexp(name_in, 'd_noise')
+%         name_out = [name_out, ' + D noise'];
+%     end
     
 elseif regexp(name_in, '^lin')
     name_out = ['Lin'];
@@ -44,7 +44,7 @@ elseif regexp(name_in, '^fixed')
 elseif regexp(name_in, '^MAP')
     name_out = ['Orientation Estimation'];
 end
-
+return
 if isempty(regexp(name_in, 'joint_task_fit'))
     if regexp(name_in, 'diff_mean_same_std')
         name_out = [name_out ', A'];

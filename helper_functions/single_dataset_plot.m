@@ -136,10 +136,10 @@ if label_x
             set(gca, 'xticklabel', xtl);
         case {'s', 'c_s'}
             if symmetrify
-                xlabel('|s|')
+                xlabel('abs. orientation')
                 set(gca, 'xticklabel', abs(s_labels))
             else
-                xlabel('s')
+                xlabel('orientation')
                 set(gca, 'xticklabel', s_labels)
             end
             

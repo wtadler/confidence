@@ -31,7 +31,8 @@ show_legend = false;
 s_labels = -8:2:8;
 errorbarwidth = 1.7;
 MCM = ''; % 'dic', 'waic2', whatever. add extra row with MCM scores.
-    MCM_size = .45; % percentage of plot height taken up by model comparison.
+    MCM_size = .38; % percentage of plot height taken up by model comparison.
+ref_model = [];
 assignopts(who, varargin);
 
 if ~isempty(MCM) && strcmp(axis.col, 'model')
@@ -123,7 +124,7 @@ ylabels = rename_var_labels(depvars); % translate from variable names to somethi
 %%
 for fig = 1:n.fig
     figure(fig)
-    set(gcf,'position', [60 60 250*n.col 600*n.row])
+    set(gcf,'position', [60 60 250*n.col 325*n.row])
     clf
     
     for col = 1:n.col
@@ -265,8 +266,9 @@ for fig = 1:n.fig
     end
     
     if show_MCM
-        tight_subplot(1,1,1,1,[0 0],[margins(1), margins(2), .1, 1-MCM_size+.07])
-        compare_models(models, 'show_names', true, 'show_model_names', false, 'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005)
+        tight_subplot(1,1,1,1, 0, [margins(1), margins(2), .1, 1-MCM_size+.07])
+        [score, group_mean, group_sem] = compare_models(models, 'show_names', true, 'show_model_names', false,...
+            'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model);
         set(gca,'xcolor','w')
     end
 end

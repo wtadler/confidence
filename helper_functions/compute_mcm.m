@@ -30,7 +30,7 @@ for m = 1:nModels
     nSubjects = length(model_in(m).extracted);
     
     for d = 1:length(model_in(m).extracted)
-        if isempty(model(m).extracted(d).p)
+        if isempty(model_in(m).extracted(d).p)
             continue
         end
         if model_in(m).joint_task_fit

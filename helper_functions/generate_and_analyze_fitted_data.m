@@ -14,7 +14,6 @@ assignopts(who, varargin);
 
 nModels = length(models);
 for m = 1:nModels
-    fprintf('\nAnalyzing generated data from model %i/%i...', m, nModels);
 
     nSubjects = length(models(m).extracted);
     for dataset = 1:nSubjects
@@ -31,6 +30,7 @@ for m = 1:nModels
     end
     
     if group_plot
+        fprintf('\nAnalyzing generated data from model %i/%i...', m, nModels);
         % randomly sample 1 fake dataset from each subject
         % nFakeGroupDatasets times and analyze that grouped dataset
         fake_sumstats = fake_group_datasets_and_stats(models(m), nFakeGroupDatasets, 'fields', depvars);
