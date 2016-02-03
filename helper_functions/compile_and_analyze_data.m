@@ -11,7 +11,7 @@ assignopts(who, varargin)
 
 datadir = check_datadir(root_datadir);
 tasks = fieldnames(datadir);
-nTasks = length(tasks)
+nTasks = length(tasks);
 
 for task = 1:nTasks;
     fprintf('\nTask %i/%i: Analyzing subject data...', task, nTasks);

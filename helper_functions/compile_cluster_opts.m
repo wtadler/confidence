@@ -186,7 +186,7 @@ elseif any(regexp(job_files{1},'m[0-9]*.s[0-9]*.c[0-9]*.mat')) % indicates singl
             end
         end
         
-        if isempty(model(m).extracted(d).name) % initialize subject details if they are not there
+        if length(model(m).extracted) < d || isempty(model(m).extracted(d).name) % initialize subject details if they are not there
             %             model(m).extracted(d).dic = [];
             %             model(m).extracted(d) = tmp.gen.opt(m).extracted(d);
             model(m).extracted(d).name = tmp.gen.opt(m).extracted(d).name;

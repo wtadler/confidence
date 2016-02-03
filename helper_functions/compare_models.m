@@ -1,4 +1,4 @@
-function score=compare_models(models, varargin)
+function [score, group_mean, group_sem] = compare_models(models, varargin)
 
 if isfield(models(1).extracted(1), 'waic2')
     MCM = 'waic2';
@@ -13,7 +13,7 @@ fig_type = 'bar'; % 'grid' or 'bar'
 group_gutter=.02;
 bar_gutter= 0.001;
 show_names = true;
-    anonymize = false;
+    anonymize = true;
 fontname = 'Helvetica';
 show_model_names = true;
 
@@ -24,6 +24,8 @@ color_switch_threshold = .5; % point in the MCM range where the text color switc
 fontsize = 10;
 
 mark_grate_ellipse = false;
+
+ref_model = [];
 assignopts(who, varargin)
 
 if strcmp(MCM, 'laplace')
@@ -130,15 +132,16 @@ switch fig_type
         
     case 'bar'
         
-        [~,best_model] = min(mean(score, 2));
+        if isempty(ref_model)
+            [~, ref_model] = min(mean(score, 2));
+        end
         
-        MCM_delta = bsxfun(@minus, score, score(best_model,:));
-        
+        MCM_delta = bsxfun(@minus, score, score(ref_model,:));        
         
         
         if show_names
             if anonymize
-                subject_names = strread(num2str(1:nDatasets), '%s');
+                subject_names = strcat('S', strread(num2str(1:nDatasets ), '%s'));
             else
                 subject_names = upper({models(1).extracted.name});
             end
@@ -146,9 +149,9 @@ switch fig_type
             subject_names = [];
         end
         
-        mybar(-MCM_delta, 'barnames', subject_names, 'show_mean', true, ...
+        [group_mean, group_sem] = mybar(-MCM_delta, 'barnames', subject_names, 'show_mean', true, ...
             'group_gutter', group_gutter, 'bar_gutter', bar_gutter, ...
-            'mark_grate_ellipse', mark_grate_ellipse)
+            'mark_grate_ellipse', mark_grate_ellipse);
         
         
         set(gca,'ticklength',[0 0],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
@@ -165,5 +168,5 @@ switch fig_type
             MCM_name = upper(MCM);
         end
         
-        ylabel(sprintf('%s_{%s} - %s', MCM_name, model_names{best_model}, MCM_name))
+        ylabel(sprintf('%s_{%s} - %s', MCM_name, model_names{ref_model}, MCM_name))
 end

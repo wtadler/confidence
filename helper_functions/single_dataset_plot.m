@@ -33,17 +33,18 @@ for c = plot_reliabilities
         m = binned_stats.mean.(y_name)(c, :);
     end
     
-    if ~group_plot
+    if group_plot
         if fake_data
-            errorbarheight = binned_stats.std.(y_name)(c, :); % is this right?
-        else
-            errorbarheight = binned_stats.std.(y_name)(c, :);
-        end 
-    else
+            errorbarheight = binned_stats.std.(y_name)(c, :); % std of means of fake group datasets. very close to .mean_sem.
+        else % real data
+            errorbarheight = binned_stats.edgar_sem2.(y_name)(c, :); % this is hardly diff than sem
+        end        
+        
+    else % individual data
         if fake_data
-            errorbarheight = binned_stats.edgar_sem.(y_name)(c, :); % should this be std or edgar_sem?
-        else
-            errorbarheight = binned_stats.edgar_sem.(y_name)(c, :); % this is hardly diff than sem
+            errorbarheight = binned_stats.std.(y_name)(c, :); % should this be std or edgar_sem?
+        else % real data
+            errorbarheight = binned_stats.std.(y_name)(c, :); % this is hardly diff than sem
         end
     end
     
@@ -135,10 +136,10 @@ if label_x
             set(gca, 'xticklabel', xtl);
         case {'s', 'c_s'}
             if symmetrify
-                xlabel('|s|')
+                xlabel('abs. orientation')
                 set(gca, 'xticklabel', abs(s_labels))
             else
-                xlabel('s')
+                xlabel('orientation')
                 set(gca, 'xticklabel', s_labels)
             end
             

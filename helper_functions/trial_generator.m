@@ -17,7 +17,7 @@ category_params.uniform_range = 1;
 
 category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 
-attention_manipulation = false;
+attention_task = false;
 
 assignopts(who,varargin);
 
@@ -29,7 +29,7 @@ elseif ~model.diff_mean_same_std
 end
 
 
-if ~attention_manipulation
+if ~attention_task
     contrasts = exp(linspace(-5.5,-2,6));
 else
     contrasts = .08;
@@ -51,13 +51,16 @@ if isempty(model_fitting_data)
     raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);
     raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1), category_type);
     
-    if attention_manipulation
+    if attention_task
         if model.nFreesigs==3
-            cue_validities = [(1-.8)/3 .25 .8];
-            freq = [(1-1/3)*(1-.8) 1/3 (1-1/3)*.8];
+            v = .8;
+            cue_validities = [(1-v)/3 .25 v];
+            freq = [(1-1/3)*(1-v) 1/3 (1-1/3)*v];
         elseif model.nFreesigs==5
-            cue_validities = [.1/3 .05 .25 .45 .9];
-            freq = [(1/3)*(1-.9) (1/3)*(1-.9) 1/3 (1/3)*.9 (1/3)*.9];
+            v = .9;
+            v2= .45;
+            cue_validities = [(1-v)/3 (1-2*v2)/2 .25 v2 v];
+            freq = [(1/3)*(1-v) (1/3)*(1-2*v2) 1/3 (1/3)*2*v2 (1/3)*v];
         end
         raw.cue_validity = rand(1, n_samples);
         temp_freq = [0 cumsum(freq)];
@@ -88,7 +91,7 @@ else % take real data
     raw.contrast    = model_fitting_data.contrast;
     raw.s           = model_fitting_data.s;
     
-    if attention_manipulation
+    if attention_task
         raw.probe        = model_fitting_data.probe;
         raw.cue          = model_fitting_data.cue;
         raw.cue_validity = model_fitting_data.cue_validity;
@@ -101,7 +104,7 @@ if ~model.choice_only
     raw.g = zeros(1, n_samples);
 end
 
-if ~attention_manipulation
+if ~attention_task
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast, 'flipsig', true); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
     raw.sig = p.unique_sigs(raw.contrast_id);
     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
@@ -112,7 +115,7 @@ if ~attention_manipulation
     %     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
     %     sigs =    sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast_values .^ -p.beta); % the list of possible sigma values
     %     raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
-elseif attention_manipulation
+elseif attention_task
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
     [raw.cue_validity_values, raw.cue_validity_id] = unique_contrasts(raw.cue_validity);
     raw.sig = p.unique_sigs(raw.cue_validity_id);
@@ -407,7 +410,16 @@ else % models with full lapse
 end
 Chat_lapse_trials = randvals < Chat_lapse_rate; % lapse Chat at each conf level
 n_Chat_lapse_trials = sum(Chat_lapse_trials);
-raw.Chat(Chat_lapse_trials) = randsample([-1 1], n_Chat_lapse_trials, 'true');
+
+if ~isfield(model, 'biased_lapse') || ~model.biased_lapse
+    p.lambda_bias = .5; % p_lapse(Chat = -1)
+end
+
+lapse_Chat = rand(1, n_Chat_lapse_trials);
+lapse_Chat(lapse_Chat < p.lambda_bias) = -1;
+lapse_Chat(lapse_Chat >= p.lambda_bias) = 1;
+raw.Chat(Chat_lapse_trials) = lapse_Chat;
+
 if ~model.choice_only && ~model.multi_lapse
     raw.g(Chat_lapse_trials) = randsample(conf_levels, n_Chat_lapse_trials, 'true');
 end

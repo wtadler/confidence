@@ -4,8 +4,10 @@ nModels = length(models);
 for m_id = 1 : nModels
     c = models(m_id);
     
-    options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only','symmetric','d_noise','free_cats','non_overlap',...
-        'ori_dep_noise','diff_mean_same_std','joint_task_fit','joint_d', 'nFreesigs', 'separate_measurement_and_inference_noise'};
+    options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only',...
+        'symmetric','d_noise','free_cats','non_overlap','ori_dep_noise',...
+        'diff_mean_same_std','joint_task_fit','joint_d', 'nFreesigs',...
+        'separate_measurement_and_inference_noise', 'biased_lapse'};
     for o = 1:length(options)
         if ~isfield(c,options{o}) || isempty(c.(options{o}))
             c.(options{o}) = 0;
@@ -126,17 +128,18 @@ for m_id = 1 : nModels
         'b_2_neural1Term_TaskA'
         'b_3_neural1Term_TaskA'
         'b_0_neural1Choice_TaskA'
+        'lambda_bias'
         };
     
     % 8/11: lb(1:3) used to be [0 -4 10]
     % scl/sch can't be lower than -4 otherwise we get problems in nloglik_fcn
-    %               scl sch betabn3dbn2dbn1db0d b1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA  sig_tc  bn3n1   bn2n1   bn1n1   b0n1    b1n1    b2n1    b3n1    b0n1c   b0n1_TA     b1n1_TA     b2n1_TA     b3n1_TA     b0n1c_TA
-    c.lb       = [  -4  -4  -40 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30     0       0       0       0       0       0       0       0       0       -50         0           0           0           -50     ]';
-    c.ub       = [  10  10  15  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   .8  .25 .25 .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30      10      150     150     150     150     150     200     300     200     50          200         200         200         50      ]';
-    c.lb_gen   = [  1   .5  -2  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  -3  0   0   0   0   0   2   8  2   -2  3   0       -.3     .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5      0       0       0       0       0       0       0       0       10      -10         0           0           0           -10     ]';
-    c.ub_gen   = [  3.5 1   2   -.5 .2  .2  .2  .2  .2  .2  3   5   5   5   5   5   5   1   1   1   1   1   1   1   2   .1  .1  .1  .2  .1  4   10  10  2   8   2       .3      1.2     1.2     2       2       5       5       30      2       1       1       1       2       3       5       1.7     15      15      15      15      15      15      15      20      10          15          15          15          1       ]';
+    %               scl sch betabn3dbn2dbn1db0d b1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA  sig_tc  bn3n1   bn2n1   bn1n1   b0n1    b1n1    b2n1    b3n1    b0n1c   b0n1_TA     b1n1_TA     b2n1_TA     b3n1_TA     b0n1c_TA    lam_bias  
+    c.lb       = [  -4  -4  -40 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30     0       0       0       0       0       0       0       0       0       -50         0           0           0           -50         0]';
+    c.ub       = [  10  10  15  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   .8  .25 .25 .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30      10      150     150     150     150     150     200     300     200     50          200         200         200         50          1]';
+    c.lb_gen   = [  1   .5  -2  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  -3  0   0   0   0   0   2   8  2   -2  3   0       -.3     .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5      0       0       0       0       0       0       0       0       10      -10         0           0           0           -10          .4]';
+    c.ub_gen   = [  3.5 1   2   -.5 .2  .2  .2  .2  .2  .2  3   5   5   5   5   5   5   1   1   1   1   1   1   1   2   .1  .1  .1  .2  .1  4   10  10  2   8   2       .3      1.2     1.2     2       2       5       5       30      2       1       1       1       2       3       5       1.7     15      15      15      15      15      15      15      20      10          15          15          15          1           .6]';
     
-    c.beq      = [  1   1   1   -2  .15 .15 .15 .15 .15 .15  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0       3       10      10      20      20      20      50      50      15      0           10          10          10          0       ]';
+    c.beq      = [  1   1   1   -2  .15 .15 .15 .15 .15 .15  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0       3       10      10      20      20      20      50      50      15      0           10          10          10          0      	.5]';
     %log_params = strncmpi(c.parameter_names,'log',3);
 
     %fields = {'lb','ub','lb_gen','ub_gen'}; % convert log param bounds
@@ -162,15 +165,17 @@ for m_id = 1 : nModels
     c = partial_lapseizer(c);
     c = multi_lapseizer(c);
     c = repeat_lapseizer(c);
+    c = biased_lapseizer(c);
     c = free_catsizer(c);
     c = sig_ampizer(c);
+    
     
     % calculate uniform param prior
 %     c.param_prior = prod(1 ./ (c.ub - c.lb)); % this is not great. lapse param should be a beta dist, not uniform. but only applies when doing hessian, which we've moved on from.
     
     % indicate which are lapse and Term params, so that you don't have to do this every sample in parameter_variable_namer
     c.term_params = find(~cellfun(@isempty, strfind(c.parameter_names,'Term')));
-    c.lapse_params = find(~cellfun(@isempty, strfind(c.parameter_names,'lambda')));
+    c.lapse_params = find(~cellfun(@isempty, regexp(c.parameter_names,'lambda(?!_bias)')));
     
     % put back into model
     fields = fieldnames(c);
@@ -341,10 +346,18 @@ if ~c.repeat_lapse
 end
 end
 
+function c = biased_lapseizer(c) % p_lapse(Chat = -1)
+% if not doing biased lapse, strip out lapse bias parameter
+if ~c.biased_lapse
+    biased_lapseP = find_parameter('lambda_bias', c);
+    c = p_stripper(c, biased_lapseP);
+end
+end
+
 function c = free_catsizer(c)
 % if not doing free cats, strip out sig1 and sig2
-free_catsP = find_parameter('sig[12]', c);
 if ~c.free_cats
+    free_catsP = find_parameter('sig[12]', c);
     c = p_stripper(c,free_catsP);
 end
 
