@@ -17,7 +17,7 @@ category_params.uniform_range = 1;
 
 category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 
-attention_task = false;
+attention_manipulation = false;
 
 assignopts(who,varargin);
 
@@ -29,7 +29,7 @@ elseif ~model.diff_mean_same_std
 end
 
 
-if ~attention_task
+if ~attention_manipulation
     contrasts = exp(linspace(-5.5,-2,6));
 else
     contrasts = .08;
@@ -51,7 +51,7 @@ if isempty(model_fitting_data)
     raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);
     raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1), category_type);
     
-    if attention_task
+    if attention_manipulation
         if model.nFreesigs==3
             v = .8;
             cue_validities = [(1-v)/3 .25 v];
@@ -91,7 +91,7 @@ else % take real data
     raw.contrast    = model_fitting_data.contrast;
     raw.s           = model_fitting_data.s;
     
-    if attention_task
+    if attention_manipulation
         raw.probe        = model_fitting_data.probe;
         raw.cue          = model_fitting_data.cue;
         raw.cue_validity = model_fitting_data.cue_validity;
@@ -104,7 +104,7 @@ if ~model.choice_only
     raw.g = zeros(1, n_samples);
 end
 
-if ~attention_task
+if ~attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast, 'flipsig', true); % contrast_values is in descending order. so a high contrast_id indicates a lower contrast value, and a higher sigma value.
     raw.sig = p.unique_sigs(raw.contrast_id);
     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
@@ -115,7 +115,7 @@ if ~attention_task
     %     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
     %     sigs =    sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast_values .^ -p.beta); % the list of possible sigma values
     %     raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
-elseif attention_task
+elseif attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
     [raw.cue_validity_values, raw.cue_validity_id] = unique_contrasts(raw.cue_validity);
     raw.sig = p.unique_sigs(raw.cue_validity_id);
