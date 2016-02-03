@@ -281,11 +281,15 @@ for gen_model_id = active_gen_models
         o.Aeq = eye(nParams);
         o.Aeq(unfixed_params, unfixed_params) = 0;
         o.beq(unfixed_params) = 0;
-        if ~isempty(fixed_params_opt_values)
-            if numel(fixed_params_opt_values) ~= numel(fixed_params_opt) && min(size(fixed_params_opt_values))==1 % if its not a matrix, and isn't the same size
-                error('fixed_params_opt_values is not the same length as fixed_params_opt')
-            elseif min(size(fixed_params_opt_values))==1
-                o.beq(fixed_params_opt) = fixed_params_opt_values;
+        if ~isempty(fixed_params_opt)
+            if isempty(fixed_params_opt_values)
+                o.beq(fixed_params_opt) = fake_params{opt_model_id}(fixed_params_opt, 1);
+            elseif ~isempty(fixed_params_opt_values)
+                if numel(fixed_params_opt_values) ~= numel(fixed_params_opt) && min(size(fixed_params_opt_values))==1 % if its not a matrix, and isn't the same size
+                    error('fixed_params_opt_values is not the same length as fixed_params_opt')
+                elseif min(size(fixed_params_opt_values))==1
+                    o.beq(fixed_params_opt) = fixed_params_opt_values;
+                end
             end
         end
         
