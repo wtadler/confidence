@@ -87,7 +87,7 @@ filename = sprintf('%s.mat',job_id);
 
 if hpc
     datadir_joint='/home/wta215/data/v3';
-    savedir = '/home/wta215/Analysis/output/';
+    savedir = '/scratch/wta215/output/';
 else
     datadir_joint = '/Users/will/Google Drive/Will - Confidence/Data/v3b_ellipse';
     savedir = '/Users/will/Google Drive/Ma lab/output/';
@@ -184,7 +184,7 @@ if strcmp(data_type, 'fake')
         for dataset = datasets;
             % generate data from parameters
 %             save before
-            my_print('generating dataset %i\n', dataset)
+            my_print(sprintf('generating dataset %i\n', dataset))
             good_dataset = false;
             while ~good_dataset
                 d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'attention_manipulation', attention_manipulation, 'category_type', category_type);
@@ -602,7 +602,7 @@ for gen_model_id = active_gen_models
                 end
             end
             clear ex;
-            save([savedir filename '~'])
+%             save([savedir filename '~'])
         end
         
         my_print(sprintf('Total model %s time: %.1f mins\n\n', o.name, toc(model_start_t)/60));
@@ -675,7 +675,7 @@ end
 %%
 fh = [];
 fclose(log_fid);
-delete([savedir filename '~'])
+% delete([savedir filename '~'])
 save([savedir filename])
 
 %%
