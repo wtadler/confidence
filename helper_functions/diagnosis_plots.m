@@ -5,7 +5,7 @@ fig_type = 'mcmc_grid'; % 'mcmc_figures' or 'mcmc_grid' or 'parameter_recovery'
     only_good_fits = false; % in parameter recovery, only show datasets that were fit well
     show_cornerplot = true;
     plot_datasets = [];
-    
+    mcm = 'dic';
     
 assignopts(who,varargin);
 
@@ -105,7 +105,7 @@ elseif strcmp(fig_type, 'mcmc_figures')
             try
             mcmcdiagnosis(ex.p, 'logposterior', ex.logposterior, 'fit_model', m, ...
                 'true_p', true_p, 'true_logposterior', true_logposterior, 'dataset_name', dataset_name, ...
-                'dic', ex.dic, 'gen_model', g, 'show_cornerplot', show_cornerplot);
+                'mcm', ex.(mcm), 'gen_model', g, 'show_cornerplot', show_cornerplot);
             
             catch
                 'error'

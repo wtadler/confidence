@@ -236,7 +236,7 @@ try
             
             C = R.trial_order{blok}(section, trial); % true category
             
-            [tCatResp, keyCode] = KbWait(-1, 1); % second argument waits for key release. this is going to make debugging tricky
+            [tCatResp, keyCode] = KbWait(-1, 1); % second argument waits for key release. this is going to make debugging harder
             
             if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
                 error('You cancelled the script by pressing the insert and enter keys simultaneously.')

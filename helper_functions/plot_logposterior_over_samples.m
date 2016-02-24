@@ -1,7 +1,7 @@
 function plot_logposterior_over_samples(logposterior, varargin)
 
 load default_colororder
-colors = default_colororder;
+colors = [default_colororder; default_colororder; default_colororder];
 linewidth = 1.5;
 true_logposterior = [];
 show_legend = true;

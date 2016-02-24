@@ -10,6 +10,7 @@ toss_bad_samples = true;
 extraburn_prop = 0;
 
 jobid = 'ab';
+require_exact_name = false;
 hpc = true;
 
 include_aborted_jobs = false;
@@ -29,7 +30,11 @@ jobid
 cd(datadir)
 files = what(datadir);
 mat_files = files.mat;
-job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%s.*\\.mat', jobid))));
+if require_exact_name
+    job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%s\\..*\\.mat', jobid))));
+else
+    job_files = mat_files(~cellfun(@isempty,regexp(mat_files,sprintf('^%s.*\\.mat', jobid))));
+end
 
 % load aborted chains
 if include_aborted_jobs
