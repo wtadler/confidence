@@ -61,10 +61,16 @@ switch room_letter
         screen_width = 19.7042; %iPad screen width in cm
         scr.keyinsert = 45; % insert
         scr.keyenter = 13; % enter
-        [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
-            scr.key7, scr.key8, scr.key9, scr.key10] ...
-            = deal(112, 113, 114, 115, 116, 119, 120, 121, 122, 123);
-        % This is for keys F1-5, F8-12.
+        if ~test_feedback
+            [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
+                scr.key7, scr.key8, scr.key9, scr.key10] ...
+                = deal(112, 113, 114, 115, 116, 119, 120, 121, 122, 123);
+            % This is for keys F1-5, F8-12.
+        elseif test_feedback
+            [scr.keyC1, scr.keyC2, scr.key1, scr.key2, scr.key3, scr.key4]...
+                = deal(68, 70, 74, 75, 76, 186);
+            % keys D, F, J, K, L, ;
+        end
         scr.fontsize = 42;
         scr.fontstyle = 1;
         scr.displayHz = 60;
@@ -182,7 +188,6 @@ else
     end
 end
 
-ConfidenceTraining.category_params.test_sigmas = Test.category_params.test_sigmas;
 
 if nExperiments == 1
     task_letter = '';
@@ -245,21 +250,21 @@ else
 
     Training.t.betwtrials = 1000; %1000
 
-    Test.n.blocks = 3;% WTA from 3
-    Test.n.sections = 3; % WTA from 3
-    Test.n.trials = 8*numel(Test.category_params.test_sigmas); % 9*numel(Test.sigma.int)*2 = 108
+    Test.n.blocks = 3; % main experiment: 3, feedback experiment: 3
+    Test.n.sections = 3; % main experiment: 3, feedback experiment: 3
+    Test.n.trials = 8*numel(Test.category_params.test_sigmas); % main experiment: 8*, feedback experiment: 6*
     
     Test.t.betwtrials = 1000;   %1000
 
 end
 
 Training.initial.n.blocks = 1; %Do Not Change
-Training.initial.n.sections = 2; % changed from 2 for Roshni
-Training.initial.n.trials = 36;% changed from 36 for Roshni
+Training.initial.n.sections = 1; % main experiment: 2, feedback experiment: 1
+Training.initial.n.trials = 36;% main experiment: 36, feedback experiment: 48
 
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
-Training.n.sections = 2; % changed from 2 for Roshni
-Training.n.trials = 36; % changed from 36 for Roshni
+Training.n.sections = 2;
+Training.n.trials = 36;
 
 Training.t.pres = 300; %300 % time stimulus is on screen
 Training.t.pause = 100; %100 time between response and feedback
@@ -267,13 +272,25 @@ Training.t.feedback = 1100;  %1700 time of "correct" or "incorrect" onscreen
 Training.t.cue_dur = 150;
 Training.t.cue_target_isi = 150;
 
-Test.t.pres = 80;           % time stimulus is on screen
+Test.t.pres = 80;           % time stimulus is on screen. 50 for main, 80 for attention?
 Test.t.pause = 100; % time between response and feedback
-Test.t.feedback = 1200;
+if test_feedback
+    Test.t.feedback = 800;
+else
+    Test.t.feedback = 1200;
+end
+
 Test.t.cue_dur = 300; %150
 Test.t.cue_target_isi = 300; %150
 
 
+if test_feedback
+    ConfidenceTraining.category_params.test_sigmas = Training.category_params.test_sigmas;
+    ConfidenceTraining.t = Training.t;
+else
+    ConfidenceTraining.category_params.test_sigmas = Test.category_params.test_sigmas;
+    ConfidenceTraining.t = Test.t;
+end
 
 if strfind(subject_name,'fast') > 0 % if 'fast' is in the initials, the exp will be super fast (for debugging)
     [Test.t.pres,Test.t.pause,Test.t.feedback,Test.t.betwtrials,Training.t.pres,Training.t.pause,...
@@ -288,7 +305,7 @@ if strfind(subject_name,'short') > 0 % if 'short' is in the initials, the exp wi
     scr.countdown_time = 5;
 end
 
-if strfind(subject_name,'notrain') > 0 | test_feedback % if 'notrain' is in the initials, the exp will not include training (for debugging). or if providing feedback on all trials
+if strfind(subject_name,'notrain') > 0 % if 'notrain' is in the initials, the exp will not include training (for debugging)
     notrain = true;
 else
     notrain = false;
@@ -503,8 +520,8 @@ try
     if strcmp(P.stim_type, 'grate')
         gabortex = CreateProceduralGabor(scr.win, P.grateAlphaMaskSize, P.grateAlphaMaskSize, [], [0.5 0.5 0.5 0.0],1,0.5);
         Screen('DrawTexture', scr.win, gabortex, [], [], 90-stim.ort, [], [], [], [], kPsychDontDoRotation, [0, P.grateSpatialFreq, P.grateSigma, stim.cur_sigma, P.grateAspectRatio, 0, 0, 0]);
-        [nx,ny]=DrawFormattedText(scr.win, 'Example stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize, color.wt);
-        ny = ny+P.grateAlphaMaskSize/2;
+        [nx,ny]=DrawFormattedText(scr.win, 'Example stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize, color.wt); %P.grateAlphaMaskSize*2/3?
+        ny = ny+P.grateAlphaMaskSize/2; % P.grateAlphaMaskSize*2/3?
     elseif strcmp(P.stim_type, 'ellipse')
         im = drawEllipse(P.ellipseAreaPx, .95, 0, P.ellipseColor, scr.bg);
         [nx,ny]=DrawFormattedText(scr.win, 'Example stimulus\n\n', 'center', scr.cy-P.grateAlphaMaskSize/2, color.wt);
@@ -549,10 +566,9 @@ try
                     category_demo
                 end
                 
-                if ~test_feedback
                     Training.initial.n.blocks = Training.n.blocks;
                     [Training.responses{k}, flag] = run_exp(Training.initial.n, Training.R, Training.t, scr, ...
-                        color, P, 'Category Training', k, new_subject, task_str, final_task, subject_name);
+                        color, P, 'Category Training', k, new_subject, task_str, final_task, subject_name, [], two_response, test_feedback);
                     if flag ==1,  break;  end
                     
                     if new_subject && nStimuli > 1
@@ -584,35 +600,31 @@ try
                         flip_key_flip(scr, 'continue', scr.cy, color, true);
                         
                     end
-                    
-                    if nStimuli == 1 && ~choice_only && ~noconftraining
+                
+                if nStimuli == 1 && ~choice_only && ~noconftraining && ~test_feedback
+                    [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, ConfidenceTraining.t,...
+                        scr, color, P, 'Confidence Training', k, new_subject, task_str, final_task, subject_name);
+                elseif nStimuli >= 2
+                    if choice_only
+                        [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Training.t,...
+                            scr, color, P, 'Attention Training', k, new_subject, task_str, final_task, subject_name);
+                    elseif ~noconftraining
                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
-                            scr, color, P, 'Confidence Training', k, new_subject, task_str, final_task, subject_name);
-                    elseif nStimuli >= 2
-                        if choice_only
-                            [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Training.t,...
-                                scr, color, P, 'Attention Training', k, new_subject, task_str, final_task, subject_name);
-                        elseif ~noconftraining
-                            [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
-                                scr, color, P, 'Confidence and Attention Training', k, new_subject, task_str, final_task, subject_name);
-                        end
+                            scr, color, P, 'Confidence and Attention Training', k, new_subject, task_str, final_task, subject_name);
                     end
-                    
-                    if flag ==1,  break;  end
                 end
-            else
+                
+                if flag ==1,  break;  end
+            elseif k > 1 && ~test_feedback
                 [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr,...
                     color, P, 'Category Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
-                
+
             end
         end
+       
+        [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing', k, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback);
         
-        if ~test_feedback
-            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing', k, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback);
-        elseif test_feedback
-            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing Feedback', k, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback);
-        end
         if flag == 1,  break;  end
         
         elapsed_mins = toc(start_t)/60;

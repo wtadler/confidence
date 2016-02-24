@@ -1,9 +1,9 @@
 function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback)
 
-if ~exist('choice_only', 'var')
-    if strcmp(type, 'Category Training') || strcmp(type, 'Attention Training')
+if ~exist('choice_only', 'var') || isempty(choice_only)
+    if (strcmp(type, 'Category Training') && ~test_feedback) || strcmp(type, 'Attention Training')
         choice_only = true;
-    else
+    elseif test_feedback
         choice_only = false;
     end
 end
@@ -23,7 +23,6 @@ if nStimuli == 4
 else
     cross_rot = 0;
 end
-
 
 flag = 0;
 responses.c = zeros(n.sections, n.trials); % cat response
@@ -237,10 +236,10 @@ try
             C = R.trial_order{blok}(section, trial); % true category
             
             while Chat == 0
-                [tCatResp, keyCode] = KbWait(-1, 0); % 0 doesn't wait for release
+                [tCatResp, keyCode] = KbWait(-1, 2); % 2 waits for a release then press
                 
-                if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
-                    error('You cancelled the script by pressing the insert and enter keys simultaneously.')
+                if keyCode(scr.keyinsert)%% && keyCode(scr.keyenter) && sum(keyCode)==2
+                    error('You cancelled the script by pressing insert.')%% the insert and enter keys simultaneously.')
                 end
                 
                 if choice_only
@@ -248,46 +247,67 @@ try
                         Chat = 1;
                     elseif keyCode(scr.key6) % cat 2
                         Chat = 2;
+                    else
+                        continue
                     end
                     
                 else % if collecting confidence responses
                     if two_response
-                        if keyCode(scr.key1)
+                        if keyCode(scr.keyC1)
                             Chat = 1;
-                        elseif keyCode(scr.key2)
+                        elseif keyCode(scr.keyC2)
                             Chat = 2;
+                        else
+                            continue
                         end
                         
-                        [~,ny] = center_print('Confidence?', scr.cy-50); % 3 waits for release then press
+                        [~,ny] = center_print('Confidence?', scr.cy-30);
                         t1=Screen('Flip', scr.win);
                         WaitSecs(0.1);
                         
-                        [tConfResp, keyCode] = KbWait(-1, 3);
-                        if keyCode(scr.key1)
-                            conf = 1;
-                        elseif keyCode(scr.key2)
-                            conf = 2;
-                        elseif keyCode(scr.key3)
-                            conf = 3;
-                        elseif keyCode(scr.key4)
-                            conf = 4;
+                        conf = 0;
+                        while conf == 0
+                            [tConfResp, keyCode] = KbWait(-1,2); % 2 waits for a release then press
+                            if keyCode(scr.key1)
+                                conf = 1;
+                            elseif keyCode(scr.key2)
+                                conf = 2;
+                            elseif keyCode(scr.key3)
+                                conf = 3;
+                            elseif keyCode(scr.key4)
+                                conf = 4;
+                            else
+                                continue
+                            end
                         end
                         
                     elseif ~two_response
-                        if keyCode(scr.key1) || keyCode(scr.key2) || keyCode(scr.key3) || keyCode(scr.key4) %cat 1 keys
-                            Chat = 1;
-                        elseif keyCode(scr.key7) || keyCode(scr.key8) || keyCode(scr.key9) || keyCode(scr.key10) %cat 2 keys
-                            Chat = 2;
-                        end
-                        
-                        if keyCode(scr.key1) || keyCode(scr.key10)
+                        if keyCode(scr.key1)
                             conf = 4;
-                        elseif keyCode(scr.key2) || keyCode(scr.key9)
+                            Chat = 1;
+                        elseif keyCode(scr.key2)
                             conf = 3;
-                        elseif keyCode(scr.key3) || keyCode(scr.key8)
+                            Chat = 1;
+                        elseif keyCode(scr.key3)
                             conf = 2;
-                        elseif keyCode(scr.key4) || keyCode(scr.key7)
+                            Chat = 1;
+                        elseif keyCode(scr.key4)
                             conf = 1;
+                            Chat = 1;
+                        elseif keyCode(scr.key7)
+                            conf = 1;
+                            Chat = 2;
+                        elseif keyCode(scr.key8)
+                            conf = 2;
+                            Chat = 2;
+                        elseif keyCode(scr.key9)
+                            conf = 3;
+                            Chat = 2;
+                        elseif keyCode(scr.key10)
+                            conf = 4;
+                            Chat = 2;
+                        else
+                            continue
                         end
                     end
                     
@@ -321,15 +341,21 @@ try
                     [~,ny]=center_print(sprintf('You said: Category %i',Chat),scr.cy-60); % scr.cy-50
                     [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
                 elseif ~choice_only
-                    [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 20); % -50
-                    if test_feedback
-                        [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
+                    [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 120); % -50
+                    if test_feedback && strcmp(type, 'Category Training')
+                        [~,ny]=center_print(sprintf('\nYour category choice is %s', lower(status)),ny+40,stat_col);
+                        flip_key_flip(scr,'continue',ny,color, false, 'initial_wait', 0);
+                        
+                    elseif test_feedback && ~strcmp(type, 'Category Training')
+                        [~,ny]=center_print(sprintf('\n%s', status),ny+40,stat_col);
+                        Screen('Flip',scr.win);%, tCatResp+t.pause/1000);
+                        
+                        WaitSecs(t.feedback/1000);
                     end
                 end
                 
-                Screen('Flip',scr.win, tCatResp+t.pause/1000);
                 
-                WaitSecs(t.feedback/1000);
+                
                 
             end
             if P.eye_tracking
@@ -373,7 +399,7 @@ try
     switch type
         case 'Category Training'
             % strcmp(task_str,'') is a standin for nExperiments == 1.
-            if blok == 1 && new_subject && (strcmp(task_str,'') | (~strcmp(task_str,'') && ~final_task))
+            if blok == 1 && new_subject && ~test_feedback &&  (strcmp(task_str,'') | (~strcmp(task_str,'') && ~final_task))
                 hitxt = sprintf('You just got %s\n\n\nPlease go get the experimenter from the other room!',scorereport);
                 experimenter_needed = true;
             else
@@ -419,7 +445,11 @@ try
         % instructions below top ten
         experimenter_needed = false;
         if blok ~= n.blocks
-            hitxt = '\nPlease take a short break.\n\nYou may begin the next Category Training\n\n';
+            if ~test_feedback
+                hitxt = '\nPlease take a short break.\n\nYou may begin the next Category Training\n\n';
+            else
+                hitxt = '\nPlease take a short break.\n\nYou may begin the next Testing Block\n\n';
+            end
         else
             if ~final_task
                 if new_subject
@@ -428,9 +458,9 @@ try
                 else
                     switch task_str
                         case 'Task A '
-                            hitxt = '\nYou''re done with Task A.\n\n\nYou may begin Task B.\n\n';
+                            hitxt = '\nYou''re done with Task A.\n\n\nYou may begin Task B\n\n';
                         case 'Task B '
-                            hitxt = '\nYou''re done with Task B.\n\n\nYou may begin Task A.\n\n';
+                            hitxt = '\nYou''re done with Task B.\n\n\nYou may begin Task A\n\n';
                     end
                 end
             else
