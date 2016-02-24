@@ -340,6 +340,9 @@ try
                 if choice_only
                     [~,ny]=center_print(sprintf('You said: Category %i',Chat),scr.cy-60); % scr.cy-50
                     [~,ny]=center_print(sprintf('\n%s', status),ny+10,stat_col);
+                    
+                    Screen('Flip',scr.win);
+                    WaitSecs(t.feedback/1000);
                 elseif ~choice_only
                     [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 120); % -50
                     if test_feedback && strcmp(type, 'Category Training')
@@ -348,7 +351,7 @@ try
                         
                     elseif test_feedback && ~strcmp(type, 'Category Training')
                         [~,ny]=center_print(sprintf('\n%s', status),ny+40,stat_col);
-                        Screen('Flip',scr.win);%, tCatResp+t.pause/1000);
+                        Screen('Flip',scr.win); %, tCatResp+t.pause/1000);
                         
                         WaitSecs(t.feedback/1000);
                     end
