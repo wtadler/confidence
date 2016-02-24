@@ -377,6 +377,8 @@ try
             else
                 hitxt = sprintf('%s\n\nYou just got %s\n',motivational_str,scorereport);
             end
+        case 'Attention Training'
+            hitxt = sprintf('%s\n\nYou just got %s\n', motivational_str, scorereport);
         case 'Testing'
             hitxt = sprintf('%s\n\nYou''ve just finished %sTesting Block %i of %i with\n\n%s\n',motivational_str,task_str,blok,n.blocks,scorereport);
         otherwise

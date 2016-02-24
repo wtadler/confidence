@@ -182,17 +182,8 @@ switch command
         cy = in{2}; % y coordinate of screen center
         rad = in{3}; % acceptable fixation radius %%% in px?
         
-        timeout = 3.00; % maximum fixation check time
-        tFixMin = 0.10; % minimum correct fixation time
-        
-        % determine recorded eye
-        evt = Eyelink('newestfloatsample');
-        domEye = find(evt.gx ~= -32768);
-        
-        % if tracking binocularly, just select one eye to be dominant
-        if numel(domEye)>1
-            domEye = domEye(1);
-        end
+        timeout = 3.00; % 3.00 % maximum fixation check time
+        tFixMin = 0.20; % 0.10 % minimum correct fixation time
         
         Eyelink('Message', 'FIX_HOLD_CHECK');
         
@@ -202,9 +193,21 @@ switch command
         tFix = 0; % how long has the current fixation lasted so far?
         
         t = tstart;
+%         counter = 0; % for debugging
+%         fprintf('\n')
         while (((t-tstart) < timeout) && (tFix<=tFixMin))
+%             counter = counter+1;
+%             if mod(counter,10)==0
+%                 fprintf('t-tstart=%1.3f, tFix=%1.3f, fixation=%d, fixStart=%d\n', t-tstart, tFix, fixation, fixStart)
+%             end
+            
             % get eye position
             evt = Eyelink('newestfloatsample');
+            domEye = find(evt.gx ~= -32768);
+            if numel(domEye)>1 % if tracking binocularly
+                domEye = domEye(1);
+            end
+
             x = evt.gx(domEye);
             y = evt.gy(domEye);
 
@@ -222,11 +225,13 @@ switch command
             
             % update duration of current fixation
             if fixation==1 && fixStart==0
+                tFix = 0;
                 tFixStart = GetSecs;
                 fixStart = 1;
             elseif fixation==1 && fixStart==1
                 tFix = GetSecs-tFixStart;
             else
+                tFix = 0;
                 fixStart = 0;
             end
             

@@ -5,17 +5,17 @@ function run_categorical_decision(initial)
 
 if nargin==0
     % initial = 'rd_p1_run02_notrain'; % 'rdshortnotrain'
-    initial = 'testshortfast';
+    initial = 'av';
 end
 
-exp_type = 'AB'; %'attention' or 'AB'
-new_subject = false;
+exp_type = 'attention'; %'attention' or 'AB'
+new_subject = true;
 
 switch exp_type
     case 'attention'
         room_letter = 'Carrasco_L1'; % 'mbp','Carrasco_L1','1139'
         category_type = 'same_mean_diff_std'; % 'same_mean_diff_std','sym_uniform'
-        eye_tracking = false;
+        eye_tracking = true;
         nStimuli = 4;
         choice_only = true;
         
@@ -32,7 +32,8 @@ switch exp_type
         stim_type = 'ellipse';
         room_letter = '1139';
         nStimuli = 1;
-        eye_tracking = false;
+        eye_tracking = true;
+
         first_task_letter = 'A';
         category_types = {'diff_mean_same_std', 'same_mean_diff_std'};
         if strcmp(first_task_letter, 'B')
