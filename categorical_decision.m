@@ -39,7 +39,8 @@ Screen('Preference', 'VisualDebuglevel', 3);
 % eye tracking params
 eye_data_dir = 'eyedata';
 eye_file = sprintf('%s%s', subject_name([1:2 end-1:end]), datestr(now, 'mmdd'));
-P.eye_rad = 1; % allowable radius of eye motion, in degrees visual angle
+
+P.eye_rad = 1.5; % allowable radius of eye motion, in degrees visual angle. changed from 1.5 for Roshni
 P.eye_slack = 0.05; % (s) cushion between the fixation check and the next stim presentation
 P.eye_tracking = eye_tracking; % are we eye tracking?
 
@@ -73,8 +74,9 @@ switch room_letter
         dir = ''; % fill me out
 
     case 'Carrasco_L1'
-        screen_width = 40;
-        screen_distance = 56;
+        screen_width = 38.5;  % 40 with Roshni
+        screen_distance = 57; % 56 with Roshni
+
         scr.displayHz = 100;
         scr.res = [1280 960]; % should be 1280 x 960 screen res
         
@@ -112,7 +114,7 @@ close all;
 if new_subject
     nDemoTrials = 72;
 elseif ~new_subject
-    nDemoTrials = 10; % changed from 36 for Roshni
+    nDemoTrials = 36; % changed from 36 for Roshni
 end
 
 elapsed_mins = 0;
@@ -121,7 +123,7 @@ elapsed_mins = 0;
 P.stim_type = stim_type;  %options: 'grate', 'ellipse'
 %category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian. Further options for sym_uniform (ie bounds, and overlap) and half_gaussian (sig_s) are in setup_exp_order.m
 % attention_manipulation = true;
-cue_validity = .7;
+cue_validity = .8;
 
 % colors in 0:255 space
 white = 255;
@@ -210,19 +212,18 @@ if nStimuli > 1
     ConfidenceTraining.n.blocks = 1;
     if new_subject
         ConfidenceTraining.n.sections = 1;
-        ConfidenceTraining.n.trials = 30; % changed from 36 for Roshni
+        ConfidenceTraining.n.trials = 36; % changed from 36 for Roshni
     elseif ~new_subject
         ConfidenceTraining.n.sections = 1;
-        ConfidenceTraining.n.trials = 8; % changed from 30 for Roshni
+        ConfidenceTraining.n.trials = 30; % changed from 30 for Roshni
     end
     
 
     Training.t.betwtrials = 800;
 
     Test.n.blocks = 3; % 3
-    Test.n.sections = 3; % changed from 4 for Roshni
-    Test.n.trials = 36; % 36
-
+    Test.n.sections = 4; % changed from 4 for Roshni
+    Test.n.trials = 36; % changed from 36 for Roshni
     Test.t.betwtrials = 800;
     
     %     AttentionTraining.n.blocks = 1;
@@ -253,12 +254,12 @@ else
 end
 
 Training.initial.n.blocks = 1; %Do Not Change
-Training.initial.n.sections = 2; % WTA: 2
-Training.initial.n.trials = 36;% WTA: 36
+Training.initial.n.sections = 2; % changed from 2 for Roshni
+Training.initial.n.trials = 36;% changed from 36 for Roshni
 
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
-Training.n.sections = 2; %changed from '2' on 10/14
-Training.n.trials = 36; % WTA: 48
+Training.n.sections = 2; % changed from 2 for Roshni
+Training.n.trials = 36; % changed from 36 for Roshni
 
 Training.t.pres = 300; %300 % time stimulus is on screen
 Training.t.pause = 100; %100 time between response and feedback
@@ -266,7 +267,7 @@ Training.t.feedback = 1100;  %1700 time of "correct" or "incorrect" onscreen
 Training.t.cue_dur = 150;
 Training.t.cue_target_isi = 150;
 
-Test.t.pres = 50;           % time stimulus is on screen
+Test.t.pres = 80;           % time stimulus is on screen
 Test.t.pause = 100; % time between response and feedback
 Test.t.feedback = 1200;
 Test.t.cue_dur = 300; %150
@@ -292,7 +293,6 @@ if strfind(subject_name,'notrain') > 0 | test_feedback % if 'notrain' is in the 
 else
     notrain = false;
 end
-
 
 if strfind(subject_name, 'nodemo') > 0
     nodemo = true;
@@ -343,9 +343,13 @@ try
             % GRAYSCALE
             % calib = load('../../Displays/0001_james_TrinitonG520_1280x960_57cm_Input1_140129.mat');
             % rgbtable = calib.calib.table*[1 1 1];
-            calib = load('calibration/carrasco_l1_calibration_42015.mat')
 %             calib = load('calibration/carrasco_l1_calibration_42215_grayscale.mat');
-            rgbtable = calib.gammaTable1*[1 1 1];
+
+%             calib = load('calibration/carrasco_l1_calibration_42015.mat'); % used in experiment with Roshni
+%             rgbtable = calib.gammaTable1*[1 1 1];
+            
+            load('calibration/CarrascoL1_SonyGDM5402_calibration_02042016.mat')
+            rgbtable = CLUT;
             
             % RGB
             % calib = load('calibration/carrasco_l1_calibration_42215_rgb.mat');
@@ -430,7 +434,7 @@ try
     P.ellipseAreaPx = P.pxPerDeg^2 * P.ellipseAreaDegSq; % ellipse area in number of pixels
     P.ellipseColor = 0;
     
-    P.attention_stim_spacing = 5; % ran as 7 in pilot 1 % for two stimuli, distance from center (ie radius), in degrees (5 to 8, 4/21/15)
+    P.attention_stim_spacing = 5; % ran as 7 in pilot 1 % for multiple stimuli, distance from center (ie radius), in degrees
     P.stim_dist = round(P.attention_stim_spacing * P.pxPerDeg); % distance from center in pixels
     
     %%%Setup routine. this is some complicated stuff to deal with the
@@ -559,10 +563,10 @@ try
                             demostim(2).ort = -4;
                         elseif nStimuli == 4
                             % attention and probe demo
-                            demostim(1).ort = 4;
+                            demostim(1).ort = 2;
                             demostim(2).ort = -35;
-                            demostim(3).ort = 10;
-                            demostim(4).ort = -5.5;
+                            demostim(3).ort = 1;
+                            demostim(4).ort = -10;
                         end
                         
                         % display static 2-stimulus screen
@@ -600,7 +604,7 @@ try
                 [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr,...
                     color, P, 'Category Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
-
+                
             end
         end
         

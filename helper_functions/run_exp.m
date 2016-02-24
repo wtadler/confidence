@@ -236,62 +236,64 @@ try
             
             C = R.trial_order{blok}(section, trial); % true category
             
-            [tCatResp, keyCode] = KbWait(-1, 1); % second argument waits for key release. this is going to make debugging harder
-            
-            if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
-                error('You cancelled the script by pressing the insert and enter keys simultaneously.')
-            end
-            
-            if choice_only
-                if keyCode(scr.key5) % cat 1
-                    Chat = 1;
-                elseif keyCode(scr.key6) % cat 2
-                    Chat = 2;
+            while Chat == 0
+                [tCatResp, keyCode] = KbWait(-1, 0); % 0 doesn't wait for release
+                
+                if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
+                    error('You cancelled the script by pressing the insert and enter keys simultaneously.')
                 end
                 
-            else % if collecting confidence responses
-                if two_response
-                    if keyCode(scr.key1)
+                if choice_only
+                    if keyCode(scr.key5) % cat 1
                         Chat = 1;
-                    elseif keyCode(scr.key2)
+                    elseif keyCode(scr.key6) % cat 2
                         Chat = 2;
                     end
                     
-                    [~,ny] = center_print('Confidence?', scr.cy-50);
-                    t1=Screen('Flip', scr.win);
-                    WaitSecs(0.1);
-                    
-                    [tConfResp, keyCode] = KbWait(-1, 1);
-                    if keyCode(scr.key1)
-                        conf = 1;
-                    elseif keyCode(scr.key2)
-                        conf = 2;
-                    elseif keyCode(scr.key3)
-                        conf = 3;
-                    elseif keyCode(scr.key4)
-                        conf = 4;
+                else % if collecting confidence responses
+                    if two_response
+                        if keyCode(scr.key1)
+                            Chat = 1;
+                        elseif keyCode(scr.key2)
+                            Chat = 2;
+                        end
+                        
+                        [~,ny] = center_print('Confidence?', scr.cy-50); % 3 waits for release then press
+                        t1=Screen('Flip', scr.win);
+                        WaitSecs(0.1);
+                        
+                        [tConfResp, keyCode] = KbWait(-1, 3);
+                        if keyCode(scr.key1)
+                            conf = 1;
+                        elseif keyCode(scr.key2)
+                            conf = 2;
+                        elseif keyCode(scr.key3)
+                            conf = 3;
+                        elseif keyCode(scr.key4)
+                            conf = 4;
+                        end
+                        
+                    elseif ~two_response
+                        if keyCode(scr.key1) || keyCode(scr.key2) || keyCode(scr.key3) || keyCode(scr.key4) %cat 1 keys
+                            Chat = 1;
+                        elseif keyCode(scr.key7) || keyCode(scr.key8) || keyCode(scr.key9) || keyCode(scr.key10) %cat 2 keys
+                            Chat = 2;
+                        end
+                        
+                        if keyCode(scr.key1) || keyCode(scr.key10)
+                            conf = 4;
+                        elseif keyCode(scr.key2) || keyCode(scr.key9)
+                            conf = 3;
+                        elseif keyCode(scr.key3) || keyCode(scr.key8)
+                            conf = 2;
+                        elseif keyCode(scr.key4) || keyCode(scr.key7)
+                            conf = 1;
+                        end
                     end
                     
-                elseif ~two_response
-                    if keyCode(scr.key1) || keyCode(scr.key2) || keyCode(scr.key3) || keyCode(scr.key4) %cat 1 keys
-                        Chat = 1;
-                    elseif keyCode(scr.key7) || keyCode(scr.key8) || keyCode(scr.key9) || keyCode(scr.key10) %cat 2 keys
-                        Chat = 2;
-                    end
-                    
-                    if keyCode(scr.key1) || keyCode(scr.key10)
-                        conf = 4;
-                    elseif keyCode(scr.key2) || keyCode(scr.key9)
-                        conf = 3;
-                    elseif keyCode(scr.key3) || keyCode(scr.key8)
-                        conf = 2;
-                    elseif keyCode(scr.key4) || keyCode(scr.key7)
-                        conf = 1;
-                    end
+                    confstrings = {'VERY LOW', 'SOMEWHAT LOW', 'SOMEWHAT HIGH', 'VERY HIGH'};
+                    confstr = confstrings{conf};
                 end
-                
-                confstrings = {'VERY LOW', 'SOMEWHAT LOW', 'SOMEWHAT HIGH', 'VERY HIGH'};
-                confstr = confstrings{conf};
             end
             
             %record 1 if correct, 0 if incorrect
@@ -377,6 +379,8 @@ try
             else
                 hitxt = sprintf('%s\n\nYou just got %s\n',motivational_str,scorereport);
             end
+        case 'Attention Training'
+            hitxt = sprintf('%s\n\nYou just got %s\n', motivational_str, scorereport);
         case 'Testing'
             hitxt = sprintf('%s\n\nYou''ve just finished %sTesting Block %i of %i with\n\n%s\n',motivational_str,task_str,blok,n.blocks,scorereport);
         otherwise
