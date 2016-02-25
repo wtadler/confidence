@@ -40,7 +40,11 @@ end
 if include_aborted_jobs
     aborted_files = what([datadir '/aborted']);
     aborted_mat_files = aborted_files.mat;
-    aborted_job_files = aborted_mat_files(~cellfun(@isempty, regexp(aborted_mat_files, sprintf('^aborted_%s.*\\.mat', jobid))));
+    if require_exact_name
+        aborted_job_files = aborted_mat_files(~cellfun(@isempty, regexp(aborted_mat_files, sprintf('^aborted_%s\\..*\\.mat', jobid))));
+    else
+        aborted_job_files = aborted_mat_files(~cellfun(@isempty, regexp(aborted_mat_files, sprintf('^aborted_%s.*\\.mat', jobid))));
+    end
     for f = 1:length(aborted_job_files);
         aborted_file = regexp(aborted_job_files{f}, '^aborted_(.*)', 'tokens'); % a{1}{1} is a filename string without ('aborted_')
         aborted_file = aborted_file{1}{1};
