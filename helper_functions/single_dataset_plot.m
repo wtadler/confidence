@@ -98,8 +98,7 @@ if label_y
         set(gca, 'clipping', 'off')
         % blue to red colormap
         map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
-        map = map.confchoicemap;
-        button_colors = map(round(linspace(1,256,8)),:);
+        button_colors = map.button_colors;
 
         for r = 1:8
             plot(.5-resp_square_offset*len, r, 'square', 'markerfacecolor', button_colors(r,:), 'markersize', 12, 'markeredgecolor','none')

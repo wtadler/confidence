@@ -5,23 +5,47 @@ close all
 
 % list.extraplot = {'xvsig','xvsig','dvx','dvx','dvx','dvx','xvsig','xvsig','xvsig','xvsig'};
 % list.models =           [3 3 2 2 2 2 2 4 5 6];
+list.models = {'opt', 'opt', 'opt', 'opt', 'optasym', 'optasym', 'optRDM', 'optRDM', 'opt', 'opt'};
+list.extraplot = {[], 'dvx', 'dvx', 'dvx', 'dvx', 'dvx', [], 'xvsig', [], 'xvsig'};
+list.xp_region_fill = [0 0 0 0 0 1 1 1 1 1];
+list.dp_region_fill = [0 0 1 1 1 1 0 0 0 0];
+list.choice_colors = [0 0 1 0 0 0 0 0 0 0];
+list.ghost = [0 0 0 0 0 0 0 0 0 0];
 % list.xp_region_fill =   [1 1 0 0 0 1 1 1 1 1];
 % list.dp_region_fill =   [0 0 0 1 1 1 0 0 0 0];
 % list.choice_colors =    [1 0 0 1 0 0 0 0 0 0];
 % list.ghost =            [0 0 0 0 0 0 0 0 0 0];
 
-list.extraplot = {'xvsig'};
-list.models =           [2];
-list.xp_region_fill =   [1];
-list.dp_region_fill =   [0];
-list.choice_colors =    [0];
-list.ghost =            [0];
+
+% tut
+% [] opt 0 0 0 0
+% [dvx] opt 
+% [dvx] opt 0 1 1 0
+% [dvx] opt 0 1 0 0
+% [dvx] asym 0 1 0 0
+% [dvx] asym 1 1 0 0
+
+
+% []; [optrdm] 1 0 0 0 % task a
+% [xvsig]; [optrdm] 1 0 0 0 % task a
+
+% []; opt; 1 0 0 0 % Task B 
+% [xvsig]; opt; 1 0 0 0 % task b
+
+
+% 
+% list.extraplot = {'dvx'};
+% list.models =           {'optasym'}; %'opt', 'asym', 'lin', 'quad', 'fixed', 'RDM'
+% list.xp_region_fill =   [1];
+% list.dp_region_fill =   [1];
+% list.choice_colors =    [0];
+% list.ghost =            [0];
 
 datetimestr_all = datetimefcn;
 set(0,'defaultaxesticklength',[.008 .025]);
 for iii=1:length(list.models)
     clearvars -except iii list f datetimestr_all start_t
-    model_id = list.models(iii);
+%     model_id = list.models(iii);
     
     close all
     
@@ -30,7 +54,7 @@ for iii=1:length(list.models)
     
     makevideo = 1;
     loopSecs = 7.5;
-    fps = 3;
+    fps = 60;
     nSteps=round(loopSecs * fps);
     sss=1:nSteps;
     scalefactor = 2.73; % 2: XGA. 2.5: SXGA. 2.73: SXGA+, 1400x1050.
@@ -38,15 +62,13 @@ for iii=1:length(list.models)
     model_label = 0;
     blue=[.7 .7 1];
     red =[1 .7 .7];
-    darkblue=[0 0 .9];
-    darkred =[.9 0 0];
     
     xvsigcontrastlines = 0;
     
     datetimestr = datetimefcn;
-    
-    load('/Users/will/Google Drive/Ma lab/output/v3_B_fmincon_feb21/COMBINED_v3_B_.mat')
-    m = model;
+%     
+%     load('/Users/will/Google Drive/Ma lab/output/v3_B_fmincon_feb21/COMBINED_v3_B_.mat')
+%     m = model;
     
     %this is just for marking the text
     sig1=3;
@@ -54,28 +76,18 @@ for iii=1:length(list.models)
     mean_symcat = 4; % RDM symmetrical category mean.
     sig_symcat = 5;  % RDM symmetrical category std.
     
+    map = load('/Users/will/Google Drive/MATLAB/utilities/MyColorMaps.mat')
+    colors = map.button_colors;
+
+    lightred=colors(end,:).^.4;
+    lightblue =colors(1,:).^.4;
+
     
     nX = 300;
     x=linspace(-20,20,nX);
     yl=[0 .14];
     xl=[-20 20];
-%     colors = [0 0 .4;
-%         .17 .17 .6;
-%         .33 .33 .8;
-%         .5 .5 1;
-%         1 .5 .5;
-%         .8 .33 .33;
-%         .6 .17 .17;
-%         .4 0 0];
-    colors = [0 .1 .4;
-        .1 .3 .6;
-        .3 .5 .8;
-        .5 .7 .8;
-        .9 .7 .6;
-        .8 .33 .33;
-        .6 .15 .17;
-        .4 0 0].^1;
-        
+    
     if list.choice_colors(iii)
 %         colors = [repmat([.5 .5 1],4,1);repmat([1 .5 .5],4,1)];
           row1 = 3;
@@ -102,7 +114,7 @@ for iii=1:length(list.models)
     gcf_w = 512; % keep at 512
     gcf_rh = .375*gcf_w; % height in pixels for a one row figure
     
-    alpha=.6;
+    alpha=1;
     subject = 2;
     go = true;
     xt=-15:5:15;
@@ -121,31 +133,31 @@ for iii=1:length(list.models)
     xp_region_fill = list.xp_region_fill(iii);
     dp_region_fill = list.dp_region_fill(iii);
     
-    p = parameter_variable_namer(m(model_id).extracted(subject).best_params, m(model_id).parameter_names,m(model_id));
+%     p = parameter_variable_namer(m(model_id).extracted(subject).best_params, m(model_id).parameter_names,m(model_id));
     
-    if any(regexp(m(model_id).name, 'asym'))
+    if any(regexp(list.models{iii}, 'asym'))
         p.b_i = [-100 -1.8 -1.15 -.5 0 .34 .5 .8 100]; % when showing the diff between opt and asym, change the choice bound to something that's not 0.
         d_bounds = flipud(p.b_i(2:end-1)');
-    elseif any(regexp(m(model_id).name, 'opt'))
+    elseif any(regexp(list.models{iii}, 'opt'))
         p.b_i = [0 0.45 0.75 0.95 100];
         d_bounds = [flipud(p.b_i(2:end-1)'); 0; -p.b_i(2:end-1)'];
-    elseif any(regexp(m(model_id).name, 'lin')) | any(regexp(m(model_id).name, 'quad'))
+    elseif any(regexp(list.models{iii}, 'lin')) | any(regexp(list.models{iii}, 'quad'))
         %         p.m_i(5:8) = p.m_i(5:8) + .05;
         %         p.b_i(5:8) = p.b_i(5:8) + 2.2;
-    elseif any(regexp(m(model_id).name, 'fixed'))
+    elseif any(regexp(list.models{iii}, 'fixed'))
         p.b_i = [0 .4 1.3 2.6 5.16 6.7 8.9 12.5 Inf];
     end
     
-    if any(regexp(m(model_id).name, 'RDM'))
-        criteria{model_id} = [80*ones(1,nSteps);
+    if any(regexp(list.models{iii}, 'RDM'))
+        criteria = [80*ones(1,nSteps);
             repmat(d_bounds, 1, nSteps) .* repmat(sigs.^2 + sig_symcat^2,7,1) ./ mean_symcat;
             -80*ones(1,nSteps)];
         
-    elseif any(regexp(m(model_id).name, 'opt'))
+    elseif any(regexp(list.models{iii}, 'opt'))
         k1 = .5*log( (sigs.^2 + sig2^2) ./ (sigs.^2 + sig1^2));
         k2 = (sig2^2 - sig1^2) ./ (2 .* (sigs.^2 + sig1^2) .* (sigs.^2 + sig2^2));
         
-        criteria{model_id}=real([zeros(1,nSteps);
+        criteria=real([zeros(1,nSteps);
             sqrt((repmat(k1,7,1) - repmat(d_bounds, 1, nSteps))./repmat(k2,7,1));
             80*ones(1,nSteps)]);
         
@@ -163,17 +175,17 @@ for iii=1:length(list.models)
         end
         
         
-    elseif any(regexp(m(model_id).name, 'fixed'))
-        criteria{model_id}=[zeros(1,nSteps);
+    elseif any(regexp(list.models{iii}, 'fixed'))
+        criteria=[zeros(1,nSteps);
             repmat(p.b_i(2:end-1)',1,nSteps);
             80*ones(1,nSteps)];
-    elseif any(regexp(m(model_id).name, '^lin'))
-        criteria{model_id}=max(0,[zeros(1,nSteps);
+    elseif any(regexp(list.models{iii}, '^lin'))
+        criteria=max(0,[zeros(1,nSteps);
             repmat(p.b_i(2:end-1)',1,nSteps)+p.m_i(2:end-1)'*sigs;
             80*ones(1,nSteps)]);
         
-    elseif any(regexp(m(model_id).name, '^quad'))
-        criteria{model_id}=max(0,[zeros(1,nSteps);
+    elseif any(regexp(list.models{iii}, '^quad'))
+        criteria=max(0,[zeros(1,nSteps);
             repmat(p.b_i(2:end-1)',1,nSteps)+p.m_i(2:end-1)'*sigs.^2;
             80*ones(1,nSteps)]);
     end
@@ -194,16 +206,14 @@ for iii=1:length(list.models)
         
         cur_row=0;
         cur_row=cur_row+1;
-        model = m(model_id).name;
+        model = list.models{iii};
         
         conf_levels = 4;
         bin_edges = linspace(1/conf_levels, 1 - 1/conf_levels, conf_levels - 1);
         
         contrast = contrasts(step);
         
-        if extraplot
-            nModels=2;
-        end
+        nModels=2;
         
         subplot(nModels,subplotcols,[subplotcols:subplotcols:subplotcols*nModels])
         scrub2=plot([0 1],[contrast contrast],'k-','linewidth',2);
@@ -213,10 +223,11 @@ for iii=1:length(list.models)
         end
         
         set(gca,'yscale','log','ylim',[mincontrast maxcontrast], 'xtick',[],'gridlinestyle','-','zgrid','off','xgrid','off','ztick',[],'ytick',true_contrasts,'yaxislocation','right','yticklabel',{'1.8%','3.0%','5.0%','8.2%','13.5%', '22.3%'},'ticklength',[0 0],'visible','on','box','on')
+
         
         yy=ylabel('contrast');
         yypos = get(yy,'position');
-        set(yy,'fontsize',fs,'rot',-90,'interpreter','latex');
+        set(yy,'fontsize',fs,'rot',-90,'interpreter','latex', 'verticalalignment','middle');
         
         subplot(nModels,subplotcols,[subplotcols*cur_row-(subplotcols-1) : subplotcols*cur_row-1])
         cla
@@ -228,55 +239,57 @@ for iii=1:length(list.models)
             lc2g=plot(x,c2ghost,'color',red,'linewidth',2,'linesmoothing','on');
         end
         
-        if any(regexp(m(model_id).name, 'RDM'))
+        if any(regexp(list.models{iii}, 'RDM'))
             c1=normpdf(x,-mean_symcat,sqrt(sig_symcat^2 + sigs(step)^2));
             c2=normpdf(x,mean_symcat, sqrt(sig_symcat^2 + sigs(step)^2));
         else
             c1=normpdf(x,0,sqrt(sig1^2 + sigs(step)^2));
             c2=normpdf(x,0,sqrt(sig2^2 + sigs(step)^2));
         end
-        lc1=plot(x,c1,'color',darkblue,'linewidth',2,'linesmoothing','on');
+        lc1=plot(x,c1,'color',lightblue,'linewidth',2,'linesmoothing','on');
         hold on
-        lc2=plot(x,c2,'color',darkred,'linewidth',2,'linesmoothing','on');
+        lc2=plot(x,c2,'color',lightred,'linewidth',2,'linesmoothing','on');
         ylim(yl);
         xlim(xl);
         
         if model_label
             if extraplot
-                t=text(min(xl)-1,min(yl)-.025,sprintf('%s\nmodel',model_names{model_id}));
+                t=text(min(xl)-1,min(yl)-.025,sprintf('%s\nmodel',list.models(iii)));
                 set(t,'horizontalalignment','right','fontsize',fs,'interpreter','latex')
             else
-                t=text(min(xl)-2,mean(yl),model_names(model_id));
+                t=text(min(xl)-2,mean(yl), list.models(iii));
                 set(t,'horizontalalignment','right','fontsize',fs,'interpreter','latex')
             end
         end
         
         if xp_region_fill
             for i = 1:8
-                if any(regexp(m(model_id).name, 'RDM'))
-                    f=fill([criteria{model_id}(i,step) criteria{model_id}(i+1,step) criteria{model_id}(i+1,step) criteria{model_id}(i,step)], [yl(1) yl(1) yl(2) yl(2)],colors(9-i,:));
+                if any(regexp(list.models{iii}, 'RDM'))
+                    f=fill([criteria(i,step) criteria(i+1,step) criteria(i+1,step) criteria(i,step)], [yl(1) yl(1) yl(2) yl(2)],colors(9-i,:));
                 else
-                    f=fill([criteria{model_id}(i,step) criteria{model_id}(i+1,step) criteria{model_id}(i+1,step) criteria{model_id}(i,step)], [yl(1) yl(1) yl(2) yl(2)],colors(i,:));
+                    f=fill([criteria(i,step) criteria(i+1,step) criteria(i+1,step) criteria(i,step)], [yl(1) yl(1) yl(2) yl(2)],colors(i,:));
                 end
                 
                 set(f,'edgecolor','none', 'facealpha', alpha)
                 uistack(f,'top')
-                if ~any(regexp(m(model_id).name, 'RDM')) % plot the reverse if not RDM.
+                if ~any(regexp(list.models{iii}, 'RDM')) % plot the reverse if not RDM.
                     hold on
-                    f=fill([-criteria{model_id}(i+1,step) -criteria{model_id}(i,step) -criteria{model_id}(i,step) -criteria{model_id}(i+1,step)], [yl(1) yl(1) yl(2) yl(2)], colors(i,:));
+                    f=fill([-criteria(i+1,step) -criteria(i,step) -criteria(i,step) -criteria(i+1,step)], [yl(1) yl(1) yl(2) yl(2)], colors(i,:));
                     set(f,'edgecolor','none', 'facealpha', alpha)
                 end
             end
         end
-        if model_id == list.models(end)
+%         if iii == length(list.models)
             apos=get(gca,'position');
-            set(gca,'xticklabel',xt,'ztick',[],'layer','top','position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)],'box','off')
+            set(gca,'xtick',xt,'xticklabel',xt,'ztick',[],'layer','top','position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)],'box','off','ytick',[],'tickdir','out')
             xx=xlabel('measurement $x$ $(^\circ)$','interpreter','latex','fontsize',fs);
             %yy=ylabel({'{\color[rgb]{.7 .7 1}$p(x|C=1)$}\hspace{2.5mm}';'{\color[rgb]{1 .7 .7}$p(x|C=2)$}\hspace{2.5mm}'}, 'interpreter','latex','fontsize',fs,'rot',0,'horizontalalignment','right');
-            yy = ylabel('$p(x|C=1)$\hspace{2.5mm}','interpreter','latex','color',darkblue, 'interpreter','latex','fontsize',fs,'rot',0,'horizontalalignment','right');
+            yy = ylabel('$p(x|C=1)$\hspace{2.5mm}','interpreter','latex','color',lightblue, 'interpreter','latex','fontsize',fs,'rot',0,'horizontalalignment','right');
             yypos = get(yy,'position');
-            text(yypos(1)+.1,yypos(2)-.012,'$p(x|C=2)$\hspace{2.5mm}','interpreter','latex','color',darkred,'fontsize',fs,'horizontalalignment','right');
-        end
+            text(yypos(1)+.1,yypos(2)-.012,'$p(x|C=2)$\hspace{2.5mm}','interpreter','latex','color',lightred,'fontsize',fs,'horizontalalignment','right');
+%         end
+        uistack(lc1, 'top')
+        uistack(lc2, 'top')
         
         if extraplot
             cur_row = cur_row+1;
@@ -313,7 +326,7 @@ for iii=1:length(list.models)
                 xx=xlabel('$\log{\dfrac{p(x|C=1)}{p(x|C=2)}}$');
                 set(xx,'fontsize',fs+5,'interpreter','latex')
                 apos = get(gca,'position');
-                set(gca,'position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)],'xtick',-2:1:2,'xticklabel',-2:1:2,'ztick',[],'box','off','visible','on','ydir','normal','ytick',[],'layer','top')%,'visible','off')
+                set(gca,'position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)],'xtick',-2:1:2,'xticklabel',-2:1:2,'ztick',[],'box','off','visible','on','ydir','normal','ytick',[],'layer','top','tickdir','out')%,'visible','off')
                 delete(get(gca,'ylabel'))
                 
             elseif strcmp(extraplot,'dvx')
@@ -326,14 +339,11 @@ for iii=1:length(list.models)
                 ylim(dyl);
                 apos = get(gca,'position');
                 %aticklength = get(gca,'ticklength')
-                set(gca,'position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)], 'xtick',xt,'xticklabel',xt,'box','off','visible','on','ytick',-2:1:2,'yticklabel',-2:1:2,'ztick',[],'layer','top','xcolor','w')
+                set(gca,'position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)], 'xtick',xt,'xticklabel',xt,'box','off','visible','on','ytick',-2:1:2,'yticklabel',-2:1:2,'ztick',[],'layer','top','xcolor','w','tickdir','out')
                 for tick = 1 : length(xt)
                     plot([xt(tick) xt(tick)], [-.1 0],'-k','linewidth',1)
                     t=text(xt(tick),-.4,num2str(xt(tick)),'horizontalalignment','center','fontsize',11);
                 end
-                xx=xlabel('measurement $x$ $(^\circ)$');
-                xxpos = get(xx,'position');
-                set(xx,'fontsize',fs,'interpreter','latex','position',xxpos,'color','k','position',xxpos+[0 2.1 0])
                 %yy = ylabel({'\hspace{10mm}$d$';'$=\log{\frac{p(C=1|x)}{p(C=2|x)}}$'});
                 yy = ylabel('$\log{\frac{p(x|C=1)}{p(x|C=2)}}$');
                 set(yy,'fontsize',fs+4,'interpreter','latex','rot',0,'horizontalalignment','right','verticalalignment','middle')
@@ -354,23 +364,29 @@ for iii=1:length(list.models)
                             set(f2,'edgecolor','none', 'facealpha', alpha)
                         end
                     end
+                else
+                    xx=xlabel('measurement $x$ $(^\circ)$');
+                    xxpos = get(xx,'position');
+                    set(xx,'fontsize',fs,'interpreter','latex','position',xxpos,'color','k','position',xxpos+[0 2.1 0])
+
                 end
-                
+                uistack(xd, 'top')
+                uistack(zeroline, 'top')
             elseif strcmp(extraplot,'xvsig')
                 for i = 1:8
                     
-                    ff = fill([-fliplr(criteria{model_id}(i,:)) -(criteria{model_id}(i+1,:))],[fliplr(sigs) sigs],colors(i,:));
+                    ff = fill([-fliplr(criteria(i,:)) -(criteria(i+1,:))],[fliplr(sigs) sigs],colors(i,:));
                     set(ff,'edgecolor','none','facealpha',alpha)
-                    if ~any(regexp(m(model_id).name, 'RDM'))
+                    if ~any(regexp(list.models{iii}, 'RDM'))
                         hold on
-                        ff = fill([criteria{model_id}(i,:) fliplr(criteria{model_id}(i+1,:))],[sigs fliplr(sigs)],colors(i,:));
+                        ff = fill([criteria(i,:) fliplr(criteria(i+1,:))],[sigs fliplr(sigs)],colors(i,:));
                         set(ff,'edgecolor','none','facealpha',alpha)
                     end
                 end
                 scrubber=plot(xl,[sigs(step) sigs(step)], 'k-','linewidth',2);
                 uistack(scrubber,'top')
                 apos=get(gca,'position');
-                set(gca,'position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)],'visible','on','ydir','normal','ygrid','on','ycolor',[0 0 0],'xgrid','off','zgrid','off','xticklabel',xt,'xtick',xt,'ztick',[],'gridlinestyle','-','ytick',0:2:20,'yticklabel',0:2:20,'xlim',xl,'ylim',[minsig maxsig],'box','off','layer','top')
+                set(gca,'position',[apos(1)+shiftfactor*apos(1) apos(2) apos(3)-shiftfactor*apos(1) apos(4)],'visible','on','ydir','normal','ygrid','on','ycolor',[0 0 0],'xgrid','off','zgrid','off','xticklabel',xt,'xtick',xt,'ztick',[],'gridlinestyle','-','ytick',0:2:20,'yticklabel',0:2:20,'xlim',xl,'ylim',[minsig maxsig],'box','off','layer','top','tickdir','out')
                 
                 %if iii>11
                 %    set(gca,'ydir','normal')
@@ -386,13 +402,13 @@ for iii=1:length(list.models)
                 uistack(scrubber,'up',100)
                 
                 xx=xlabel('measurement $x$ $(^\circ)$');
-                yy=ylabel('noise level $\sigma$ $(^\circ)$\hspace{0mm}');
+                yy=ylabel('uncertainty $\sigma$ $(^\circ)$\hspace{0mm}');
                 if step == 1 | step ==2
                     xxpos2 = get(xx,'position');
                 end
                 set(xx,'fontsize',fs,'position',xxpos2,'interpreter','latex')
                 
-                set(yy,'fontsize',fs,'rot',0,'interpreter','latex','horizontalalignment','right','verticalalignment','middle')
+                set(yy,'fontsize',fs,'rot',90,'interpreter','latex','horizontalalignment','center','verticalalignment','bottom')
                 
             elseif strcmp(extraplot,'empty')
                 set(gca,'visible','off')
@@ -421,7 +437,7 @@ for iii=1:length(list.models)
         extensions={'mp4'};%,'wmv'};
         codecs = {'x264'};%,'wmv'};
         for vid=1:length(extensions);
-            filename=sprintf('%i%s.%s',iii,m(model_id).name(1:5),extensions{vid});
+            filename=sprintf('%i%s.%s',iii,list.models{iii},extensions{vid});
             imdim=size(im);
             ffmpegtranscode('%5d.png',filename,'InputFrameRate',fps,'AudioCodec','none','x264Tune','animation','DeleteSource','off','WMVBitRate',3000,'VideoCodec',codecs{vid},'VideoCrop',[rem(imdim(2),2) rem(imdim(1),2) 0 0])
             movefile(filename,[savedir filename]);

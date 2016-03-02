@@ -6,7 +6,7 @@ nFakeGroupDatasets = 100;
 depvars = {'tf'};
 symmetrify = false;
 bin_types = {'c_s'};
-attention_task = false;
+attention_manipulation = false;
 group_plot = false;
 real_data = [];
 trial_types = {'all'};
@@ -25,7 +25,7 @@ for m = 1:nModels
         models(m).extracted(dataset).fake_datasets = dataset_generator(models(m),...
             models(m).extracted(dataset).p, nPlotSamples, 'nBins', nBins,...
             'raw', raw, 'tasks', tasks, 'dep_vars', depvars, 'symmetrify', symmetrify,...
-            'bin_types', bin_types, 'attention_task', attention_task, 'trial_types', trial_types);
+            'bin_types', bin_types, 'attention_manipulation', attention_manipulation, 'trial_types', trial_types);
         fprintf('\nGenerating data from model %i/%i for subject %i/%i...', m, nModels, dataset, nSubjects);
     end
     

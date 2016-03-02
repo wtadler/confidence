@@ -68,12 +68,12 @@ nSubjects = length(real_data.(tasks{1}).data);
 if isfield(real_data.(tasks{1}).data(1).raw, 'cue_validity') && ~isempty(real_data.(tasks{1}).data(1).raw.cue_validity)
     % attention
     nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.cue_validity_id));
-    attention_task = true;
+    attention_manipulation = true;
     colors = flipud([.7 0 0;.6 .6 .6;0 .7 0]);
     
 else
     nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.contrast_id));
-    attention_task = false;
+    attention_manipulation = false;
     
     if isempty(plot_reliabilities); plot_reliabilities = 1:nReliabilities; end
     
@@ -86,13 +86,15 @@ end
 if ~isempty(models)
     show_fits = true;
     nModels = length(models);
+    plot_connecting_line = false;
     
     models = generate_and_analyze_fitted_data(models, tasks, 'real_data', real_data, 'nBins', nBins, 'nPlotSamples', nPlotSamples,...
         'depvars', depvars, 'symmetrify', symmetrify, 'bin_types', union(slices, means),...
-        'attention_task', attention_task, 'group_plot', group_plot, 'nFakeGroupDatasets', nFakeGroupDatasets);
+        'attention_manipulation', attention_manipulation, 'group_plot', group_plot, 'nFakeGroupDatasets', nFakeGroupDatasets);
 else
     show_fits = false;
     nModels = 0;
+    plot_connecting_line = true;
 end
 
 
@@ -172,7 +174,8 @@ for fig = 1:n.fig
                     'linewidth', linewidth, ...
                     'plot_reliabilities', plot_reliabilities, ...
                     'label_x', label_x, 'label_y', label_y, 's_labels', s_labels,...
-                    'task', tasks{task}, 'errorbarwidth', errorbarwidth);
+                    'task', tasks{task}, 'errorbarwidth', errorbarwidth,...
+                    'plot_connecting_line', plot_connecting_line);
                 
                 % clean this section up?
                 fake_data = false;

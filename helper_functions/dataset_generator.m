@@ -9,7 +9,7 @@ tasks_in = [];
 dep_vars = {'resp','g','Chat'};
 symmetrify = false;
 bin_types = {'c_s'};
-attention_task = false;
+attention_manipulation = false;
 trial_types = {'all'};
 assignopts(who,varargin);
 
@@ -45,9 +45,9 @@ for task = 1:length(tasks)
     for s = 1:nSamples
         fake_datasets.(tasks{task}).dataset(s).p = param_samples(sample_ids(s), param_idx(task,:))';
         if ~isempty(raw) % if not providing real trials
-            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'model_fitting_data', raw.(tasks{task}), 'attention_task', attention_task);
+            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'model_fitting_data', raw.(tasks{task}), 'attention_manipulation', attention_manipulation);
         else
-            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'attention_task', attention_task);
+            fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'attention_manipulation', attention_manipulation);
         end
         if symmetrify && strcmp(tasks{task}, 'B')
             fake_datasets.(tasks{task}).dataset(s).raw.s = abs(fake_datasets.(tasks{task}).dataset(s).raw.s);
