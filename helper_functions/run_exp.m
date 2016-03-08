@@ -1,4 +1,4 @@
-function [responses, flag] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback)
+function [responses, flag, psybayes_struct] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback, psybayes_struct)
 
 if ~exist('choice_only', 'var') || isempty(choice_only)
     if (strcmp(type, 'Category Training') && ~test_feedback) || strcmp(type, 'Attention Training')
@@ -14,6 +14,12 @@ end
 
 if ~exist('test_feedback','var')
     test_feedback = false;
+end
+
+if ~exist('psybayes_struct','var') || isempty(psybayes_struct)
+    staircase = false;
+else
+    staircase = true;
 end
 
 nStimuli = size(R.draws{blok}, 3);
@@ -58,7 +64,6 @@ end
 Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
 flip_key_flip(scr,'begin',ny,color, false);
 
-
 %%%Run trials %%%
 try
     for section = 1:n.sections
@@ -97,10 +102,24 @@ try
             end
             
             stim = struct;
+            if staircase
+                switch R.cue_validity{blok}(section, trial)
+                    case 1
+                        condition = 'valid';
+                    case 0
+                        condition = 'neutral';
+                    case -1
+                        condition = 'invalid';
+                end
+                [next_contrast, psybayes_struct.(condition)] = psybayes(psybayes_struct.(condition), psybayes_struct.(condition).method, psybayes_struct.(condition).vars, psybayes_struct.(condition).trial_contrast, psybayes_struct.(condition).trial_correct)
+                psybayes_struct.(condition).trial_contrast = next_contrast;
+                R.sigma{blok}(section, trial, :) = next_contrast;
+            end
+            
             for i = 1:nStimuli
-                stim(i).ort =       R.draws{blok}(section, trial, i);  %orientation
-                stim(i).cur_sigma = R.sigma{blok}(section, trial, i);  %contrast
-                stim(i).phase =     R.phase{blok}(section, trial, i);  %phase (not needed by ellipse)
+               stim(i).ort =       R.draws{blok}(section, trial, i);  %orientation
+               stim(i).phase =     R.phase{blok}(section, trial, i);  %phase (not needed by ellipse)
+               stim(i).cur_sigma = R.sigma{blok}(section, trial, i);  %contrast (pregenerated when not using staircase)
             end
             
             if nStimuli == 1
@@ -319,10 +338,14 @@ try
             %record 1 if correct, 0 if incorrect
             %             fprintf('cat %d - ACC %d\n', resp, resp==cval) % for debugging
             responses.tf(section, trial) = (Chat == C);
+            if staircase
+                psybayes_struct.(condition).trial_correct = responses.tf(section, trial);
+            end
             responses.c (section, trial) = Chat;
             if ~choice_only
                 responses.conf(section, trial) = conf;
             end
+
             responses.rt(section,trial) = tCatResp - t0;
             if two_response
                 responses.rtConf(section,trial) = tConfResp - t1;
@@ -356,8 +379,6 @@ try
                         WaitSecs(t.feedback/1000);
                     end
                 end
-                
-                
                 
                 
             end

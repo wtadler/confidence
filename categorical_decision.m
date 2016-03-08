@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback, staircase)
 
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
@@ -24,6 +24,10 @@ end
 
 if ~exist('two_response', 'var')
     two_response = false;
+end
+
+if ~exist('staircase', 'var')
+    staircase = false;
 end
 
 try
@@ -96,6 +100,21 @@ switch room_letter
             = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
         scr.keyenter=40; % return
         scr.keyinsert=42;% normal delete
+    case 'GBLaptop'
+        screen_width = 38.5;  % 40 with Roshni
+        screen_distance = 57; % 56 with Roshni
+        scr.displayHz = 60;
+        
+        f_c_size = 28; % length and width. must be even.
+        fw = 0; % line thickness = 2+2*fw pixels
+        
+        dir = ''; % fill me out
+        
+        [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
+            scr.key7, scr.key8, scr.key9, scr.key10] ...
+            = deal(49, 50, 51, 52, 53, 56, 57, 48, 189, 187); % This is for keys 1,2,3,4,5,8,9,0,-,=
+        scr.keyenter=13; % return
+        scr.keyinsert=46;% normal delete
 end
 
 if strcmp(room_letter,'home') || strcmp(room_letter,'mbp')
@@ -259,7 +278,8 @@ else
 end
 
 Training.initial.n.blocks = 1; %Do Not Change
-Training.initial.n.sections = 1; % main experiment: 2, feedback experiment: 1
+
+Training.initial.n.sections = 2; % main experiment: 2, feedback experiment: 1
 Training.initial.n.trials = 36;% main experiment: 36, feedback experiment: 48
 
 Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
@@ -272,7 +292,9 @@ Training.t.feedback = 1100;  %1700 time of "correct" or "incorrect" onscreen
 Training.t.cue_dur = 150;
 Training.t.cue_target_isi = 150;
 
+
 Test.t.pres = 80;           % time stimulus is on screen. 50 for main, 80 for attention?
+
 Test.t.pause = 100; % time between response and feedback
 if test_feedback
     Test.t.feedback = 800;
@@ -283,6 +305,34 @@ end
 Test.t.cue_dur = 300; %150
 Test.t.cue_target_isi = 300; %150
 
+psybayes_struct = []; %initialize structure
+if staircase
+    posterior = struct;
+    % Set change level (for PCORRECT psychometric functions)
+    posterior.gamma = 0.5;        
+    % psyinit.gamma = [];   % Leave it empty for YES/NO psychometric functions
+    
+    % Define range for stimulus and for parameters of the psychometric function
+    % (lower bound, upper bound, number of points)
+    posterior.range.x = [0,1,61];
+    posterior.range.mu = [0,1,51];
+    posterior.range.sigma = [0.05,1,25];      % The range for sigma is automatically converted to log spacing
+    posterior.range.lambda = [.15,0.5,25];
+    
+    % Define priors over parameters
+    posterior.priors.mu = [.14,.04];                  % mean and std of (truncated) Gaussian prior over MU
+    posterior.priors.logsigma = [log(0.1),.5];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
+    posterior.priors.lambda = [9 25];             % alpha and beta parameter of beta pdf over LAMBDA
+    
+    posterior.method = 'ent';     % Minimize the expected posterior entropy
+    posterior.vars = [1 1 1];     % This choice minimizes joint posterior entropy of mean, sigma and lambda
+
+    posterior.trial_correct = [];
+    posterior.trial_contrast = [];
+    
+    psybayes_struct = struct;
+    [psybayes_struct.valid, psybayes_struct.invalid, psybayes_struct.neutral] = deal(posterior);
+end
 
 if test_feedback
     ConfidenceTraining.category_params.test_sigmas = Training.category_params.test_sigmas;
@@ -619,23 +669,27 @@ try
                 [Training.responses{k}, flag] = run_exp(Training.n, Training.R, Training.t, scr,...
                     color, P, 'Category Training',k, new_subject, task_str, final_task, subject_name);
                 if flag ==1,  break;  end
-
+                
             end
         end
-       
-        [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing', k, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback);
+                
+        if ~test_feedback
+            [Test.responses{k}, flag, psybayes_struct] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing', k, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback, psybayes_struct);
+        elseif test_feedback
+            [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing Feedback', k, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback);
+        end
         
         if flag == 1,  break;  end
         
         elapsed_mins = toc(start_t)/60;
-        save(strrep([datadir '/backup/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins') % block by block backup. strrep makes the file separator system-dependent.
+        save(strrep([datadir '/backup/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins', 'psybayes_struct') % block by block backup. strrep makes the file separator system-dependent.
             
         if flag == 1 % when run_exp errors
             subject_name = [subject_name '_flaggedinrunexp'];
         end
     end
     
-    save(strrep([datadir '/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'ConfidenceTraining', 'AttentionTraining', 'P', 'category_type', 'elapsed_mins') % save complete session
+    save(strrep([datadir '/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'ConfidenceTraining', 'AttentionTraining', 'P', 'category_type', 'elapsed_mins', 'psybayes_struct') % save complete session
     recycle('on'); % tell delete to just move to recycle bin rather than delete entirely.
     delete([datadir '/backup/' subject_name '_' datetimestamp '.mat']) % delete the block by block backup
     
@@ -653,7 +707,7 @@ try
 catch %if error or script is cancelled
     Screen('CloseAll');
     
-    save(strrep([datadir '/backup/' subject_name '_recovered_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','category_type', 'elapsed_mins')
+    save(strrep([datadir '/backup/' subject_name '_recovered_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','category_type', 'elapsed_mins', 'psybayes_struct')
     
     psychrethrow(psychlasterror);
 end

@@ -5,15 +5,16 @@ function run_categorical_decision(initial)
 
 if nargin==0
     % initial = 'rd_p1_run02_notrain'; % 'rdshortnotrain'
-    initial = 'av';
+    initial = 'notrain';
 end
 
 exp_type = 'attention'; %'attention' or 'AB'
 new_subject = true;
+staircase = true;
 
 switch exp_type
     case 'attention'
-        room_letter = 'Carrasco_L1'; % 'mbp','Carrasco_L1','1139'
+        room_letter = 'GBLaptop'; % 'mbp','Carrasco_L1','1139'
         category_type = 'same_mean_diff_std'; % 'same_mean_diff_std','sym_uniform'
         eye_tracking = false;
         nStimuli = 4;
@@ -23,7 +24,7 @@ switch exp_type
         stim_type = 'grate';
         
         categorical_decision(category_type, initial, new_subject, ...
-            room_letter, nStimuli, eye_tracking, stim_type, [], [], choice_only)
+            room_letter, nStimuli, eye_tracking, stim_type, [], [], choice_only, false, false, staircase)
     case 'AB'
         cd('C:\GitHub\Confidence-Theory')
         test_feedback = false;
