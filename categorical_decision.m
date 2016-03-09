@@ -84,7 +84,7 @@ switch room_letter
         dir = ''; % fill me out
 
     case 'Carrasco_L1'
-        screen_width = 38.5;  % 40 with Roshni
+        screen_width = 40;  % 40 with Roshni
         screen_distance = 57; % 56 with Roshni
 
         scr.displayHz = 100;
@@ -415,7 +415,7 @@ try
 %             calib = load('calibration/carrasco_l1_calibration_42015.mat'); % used in experiment with Roshni
 %             rgbtable = calib.gammaTable1*[1 1 1];
             
-            load('calibration/CarrascoL1_SonyGDM5402_calibration_02042016.mat')
+            load('calibration/Carrasco_L1_SonyGDM5402_sRGB_calibration_02292016.mat')
             rgbtable = CLUT;
             
             % RGB
