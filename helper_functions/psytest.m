@@ -12,15 +12,15 @@ psyinit.gamma = 0.5;
 
 % Define range for stimulus and for parameters of the psychometric function
 % (lower bound, upper bound, number of points)
-psyinit.range.x = [1.5,4.5,61];
-psyinit.range.mu = [2,4,51];
+psyinit.range.x = [-4,0,61];
+psyinit.range.mu = [-4,0,51];
 psyinit.range.sigma = [0.05,1,25];      % The range for sigma is automatically converted to log spacing
-psyinit.range.lambda = [0,0.4,25];
+psyinit.range.lambda = [.15,0.5,25];
 
 % Define priors over parameters
-psyinit.priors.mu = [3,2];                  % mean and std of (truncated) Gaussian prior over MU
-psyinit.priors.logsigma = [log(0.5),Inf];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
-psyinit.priors.lambda = [1 4];             % alpha and beta parameter of beta pdf over LAMBDA
+psyinit.priors.mu = [-2,.14];                  % mean and std of (truncated) Gaussian prior over MU
+psyinit.priors.logsigma = [log(0.1),1];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
+psyinit.priors.lambda = [9 25];             % alpha and beta parameter of beta pdf over LAMBDA
 
 % Units -- used just for plotting in axis labels and titles
 psyinit.units.x = 'cm';
@@ -36,8 +36,8 @@ plotflag = 1;       % Plot visualization
 %--------------------------------------------------------------------------
 
 % Parameters of simulated observer
-mu = 3.05;
-sigma = 0.2;
+mu = -2;
+sigma = 0.05;
 lambda = 0.2;
 
 % Psychometric function for the simulated observer

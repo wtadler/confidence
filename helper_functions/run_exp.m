@@ -111,9 +111,9 @@ try
                     case -1
                         condition = 'invalid';
                 end
-                [next_contrast, psybayes_struct.(condition)] = psybayes(psybayes_struct.(condition), psybayes_struct.(condition).method, psybayes_struct.(condition).vars, psybayes_struct.(condition).trial_contrast, psybayes_struct.(condition).trial_correct)
+                [next_contrast, psybayes_struct.(condition)] = psybayes(psybayes_struct.(condition), psybayes_struct.(condition).method, psybayes_struct.(condition).vars, psybayes_struct.(condition).trial_contrast, psybayes_struct.(condition).trial_correct);
                 psybayes_struct.(condition).trial_contrast = next_contrast;
-                R.sigma{blok}(section, trial, :) = next_contrast;
+                R.sigma{blok}(section, trial, :) = exp(next_contrast);
             end
             
             for i = 1:nStimuli
