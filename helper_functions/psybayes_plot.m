@@ -1,4 +1,4 @@
-load('~/Downloads/notrain_20160308_145431.mat')
+load('/Local/Users/adler/Google Drive/Will - Confidence/Analysis/attention3/notrain_20160309_155331.mat')
 st(1) = psybayes_struct.valid;
 st(2) = psybayes_struct.neutral;
 st(3) = psybayes_struct.invalid;
@@ -11,14 +11,18 @@ psychofun_pcorrect = @(x, mu, sigma, lambda)...
     bsxfun(@times,1-gamma-lambda,0.5*(1+erf(bsxfun(@rdivide,bsxfun(@minus,x,mu),sqrt(2)*sigma)))));
 %%
 nCurves = length(st);
-colors = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
-colors = colors.attention_colors;
+try
+    colors = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
+    colors = colors.attention_colors;
+catch
+    colors = [0 .7 0; .6 .6 .6; .7 0 0];
+end
 
 figure(1)
 clf
 
 yl = [.5 .75];
-xl = [0 1];
+xl = [-4 0];
 for i = 1:nCurves
     tab = st(i);
     
@@ -54,5 +58,5 @@ for i = 1:nCurves
 end
 
 set(gca, 'tickdir', 'out', 'ylim', yl, 'xlim', xl, 'clipping', 'off')
-xlabel('contrast')
+xlabel('log contrast')
 ylabel('% correct')
