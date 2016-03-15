@@ -1,4 +1,4 @@
-load('/Local/Users/adler/Google Drive/Will - Confidence/Analysis/attention3/notrain_20160309_155331.mat')
+% load('/Local/Users/adler/Google Drive/Will - Confidence/Analysis/attention3/notrain_20160309_155331.mat')
 st(1) = psybayes_struct.valid;
 st(2) = psybayes_struct.neutral;
 st(3) = psybayes_struct.invalid;
@@ -37,7 +37,6 @@ for i = 1:nCurves
     end
     
     c = colors(i, :);
-    figure(1)
     hold on
     
     
