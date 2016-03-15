@@ -324,13 +324,13 @@ if staircase
         % Define range for stimulus and for parameters of the psychometric function
         % (lower bound, upper bound, number of points)
         posterior.range.x = [-6,0,61]; % log contrast units
-        posterior.range.mu = [-4,0,51];
+        posterior.range.mu = [-6,0,51];
         posterior.range.sigma = [0.05,1,25];      % The range for sigma is automatically converted to log spacing
         posterior.range.lambda = [.15,0.5,25];
         
         % Define priors over parameters
         posterior.priors.mu = [-2,1.2];                  % mean and std of (truncated) Gaussian prior over MU
-        posterior.priors.logsigma = [log(0.1),1.2];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
+        posterior.priors.logsigma = [log(0.1), Inf];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
         posterior.priors.lambda = [20 39];             % alpha and beta parameter of beta pdf over LAMBDA
         
         posterior.method = 'ent';     % Minimize the expected posterior entropy
@@ -689,13 +689,22 @@ try
             [Test.responses{k}, flag] = run_exp(Test.n, Test.R, Test.t, scr, color, P, 'Testing Feedback', k, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback);
         end
         
-        if flag == 1,  break;  end
-        
-        elapsed_mins = toc(start_t)/60;
-        save(strrep([datadir '/backup/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins', 'psybayes_struct') % block by block backup. strrep makes the file separator system-dependent.
-            
         if flag == 1 % when run_exp errors
             subject_name = [subject_name '_flaggedinrunexp'];
+            break
+        end
+        
+        if exist('psybayes_struct', 'var')
+            fields = fieldnames(psybayes_struct);
+            for f = 1:length(fields)
+                psybayes_struct.(fields{f}).f = [];
+            end
+        end
+        
+        elapsed_mins = toc(start_t)/60;
+        
+        if k ~= Test.n.blocks
+            save(strrep([datadir '/backup/' subject_name '_' datetimestamp '.mat'],'/',filesep), 'Training', 'Test', 'P','elapsed_mins', 'psybayes_struct') % block by block backup. strrep makes the file separator system-dependent.
         end
     end
     
