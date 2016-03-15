@@ -26,7 +26,6 @@ if numel(vars) ~= 3; error('VARS need to be a 3-element array for MU, SIGMA and 
 
 if isempty(tab) || ~isfield(tab,'post')  % First call, initialize everything
     tabinit = tab;
-    tab = [];
     
     tab.ntrial = 0;     % Trial number
     tab.data = [];      % Record of data

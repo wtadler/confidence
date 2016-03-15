@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback, staircase)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback, staircase, old_staircase_file)
 
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
@@ -28,6 +28,10 @@ end
 
 if ~exist('staircase', 'var')
     staircase = false;
+end
+
+if ~exist('old_staircase_file', 'var')
+    old_staircase_file = '';
 end
 
 try
@@ -307,31 +311,37 @@ Test.t.cue_target_isi = 300; %150
 
 psybayes_struct = []; %initialize structure
 if staircase
-    posterior = struct;
-    % Set change level (for PCORRECT psychometric functions)
-    posterior.gamma = 0.5;        
-    % psyinit.gamma = [];   % Leave it empty for YES/NO psychometric functions
-    
-    % Define range for stimulus and for parameters of the psychometric function
-    % (lower bound, upper bound, number of points)
-    posterior.range.x = [-4,0,61]; % log contrast units
-    posterior.range.mu = [-4,0,51];
-    posterior.range.sigma = [0.05,1,25];      % The range for sigma is automatically converted to log spacing
-    posterior.range.lambda = [.15,0.5,25];
-    
-    % Define priors over parameters
-    posterior.priors.mu = [-2,.04];                  % mean and std of (truncated) Gaussian prior over MU
-    posterior.priors.logsigma = [log(0.1),1];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
-    posterior.priors.lambda = [20 39];             % alpha and beta parameter of beta pdf over LAMBDA
-    
-    posterior.method = 'ent';     % Minimize the expected posterior entropy
-    posterior.vars = [1 1 1];     % This choice minimizes joint posterior entropy of mean, sigma and lambda
-
-    posterior.trial_correct = [];
-    posterior.trial_contrast = [];
-    
-    psybayes_struct = struct;
-    [psybayes_struct.valid, psybayes_struct.invalid, psybayes_struct.neutral] = deal(posterior);
+    if ~isempty(old_staircase_file)
+        old = load(old_staircase_file);
+        psybayes_struct = old.psybayes_struct;
+        clear old;
+    else
+        posterior = struct;
+        % Set change level (for PCORRECT psychometric functions)
+        posterior.gamma = 0.5;
+        % psyinit.gamma = [];   % Leave it empty for YES/NO psychometric functions
+        
+        % Define range for stimulus and for parameters of the psychometric function
+        % (lower bound, upper bound, number of points)
+        posterior.range.x = [-4,0,61]; % log contrast units
+        posterior.range.mu = [-4,0,51];
+        posterior.range.sigma = [0.05,1,25];      % The range for sigma is automatically converted to log spacing
+        posterior.range.lambda = [.15,0.5,25];
+        
+        % Define priors over parameters
+        posterior.priors.mu = [-2,1.2];                  % mean and std of (truncated) Gaussian prior over MU
+        posterior.priors.logsigma = [log(0.1),1];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
+        posterior.priors.lambda = [20 39];             % alpha and beta parameter of beta pdf over LAMBDA
+        
+        posterior.method = 'ent';     % Minimize the expected posterior entropy
+        posterior.vars = [1 1 1];     % This choice minimizes joint posterior entropy of mean, sigma and lambda
+        
+        posterior.trial_correct = [];
+        posterior.trial_contrast = [];
+        
+        psybayes_struct = struct;
+        [psybayes_struct.valid, psybayes_struct.invalid, psybayes_struct.neutral] = deal(posterior);
+    end
 end
 
 if test_feedback
