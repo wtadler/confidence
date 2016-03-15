@@ -323,14 +323,14 @@ if staircase
         
         % Define range for stimulus and for parameters of the psychometric function
         % (lower bound, upper bound, number of points)
-        posterior.range.x = [-4,0,61]; % log contrast units
+        posterior.range.x = [-6,0,61]; % log contrast units
         posterior.range.mu = [-4,0,51];
         posterior.range.sigma = [0.05,1,25];      % The range for sigma is automatically converted to log spacing
         posterior.range.lambda = [.15,0.5,25];
         
         % Define priors over parameters
         posterior.priors.mu = [-2,1.2];                  % mean and std of (truncated) Gaussian prior over MU
-        posterior.priors.logsigma = [log(0.1),1];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
+        posterior.priors.logsigma = [log(0.1),1.2];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
         posterior.priors.lambda = [20 39];             % alpha and beta parameter of beta pdf over LAMBDA
         
         posterior.method = 'ent';     % Minimize the expected posterior entropy
