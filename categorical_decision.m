@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback, staircase, old_staircase_file)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback, staircase, psybayes_struct)
 
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
@@ -30,8 +30,8 @@ if ~exist('staircase', 'var')
     staircase = false;
 end
 
-if ~exist('old_staircase_file', 'var')
-    old_staircase_file = '';
+if ~exist('psybayes_struct', 'var')
+    psybayes_struct = [];
 end
 
 try
@@ -309,13 +309,8 @@ end
 Test.t.cue_dur = 300; %150
 Test.t.cue_target_isi = 300; %150
 
-psybayes_struct = []; %initialize structure
 if staircase
-    if ~isempty(old_staircase_file)
-        old = load(old_staircase_file);
-        psybayes_struct = old.psybayes_struct;
-        clear old;
-    else
+    if isempty(psybayes_struct)
         posterior = struct;
         % Set change level (for PCORRECT psychometric functions)
         posterior.gamma = 0.5;
@@ -323,8 +318,8 @@ if staircase
         
         % Define range for stimulus and for parameters of the psychometric function
         % (lower bound, upper bound, number of points)
-        posterior.range.x = [-6,0,61]; % log contrast units
-        posterior.range.mu = [-6,0,51];
+        posterior.range.x = [-6.5,0,61]; % log contrast units
+        posterior.range.mu = [-6.5,0,51];
         posterior.range.sigma = [0.05,1,25];      % The range for sigma is automatically converted to log spacing
         posterior.range.lambda = [.15,0.5,25];
         
