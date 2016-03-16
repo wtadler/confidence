@@ -21,8 +21,9 @@ end
 figure(1)
 clf
 
-yl = [.5 .75];
-xl = [-4 0];
+yl = [.5 .8];
+xl = st(1).range.x(1:2);
+
 for i = 1:nCurves
     tab = st(i);
     
