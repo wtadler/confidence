@@ -320,7 +320,7 @@ if staircase
         % (lower bound, upper bound, number of points)
         posterior.range.x = [-6.5,0,61]; % log contrast units
         posterior.range.mu = [-6.5,0,51];
-        posterior.range.sigma = [0.05,1,25];      % The range for sigma is automatically converted to log spacing
+        posterior.range.sigma = [0.05,3,25];      % The range for sigma is automatically converted to log spacing
         posterior.range.lambda = [.15,0.5,25];
         
         % Define priors over parameters

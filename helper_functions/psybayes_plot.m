@@ -18,8 +18,8 @@ catch
     colors = [0 .7 0; .6 .6 .6; .7 0 0];
 end
 
-figure(1)
-clf
+% figure(1)
+% clf
 
 yl = [.5 .8];
 xl = st(1).range.x(1:2);
@@ -59,4 +59,4 @@ end
 
 set(gca, 'tickdir', 'out', 'ylim', yl, 'xlim', xl, 'clipping', 'off')
 xlabel('log contrast')
-ylabel('% correct')
+ylabel('prop. correct')
