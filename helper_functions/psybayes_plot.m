@@ -80,12 +80,10 @@ for i = 1:nCurves
 %    end
 
 %To plot trials at the top/bottom of the screen (as opposed or in addition to binned data):
-%    y = tab.data(:, 2);
-%    y(y==1) = yl(2);
-%    y(y==0) = yl(1);
-%    n = length(contrasts);
-%    noise = .005;
-%    p = plot(contrasts+noise*randn(n, 1), y+noise*randn(n, 1), '.', 'color', c, 'markersize', 20)
+    yy = tab.data(:, 2);
+    n = length(contrasts);
+    noise = .005;
+    p = plot(contrasts+noise*randn(n, 1), yy+noise*randn(n, 1), '.', 'color', c, 'markersize', 20)
     
 end
 
