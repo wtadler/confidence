@@ -9,14 +9,24 @@ if nargin==0
 end
 
 exp_type = 'attention'; %'attention' or 'AB'
-new_subject = true;
+new_subject = false;
+
 staircase = true;
+new_staircase = false;
+
+if new_staircase
+    psybayes_struct = [];
+else
+    % replace file name here with your own .mat file.
+    old = load('/Users/purplab/Desktop/Rachel/Confidence/confidence/data/notrain_20160316_121157.mat');
+    psybayes_struct = old.psybayes_struct;
+end
 
 switch exp_type
     case 'attention'
-        room_letter = 'GBLaptop'; % 'mbp','Carrasco_L1','1139'
+        room_letter = 'Carrasco_L1'; % 'mbp','Carrasco_L1','1139'
         category_type = 'same_mean_diff_std'; % 'same_mean_diff_std','sym_uniform'
-        eye_tracking = false;
+        eye_tracking = true;
         nStimuli = 4;
         choice_only = true;
         
@@ -24,7 +34,8 @@ switch exp_type
         stim_type = 'grate';
         
         categorical_decision(category_type, initial, new_subject, ...
-            room_letter, nStimuli, eye_tracking, stim_type, [], [], choice_only, false, false, staircase)
+            room_letter, nStimuli, eye_tracking, stim_type, [], [], ...
+            choice_only, false, false, staircase, psybayes_struct)
     case 'AB'
         cd('C:\GitHub\Confidence-Theory')
         test_feedback = false;

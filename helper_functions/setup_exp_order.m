@@ -8,7 +8,7 @@ if isempty(varargin)
 else
     nStimuli = varargin{1};
     cue_validity = varargin{2};
-    prop_neutral_trials = 1/3;
+    prop_neutral_trials = 1/6;
 end
 
 

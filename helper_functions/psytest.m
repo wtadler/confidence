@@ -12,15 +12,15 @@ psyinit.gamma = 0.5;
 
 % Define range for stimulus and for parameters of the psychometric function
 % (lower bound, upper bound, number of points)
-psyinit.range.x = [-4,0,61];
-psyinit.range.mu = [-4,0,51];
+psyinit.range.x = [-6,0,61];
+psyinit.range.mu = [-6,0,51];
 psyinit.range.sigma = [0.05,1,25];      % The range for sigma is automatically converted to log spacing
 psyinit.range.lambda = [.15,0.5,25];
 
 % Define priors over parameters
-psyinit.priors.mu = [-2,.14];                  % mean and std of (truncated) Gaussian prior over MU
-psyinit.priors.logsigma = [log(0.1),1];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
-psyinit.priors.lambda = [9 25];             % alpha and beta parameter of beta pdf over LAMBDA
+psyinit.priors.mu = [-2,1.2];                  % mean and std of (truncated) Gaussian prior over MU
+psyinit.priors.logsigma = [log(0.1),Inf];   % mean and std of (truncated) Gaussian prior over log SIGMA (Inf std means flat prior)
+psyinit.priors.lambda = [20 39];             % alpha and beta parameter of beta pdf over LAMBDA
 
 % Units -- used just for plotting in axis labels and titles
 psyinit.units.x = 'cm';
@@ -37,8 +37,8 @@ plotflag = 1;       % Plot visualization
 
 % Parameters of simulated observer
 mu = -2;
-sigma = 0.05;
-lambda = 0.2;
+sigma = log(2);
+lambda = 0.3;
 
 % Psychometric function for the simulated observer
 psychofun = @(x) lambda/2 + (1-lambda).*0.5*(1+erf((x-mu)./(sqrt(2)*sigma)));
@@ -108,7 +108,6 @@ for iTrial = 1:Ntrials
     
     % pause;
 end
-
 % Once you are done, clean posterior from temporary variables
 [~,post] = psybayes(post);
 

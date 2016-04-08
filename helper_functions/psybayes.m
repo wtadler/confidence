@@ -26,7 +26,6 @@ if numel(vars) ~= 3; error('VARS need to be a 3-element array for MU, SIGMA and 
 
 if isempty(tab) || ~isfield(tab,'post')  % First call, initialize everything
     tabinit = tab;
-    tab = [];
     
     tab.ntrial = 0;     % Trial number
     tab.data = [];      % Record of data
@@ -166,8 +165,7 @@ if isempty(tab) || ~isfield(tab,'post')  % First call, initialize everything
         tab.gamma = [];
     end
     
-    tab.f = []; tab.mf = [];
-    tab.logf = []; tab.log1mf = [];    
+    tab.f = [];
 end
 
 % Choose correct psychometric function (YES/NO or PCORRECT)
@@ -178,11 +176,8 @@ else
 end
 
 % Precompute psychometric function and its logarithm
-if isempty(tab.f) || isempty(tab.mf) || isempty(tab.logf) || isempty(tab.log1mf)
+if isempty(tab.f)
     tab.f = psychofun(tab.x,tab.mu,tab.sigma,tab.lambda);
-    tab.mf = 1 - tab.f;
-    tab.logf = log(tab.f);
-    tab.log1mf = log(1-tab.f);
 end
 
 % Update log posterior given the new data points XI, YI
@@ -283,9 +278,8 @@ if plotflag
         psisd(ix) = sqrt(sum(f(:).^2.*post) - psimean(ix)^2);
     end    
     hold off;
-    area(x, psimean + psisd, 'EdgeColor', 'none', 'FaceColor', 0.8*[1 1 1]);
+    fill([x, fliplr(x)], [psimean + psisd, fliplr(psimean - psisd)], 0.8*[1 1 1], 'edgecolor', 'none');
     hold on;
-    area(x, psimean - psisd, 'EdgeColor', 'none', 'FaceColor', [1 1 1]);
     plot(x, psimean,'k','LineWidth',1);
     plot([xmin,xmin],[0,1],':r', 'LineWidth', 2);
     if ~isempty(tab.data)
@@ -400,8 +394,7 @@ end
 % Only one argument assumes that this is the final call
 if nargin < 2
     % Empty some memory
-    tab.f = []; tab.mf = [];
-    tab.logf = []; tab.log1mf = [];    
+    tab.f = [];
 end
 
 end

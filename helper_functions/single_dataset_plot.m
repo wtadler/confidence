@@ -55,8 +55,11 @@ for c = plot_reliabilities
         
     if ~fake_data
         % errorbar is stupid. to customize width, have to plot a dummy point, with no connecting line. and then plot a line.
-        dummy_point = len*errorbarwidth;
-        errorbar([dummy_point 1:len], [-100 m], [0 errorbarheight], '.', 'linewidth', linewidth, 'color', color)
+        
+        dummy_point = 1+len*errorbarwidth; % this method makes all bars equally wide, regardless of how many points there are.
+%         dummy_point = 1 + errorbarwidth; % this makes the total width of the bars constant, but requires that errorbarwidth be higher
+        
+        errorbar([1:len dummy_point], [m -100], [errorbarheight 0], 'marker', 'none', 'linestyle', 'none', 'linewidth', linewidth, 'color', color)
         hold on
         handle(c)=plot(1:len, m, '-', 'linewidth', linewidth, 'color', color);
         if ~plot_connecting_line

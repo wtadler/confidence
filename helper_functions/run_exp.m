@@ -1,5 +1,9 @@
 function [responses, flag, psybayes_struct] = run_exp(n, R, t, scr, color, P, type, blok, new_subject, task_str, final_task, subject_name, choice_only, two_response, test_feedback, psybayes_struct)
 
+if ~exist('test_feedback','var')
+    test_feedback = false;
+end
+
 if ~exist('choice_only', 'var') || isempty(choice_only)
     if (strcmp(type, 'Category Training') && ~test_feedback) || strcmp(type, 'Attention Training')
         choice_only = true;
@@ -10,10 +14,6 @@ end
 
 if ~exist('two_response','var')
     two_response = false;
-end
-
-if ~exist('test_feedback','var')
-    test_feedback = false;
 end
 
 if ~exist('psybayes_struct','var') || isempty(psybayes_struct)
