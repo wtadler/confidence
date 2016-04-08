@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-load('/Users/bluec/Documents/GitHub/confidence/data/backup/willstaircase3.mat')
-=======
-% load('/Local/Users/adler/Google Drive/Will - Confidence/Analysis/attention3/notrain_20160309_155331.mat')
->>>>>>> origin/master
+load('/Users/bluec/Documents/GitHub/confidence/data/backup/GB_notrain_final.mat')
+
 st(1) = psybayes_struct.valid;
 st(2) = psybayes_struct.neutral;
 st(3) = psybayes_struct.invalid;
@@ -22,17 +19,12 @@ catch
     colors = [0 .7 0; .6 .6 .6; .7 0 0];
 end
 
-% figure(1)
-% clf
+figure(1)
+clf
 
-yl = [.5 .8];
-xl = st(1).range.x(1:2);
-
-<<<<<<< HEAD
 yl = [0 1];
 xl = [-6 0];
-=======
->>>>>>> origin/master
+
 for i = 1:nCurves
     tab = st(i);
     
