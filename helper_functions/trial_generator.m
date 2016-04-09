@@ -411,7 +411,7 @@ end
 Chat_lapse_trials = randvals < Chat_lapse_rate; % lapse Chat at each conf level
 n_Chat_lapse_trials = sum(Chat_lapse_trials);
 
-if ~isfield(model, 'biased_lapse') || ~model.biased_lapse
+if ~isfield(model, 'biased_lapse') || isempty(model.biased_lapse) || ~model.biased_lapse
     p.lambda_bias = .5; % p_lapse(Chat = -1)
 end
 
