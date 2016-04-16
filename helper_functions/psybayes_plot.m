@@ -19,8 +19,8 @@ catch
     colors = [0 .7 0; .6 .6 .6; .7 0 0];
 end
 
+running_minimum_x = 0;
 yl = [0 1];
-xl = [-6 0];
 
 for i = 1:nCurves
     tab = st(i);
@@ -72,13 +72,15 @@ for i = 1:nCurves
 
     %To plot trials at the top/bottom of the screen (as opposed or in addition to binned data):
     y = tab.data(:, 2);
-    y(y==1) = yl(2);
-    y(y==0) = yl(1);
-    n = length(contrasts);
-    noise = .005;
-    p = plot(contrasts+noise*randn(n, 1), y+noise*randn(n, 1), '.', 'color', c, 'markersize', 20);
+    noise = .02;
+    y(y==1) = yl(2)-noise*randn(sum(y==1), 1);
+    y(y==0) = yl(1)+noise*randn(sum(y==0), 1)
+    
+    p = plot(contrasts, y, '.', 'color', c, 'markersize', 10);
+    
+    running_minimum_x = min([running_minimum_x, min(contrasts)])
 end
 
-set(gca, 'tickdir', 'out', 'ylim', yl, 'xlim', xl, 'clipping', 'off')
+set(gca, 'tickdir', 'out', 'ylim', yl, 'xlim', [running_minimum_x 0], 'clipping', 'on')
 xlabel('log contrast')
 ylabel('prop. correct')
