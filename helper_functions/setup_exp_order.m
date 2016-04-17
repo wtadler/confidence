@@ -1,22 +1,37 @@
 function R = setup_exp_order(n, category_params, varargin)
 %%%Set up order of class, sigma, and orientation for entire scheme%%%
 
-R = [];
+nStimuli = 1;
+cue_validity = .8;
+priors = [.5; 1];
+assignopts(who, varargin);
 
-if isempty(varargin)
-    nStimuli = 1;
-else
-    nStimuli = varargin{1};
-    cue_validity = varargin{2};
-    prop_neutral_trials = 1/6;
-end
+nPriors = size(priors, 2);
+R = [];
+prop_neutral_trials = 1/6;
 
 
 for k = 1:n.blocks
     R.category_type = category_params.category_type;
-    R.trial_order{k} = reshape(randsample(2,                           n.trials * n.sections * nStimuli, true),...
+    
+    [~, R.prior{k}] = histc(rand(1, n.trials*n.sections), [0, cumsum(priors(2,:))]); % sample prior according to specified distribution
+    R.prior{k} = priors(1, R.prior{k}); % assign prior value
+    R.trial_order{k} = zeros(1, n.trials*n.sections);
+    for p = 1:nPriors
+        prior = priors(1, p);
+        prior_trials = R.prior{k} == prior;
+        n_prior_trials = sum(prior_trials);
+        [~, R.trial_order{k}(prior_trials)] = histc(rand(1, n_prior_trials), [0, prior, 1]); % sample category according to prior
+    end
+    
+    R.prior{k} = reshape(R.prior{k}, n.sections, n.trials);
+    R.trial_order{k} = reshape(R.trial_order{k}, n.sections, n.trials);
+    
+    stim_per_block = n.trials * n.sections * nStimuli;
+    
+    R.trial_order{k} = reshape(randsample(2, stim_per_block, true),...
         n.sections, n.trials, nStimuli);
-    R.sigma{k} =       reshape(randsample(category_params.test_sigmas, n.trials * n.sections * nStimuli, true),...
+    R.sigma{k} =       reshape(randsample(category_params.test_sigmas, stim_per_block, true),...
         n.sections, n.trials, nStimuli);
     
     %get random orientation draws from normal distributions (~sigmal or ~sigma2)

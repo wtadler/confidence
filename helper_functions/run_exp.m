@@ -64,6 +64,9 @@ end
 Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
 flip_key_flip(scr,'begin',ny,color, false);
 
+priors = unique(R.prior{blok});
+multi_prior = length(priors) ~= 1; % true if there are multiple priors
+
 %%%Run trials %%%
 try
     for section = 1:n.sections
@@ -86,7 +89,22 @@ try
             trial = trial_order(i_trial); % the current index into trials
             trial_counter = trial_counter+1; % update the trial counter so that we will move onto the next trial, even if there is a fixation break
             
-            Screen('DrawTexture', scr.win, scr.cross, [], [], cross_rot);
+            if multi_prior
+                prior_id = find(R.prior{blok}(section, trial) == priors);
+                
+                switch prior_id
+                    case 1
+                        fixation_cross = scr.crossL;
+                    case 2
+                        fixation_cross = scr.cross;
+                    case 3
+                        fixation_cross = scr.crossR;
+                end
+            else
+                fixation_cross = scr.cross;
+            end
+            
+            Screen('DrawTexture', scr.win, fixation_cross, [], [], cross_rot);
             t0 = Screen('Flip', scr.win);
             
             % Check fixation hold
@@ -96,7 +114,7 @@ try
                 
                 if drift_corrected
                     % restart trial
-                    Screen('DrawTexture', scr.win, scr.cross, [], [], cross_rot);
+                    Screen('DrawTexture', scr.win, fixation_cross, [], [], cross_rot);
                     t0 = Screen('Flip', scr.win);
                 end
             end
@@ -144,7 +162,6 @@ try
                     end
                 elseif nStimuli == 4
                     if R.cue{blok}(section, trial) == 0
-                        
                         cue = scr.cueLRUD;
                         rot = 45;
                     else
@@ -169,7 +186,7 @@ try
                 if P.eye_tracking
                     Eyelink('Message', 'EVENT_CUE');
                 end
-                Screen('DrawTexture', scr.win, scr.cross, [], [], cross_rot);
+                Screen('DrawTexture', scr.win, fixation_cross, [], [], cross_rot);
                 t_cue_off = Screen('Flip', scr.win, t_cue + t.cue_dur/1000);
                 
                 %%% should make this timing exact by interfacing with grate
@@ -204,7 +221,7 @@ try
             if nStimuli >= 2
                 % DISPLAY RESPONSE CUE (i.e. probe)
                 %%% should make this timing exact by interfacing with grate
-                Screen('DrawTexture', scr.win, scr.cross, [], [], cross_rot);
+                Screen('DrawTexture', scr.win, fixation_cross, [], [], cross_rot);
                 t_target_off = Screen('Flip', scr.win);
                 
                 if nStimuli == 2

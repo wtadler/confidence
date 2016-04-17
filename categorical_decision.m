@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback, staircase, psybayes_struct)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback, staircase, psybayes_struct, multi_prior)
 
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
@@ -16,6 +16,12 @@ end
 
 if ~exist('choice_only', 'var')
     choice_only = false;
+end
+
+if ~exist('multi_prior', 'var') || ~multi_prior
+    priors = [.8 .5 .2; 1/3 1/3 1/3]; % p(C=-1), and probability of each prior coming up
+else
+    priors = [.5; 1];
 end
 
 if ~exist('test_feedback', 'var')
@@ -462,12 +468,13 @@ try
     
     %set up fixation cross
     f_c = bg*ones(f_c_size);
-    f_c(f_c_size/2 - fw: f_c_size/2 + 1 + fw,:) = darkgray;
-    f_c(:,f_c_size/2 - fw: f_c_size/2 + 1 + fw) = darkgray;
+    vert_center = f_c_size/2; % x location of vertical bar (the pixel .5 px left of center)
+    horz_center = f_c_size/2; % y location of vertical bar (the pixel .5 px above center)
+    f_c(:, vert_center - fw: vert_center + 1 + fw) = darkgray;
+    f_c(horz_center - fw: horz_center + 1 + fw,:) = darkgray;
     scr.cross = Screen('MakeTexture', scr.win , f_c);
 
     if nStimuli > 1
-                
         arm_rows = (f_c_size/2-fw) : (f_c_size/2 + 1 + fw);
         L_arm_cols = 1:f_c_size/2-1-fw;
         R_arm_cols = f_c_size/2+2+fw:f_c_size;
@@ -484,12 +491,22 @@ try
         cross_grayL(cross_grayL==white) = lightgray;
         
         scr.cueL    = Screen('MakeTexture', scr.win, cross_whiteL);
-%         scr.cueR = Screen('MakeTexture', scr.win, fliplr(cross_whiteL));
         scr.cueLR   = Screen('MakeTexture', scr.win, cross_whiteLR);
         scr.cueLRUD = Screen('MakeTexture', scr.win, cross_whiteLRUD);
         scr.resp_cueL = Screen('MakeTexture', scr.win, cross_grayL);
-%         scr.resp_cueR = Screen('MakeTexture', scr.win, fliplr(cross_grayL));
     end
+    
+    if multi_prior
+        f_c = bg*ones(f_c_size);
+        vert_center = round(f_c_size/5); % x location of vertical bar (the pixel .5 px left of center)
+        horz_center = f_c_size/2; % y location of vertical bar (the pixel .5 px above center)
+        f_c(:, vert_center - fw: vert_center + 1 + fw) = darkgray;
+        f_c(horz_center - fw: horz_center + 1 + fw,:) = darkgray;
+        
+        scr.crossL = Screen('MakeTexture', scr.win, f_c);
+        scr.crossR = Screen('MakeTexture', scr.win, fliplr(f_c));
+    end
+        
     
     % set up grating parameters
     P.grateSigma = .8; % Gabor Gaussian envelope standard deviation (degrees)
@@ -512,26 +529,28 @@ try
     %%%Setup routine. this is some complicated stuff to deal with the
     %%%two-part training thing
     
-    InitialTrainingpreR = setup_exp_order(Training.initial.n, Training.category_params);
+    InitialTrainingpreR = setup_exp_order(Training.initial.n, Training.category_params, 'priors', priors);
     
     Training.n.blocks = Training.n.blocks - 1;
-    TrainingpreR = setup_exp_order(Training.n, Training.category_params);
+    TrainingpreR = setup_exp_order(Training.n, Training.category_params, 'priors', priors);
     
     Training.n.blocks = Training.n.blocks + 1; % undo previous line
     
     Training.R.trial_order{1} = InitialTrainingpreR.trial_order{1};
+    Training.R.prior{1} = InitialTrainingpreR.prior{1};
     Training.R.sigma{1} = InitialTrainingpreR.sigma{1};
     Training.R.draws{1} = InitialTrainingpreR.draws{1};
     Training.R.phase{1} = InitialTrainingpreR.phase{1};
     for spec = 2:Training.n.blocks
         Training.R.trial_order{spec} = TrainingpreR.trial_order{spec-1};
+        Training.R.prior{spec} = TrainingpreR.prior{spec-1};
         Training.R.sigma{spec} = TrainingpreR.sigma{spec-1};
         Training.R.draws{spec} = TrainingpreR.draws{spec-1};
         Training.R.phase{spec} = TrainingpreR.phase{spec-1};
     end
     
-    ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, nStimuli, cue_validity);
-    Test.R = setup_exp_order(Test.n, Test.category_params, nStimuli, cue_validity);
+    ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, 'nStimuli', nStimuli, 'cue_validity', cue_validity, 'priors', priors);
+    Test.R = setup_exp_order(Test.n, Test.category_params, 'nStimuli', nStimuli, 'cue_validity', cue_validity, 'priors', priors);
     
     %% Start eyetracker
     if eye_tracking
