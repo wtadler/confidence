@@ -19,9 +19,9 @@ if ~exist('choice_only', 'var')
 end
 
 if ~exist('multi_prior', 'var') || ~multi_prior
-    priors = [.8 .5 .2; 1/3 1/3 1/3]; % p(C=-1), and probability of each prior coming up
-else
     priors = [.5; 1];
+else
+    priors = [.8 .5 .2; 1/3 1/3 1/3]; % p(C=-1), and probability of each prior coming up
 end
 
 if ~exist('test_feedback', 'var')
