@@ -31,7 +31,7 @@ show_legend = false;
 s_labels = -8:2:8;
 errorbarwidth = 1.7;
 MCM = ''; % 'dic', 'waic2', whatever. add extra row with MCM scores.
-    MCM_size = .38; % percentage of plot height taken up by model comparison.
+MCM_size = .38; % percentage of plot height taken up by model comparison.
 ref_model = [];
 assignopts(who, varargin);
 
@@ -78,7 +78,7 @@ else
     if isempty(plot_reliabilities); plot_reliabilities = 1:nReliabilities; end
     
     if max(plot_reliabilities) > nReliabilities; error('you requested to plot more reliabilities than there are'); end
-        
+    
     hhh = hot(64);
     colors = hhh(round(linspace(1,40,nReliabilities)),:); % black to orange indicate high to low contrast
 end
@@ -169,59 +169,59 @@ for fig = 1:n.fig
             end
             shortcutplot = @(data, fake_data, x_name, colors, linewidth, plot_reliabilities)...
                 single_dataset_plot(data, depvars{depvar}, x_name, ...
-                    'fake_data', fake_data, 'group_plot', group_plot, ...
-                    'symmetrify', symmetrify_s, 'colors', colors, ...
-                    'linewidth', linewidth, ...
-                    'plot_reliabilities', plot_reliabilities, ...
-                    'label_x', label_x, 'label_y', label_y, 's_labels', s_labels,...
-                    'task', tasks{task}, 'errorbarwidth', errorbarwidth,...
-                    'plot_connecting_line', plot_connecting_line);
-                
-                % clean this section up?
-                fake_data = false;
-                % plot real sliced data
+                'fake_data', fake_data, 'group_plot', group_plot, ...
+                'symmetrify', symmetrify_s, 'colors', colors, ...
+                'linewidth', linewidth, ...
+                'plot_reliabilities', plot_reliabilities, ...
+                'label_x', label_x, 'label_y', label_y, 's_labels', s_labels,...
+                'task', tasks{task}, 'errorbarwidth', errorbarwidth,...
+                'plot_connecting_line', plot_connecting_line);
+            
+            % clean this section up?
+            fake_data = false;
+            % plot real sliced data
+            if ~isempty(slices{slice})
+                if ~group_plot
+                    data = real_data.(tasks{task}).data(subject).stats.(trial_type).(slices{slice});
+                else
+                    data = real_data.(tasks{task}).sumstats.(trial_type).(slices{slice});
+                end
+                shortcutplot(data, fake_data, slices{slice}, colors, linewidth, plot_reliabilities);
+            end
+            
+            % plot real "mean" data
+            if ~isempty(means) && ~isempty(means{slice})
+                if ~group_plot
+                    data = real_data.(tasks{task}).data(subject).stats.(trial_type).(means{slice});
+                else
+                    data = real_data.(tasks{task}).sumstats.(trial_type).(means{slice});
+                end
+                shortcutplot(data, fake_data, means{slice}, mean_color, meanlinewidth, []);
+            end
+            
+            % plot fitted sliced data
+            if show_fits
+                fake_data = true;
                 if ~isempty(slices{slice})
                     if ~group_plot
-                        data = real_data.(tasks{task}).data(subject).stats.(trial_type).(slices{slice});
+                        data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(slices{slice});
                     else
-                        data = real_data.(tasks{task}).sumstats.(trial_type).(slices{slice});
+                        data = models(model).(tasks{task}).sumstats.(trial_type).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_type. i think that's okay 12/11/15
                     end
                     shortcutplot(data, fake_data, slices{slice}, colors, linewidth, plot_reliabilities);
                 end
                 
-                % plot real "mean" data
                 if ~isempty(means) && ~isempty(means{slice})
                     if ~group_plot
-                        data = real_data.(tasks{task}).data(subject).stats.(trial_type).(means{slice});
+                        data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(means{slice});
                     else
-                        data = real_data.(tasks{task}).sumstats.(trial_type).(means{slice});
+                        data = models(model).(tasks{task}).sumstats.(trial_type).(means{slice});
                     end
                     shortcutplot(data, fake_data, means{slice}, mean_color, meanlinewidth, []);
                 end
                 
-                % plot fitted sliced data
-                if show_fits
-                    fake_data = true;
-                    if ~isempty(slices{slice})
-                        if ~group_plot
-                            data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(slices{slice});
-                        else
-                            data = models(model).(tasks{task}).sumstats.(trial_type).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_type. i think that's okay 12/11/15
-                        end
-                        shortcutplot(data, fake_data, slices{slice}, colors, linewidth, plot_reliabilities);
-                    end
-                    
-                    if ~isempty(means) && ~isempty(means{slice})
-                        if ~group_plot
-                            data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(means{slice});
-                        else
-                            data = models(model).(tasks{task}).sumstats.(trial_type).(means{slice});
-                        end
-                        shortcutplot(data, fake_data, means{slice}, mean_color, meanlinewidth, []);
-                    end
-
-                end
-                            
+            end
+            
             % y axis labels for left column
             if col == 1
                 if strcmp(axis.row, 'model')
@@ -235,7 +235,7 @@ for fig = 1:n.fig
                     set(yl, 'position', ylpos-[.8 0 0]);
                 end
             end
-
+            
             
             % title (and maybe legend) for top row
             if row == 1
@@ -269,9 +269,16 @@ for fig = 1:n.fig
     end
     
     if show_MCM
+%         for col = 1:n.col
+%             tight_subplot(1, n.col, 1, col, gutter, [margins(1), margins(2), .1, 1-MCM_size+.07])
+%             [score, group_mean, group_sem] = compare_models(models(col), 'show_names', true, 'show_model_names', false,...
+%                 'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005);
+%             set(gca,'xcolor','w')
+%         end
         tight_subplot(1,1,1,1, 0, [margins(1), margins(2), .1, 1-MCM_size+.07])
         [score, group_mean, group_sem] = compare_models(models, 'show_names', true, 'show_model_names', false,...
-            'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model);
+            'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model,...
+            'multiple_axes', true);
         set(gca,'xcolor','w')
     end
 end

@@ -26,8 +26,25 @@ fontsize = 10;
 mark_grate_ellipse = false;
 
 ref_model = [];
+ref_value = [];
+
+multiple_axes = true;
 assignopts(who, varargin)
 
+if isempty(ref_model)
+    if isempty(ref_value)
+        normalize_by = 'best_model';
+    else
+        normalize_by = 'specific_value';
+    end
+else
+    if isempty(ref_value)
+        normalize_by = 'specific_model';
+    else
+        error('ref_model and ref_value are both set. Pick one!')
+    end
+end
+    
 if strcmp(MCM, 'laplace')
     flip_sign = true; % if higher number indicates better fit
 else
@@ -131,12 +148,16 @@ switch fig_type
         end
         
     case 'bar'
-        
-        if isempty(ref_model)
-            [~, ref_model] = min(mean(score, 2));
+        switch normalize_by
+            case 'best_model'
+                [~, ref_model] = min(mean(score, 2));
+                MCM_delta = bsxfun(@minus, score, score(ref_model,:));
+            case 'specific_model'
+                [~, ref_model] = min(mean(score, 2));
+                MCM_delta = bsxfun(@minus, score, score(ref_model,:));
+            case 'specific_value'
+                MCM_delta = bsxfun(@minus, score, ref_value);
         end
-        
-        MCM_delta = bsxfun(@minus, score, score(ref_model,:));        
         
         
         if show_names
