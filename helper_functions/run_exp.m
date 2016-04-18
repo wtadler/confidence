@@ -94,11 +94,11 @@ try
                 
                 switch prior_id
                     case 1
-                        fixation_cross = scr.crossL;
+                        fixation_cross = scr.crossR;
                     case 2
                         fixation_cross = scr.cross;
                     case 3
-                        fixation_cross = scr.crossR;
+                        fixation_cross = scr.crossL;
                 end
             else
                 fixation_cross = scr.cross;
