@@ -29,8 +29,6 @@ for k = 1:n.blocks
     
     stim_per_block = n.trials * n.sections * nStimuli;
     
-    R.trial_order{k} = reshape(randsample(2, stim_per_block, true),...
-        n.sections, n.trials, nStimuli);
     R.sigma{k} =       reshape(randsample(category_params.test_sigmas, stim_per_block, true),...
         n.sections, n.trials, nStimuli);
     
