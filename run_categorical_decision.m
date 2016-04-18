@@ -8,15 +8,15 @@ if nargin==0
     initial = 'notrain';
 end
 
-exp_type = 'attention'; %'attention' or 'AB'
+exp_type = 'AB'; %'attention' or 'AB'
 new_subject = false;
 
-staircase = true;
+staircase = false;
 new_staircase = false;
 
-if new_staircase
+if staircase & new_staircase
     psybayes_struct = [];
-else
+elseif staircase & ~new_staircase
     % replace file name here with your own .mat file.
     old = load('/Users/purplab/Desktop/Rachel/Confidence/confidence/data/notrain_20160316_121157.mat');
     psybayes_struct = old.psybayes_struct;
@@ -39,12 +39,14 @@ switch exp_type
     case 'AB'
         cd('C:\GitHub\Confidence-Theory')
         test_feedback = false;
-        two_response = true;
+        two_response = false;
         
-        stim_type = 'ellipse';
+        stim_type = 'grate';
         room_letter = '1139';
         nStimuli = 1;
-        eye_tracking = true;
+        eye_tracking = false;
+        
+        multi_prior = true;
 
         first_task_letter = 'A';
         category_types = {'diff_mean_same_std', 'same_mean_diff_std'};
@@ -54,7 +56,7 @@ switch exp_type
         for i = 1:2
             categorical_decision(category_types{i}, initial, new_subject, ...
                 room_letter, nStimuli, eye_tracking, stim_type, i, 2, [], ...
-                two_response, test_feedback)
+                two_response, test_feedback, multi_prior)
         end
 
 end
