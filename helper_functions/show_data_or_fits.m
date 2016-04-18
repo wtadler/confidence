@@ -269,16 +269,33 @@ for fig = 1:n.fig
     end
     
     if show_MCM
-%         for col = 1:n.col
-%             tight_subplot(1, n.col, 1, col, gutter, [margins(1), margins(2), .1, 1-MCM_size+.07])
-%             [score, group_mean, group_sem] = compare_models(models(col), 'show_names', true, 'show_model_names', false,...
-%                 'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005);
-%             set(gca,'xcolor','w')
-%         end
-        tight_subplot(1,1,1,1, 0, [margins(1), margins(2), .1, 1-MCM_size+.07])
-        [score, group_mean, group_sem] = compare_models(models, 'show_names', true, 'show_model_names', false,...
-            'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model,...
-            'multiple_axes', true);
-        set(gca,'xcolor','w')
+        % old way of doing it straight across:
+        %         tight_subplot(1,1,1,1, 0, [margins(1), margins(2), .1, 1-MCM_size+.07])
+        %         [score, group_mean, group_sem] = compare_models(models, 'show_names', true, 'show_model_names', false,...
+        %             'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model,...
+        %             'multiple_axes', true);
+
+        for col = 1:n.col
+            tight_subplot(1, n.col, 1, col, gutter, [margins(1), margins(2), .1, 1-MCM_size+.07]);
+            
+            % it's dumb to do compare_models each time, but it gets the
+            % axes set correctly.
+            
+            [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_names', true, 'show_model_names', false,...
+                'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model);
+            if col == 1
+                yl = get(gca, 'ylim');
+            else
+                ylabel('');
+            end
+            
+            mybar(MCM_delta(col, :), 'barnames', subject_names);
+            ylim(yl);
+            
+            if col ~= 1
+                set(gca, 'yticklabel', '');
+            end
+        end
+
     end
 end

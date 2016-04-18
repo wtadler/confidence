@@ -1,4 +1,4 @@
-function [score, group_mean, group_sem] = compare_models(models, varargin)
+function [score, group_mean, group_sem, MCM_delta, subject_names] = compare_models(models, varargin)
 
 if isfield(models(1).extracted(1), 'waic2')
     MCM = 'waic2';
@@ -28,7 +28,6 @@ mark_grate_ellipse = false;
 ref_model = [];
 ref_value = [];
 
-multiple_axes = true;
 assignopts(who, varargin)
 
 if isempty(ref_model)
@@ -45,6 +44,7 @@ else
     end
 end
     
+
 if strcmp(MCM, 'laplace')
     flip_sign = true; % if higher number indicates better fit
 else
@@ -151,12 +151,11 @@ switch fig_type
         switch normalize_by
             case 'best_model'
                 [~, ref_model] = min(mean(score, 2));
-                MCM_delta = bsxfun(@minus, score, score(ref_model,:));
+                MCM_delta = bsxfun(@minus, score(ref_model,:), score);
             case 'specific_model'
-                [~, ref_model] = min(mean(score, 2));
-                MCM_delta = bsxfun(@minus, score, score(ref_model,:));
+                MCM_delta = bsxfun(@minus, score(ref_model,:), score);
             case 'specific_value'
-                MCM_delta = bsxfun(@minus, score, ref_value);
+                MCM_delta = bsxfun(@minus, ref_value, score);
         end
         
         
@@ -170,14 +169,14 @@ switch fig_type
             subject_names = [];
         end
         
-        [group_mean, group_sem] = mybar(-MCM_delta, 'barnames', subject_names, 'show_mean', true, ...
+        [group_mean, group_sem] = mybar(MCM_delta, 'barnames', subject_names, 'show_mean', true, ...
             'group_gutter', group_gutter, 'bar_gutter', bar_gutter, ...
             'mark_grate_ellipse', mark_grate_ellipse);
         
         
-        set(gca,'ticklength',[0 0],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
+        set(gca,'ticklength',[0.018 0.018],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
             'xaxislocation','top','fontweight','bold','fontname', fontname,...%'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
-            'fontsize', fontsize, 'xticklabelrotation', 30, 'ygrid', 'on')
+            'fontsize', fontsize, 'xticklabelrotation', 30, 'ygrid', 'on', 'xcolor', 'w')
         
         if ~show_model_names
             set(gca, 'xticklabel', '')

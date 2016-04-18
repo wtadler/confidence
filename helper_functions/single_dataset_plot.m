@@ -154,8 +154,8 @@ end
 
 switch y_name
     case {'tf','Chat'}
-        plot_horizontal_line(.5, '-')
+        plot_horizontal_line(.5)
     case 'resp'
         set(gca, 'ydir', 'reverse')
-        plot_horizontal_line(4.5, '-')
+        plot_horizontal_line(4.5)
 end
