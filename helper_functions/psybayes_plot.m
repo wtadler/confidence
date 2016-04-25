@@ -1,4 +1,6 @@
-% load('/Users/bluec/Documents/GitHub/confidence/data/backup/GB_notrain_final.mat')
+function psybayes_plot(filename, nBins)
+
+load(filename)
 
 st(1) = psybayes_struct.valid;
 st(2) = psybayes_struct.neutral;
@@ -11,6 +13,8 @@ psychofun_pcorrect = @(x, mu, sigma, lambda)...
     bsxfun(@plus, gamma, ...
     bsxfun(@times,1-gamma-lambda,0.5*(1+erf(bsxfun(@rdivide,bsxfun(@minus,x,mu),sqrt(2)*sigma)))));
 %%
+nBins = nBins+1;
+
 nCurves = length(st);
 try
     colors = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
@@ -47,24 +51,23 @@ for i = 1:nCurves
     contrasts = tab.data(:,1);
     outcome = tab.data(:, 2);
     
-    nBins = 8;
     edges = linspace(min(contrasts), max(contrasts)+.01, nBins);
     centers = edges(1:end-1)+diff(edges)/2;
     
-    [bincounts, ind] = histc(contrasts, edges);
+    [~, ind] = histc(contrasts, edges);
     
     bin_mean = zeros(1, nBins-1);
     EB = zeros(1, nBins-1);
     
     %Plot each of the first four bins individually:
-    for i = 1:length(bin_mean)
-        bin_mean(i) = mean(outcome(ind==i));
+    for bin = 1:length(bin_mean)
+        bin_mean(bin) = mean(outcome(ind==bin));
         
-        a = sum(outcome(ind==i)==1);
-        b = sum(outcome(ind==i)==0);
+        a = sum(outcome(ind==bin)==1);
+        b = sum(outcome(ind==bin)==0);
         
         beta_var = (a*b)/((a+b)^2*(a+b+1));
-        EB(i) = sqrt(beta_var);
+        EB(bin) = sqrt(beta_var);
     end
         
     %And finally plot everything:
@@ -80,7 +83,7 @@ for i = 1:nCurves
     
     running_minimum_x = min([running_minimum_x, min(contrasts)])
 end
-
-set(gca, 'tickdir', 'out', 'ylim', yl, 'xlim', [running_minimum_x 0], 'clipping', 'on')
+plot_horizontal_line(.5)
+set(gca, 'tickdir', 'out', 'ylim', yl, 'xlim', [running_minimum_x 0], 'clipping', 'on', 'xgrid', 'on')
 xlabel('log contrast')
 ylabel('prop. correct')

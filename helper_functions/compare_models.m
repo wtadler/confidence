@@ -176,10 +176,11 @@ switch fig_type
         
         set(gca,'ticklength',[0.018 0.018],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
             'xaxislocation','top','fontweight','bold','fontname', fontname,...%'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
-            'fontsize', fontsize, 'xticklabelrotation', 30, 'ygrid', 'on', 'xcolor', 'w')
+            'fontsize', fontsize, 'xticklabelrotation', 30, 'ygrid', 'on')
         
         if ~show_model_names
             set(gca, 'xticklabel', '')
+            set(gca, 'xcolor', 'w')
         end
         
         if strcmp(MCM, 'waic2') || strcmp(MCM, 'waic1')

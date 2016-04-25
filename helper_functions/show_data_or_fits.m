@@ -80,7 +80,8 @@ else
     if max(plot_reliabilities) > nReliabilities; error('you requested to plot more reliabilities than there are'); end
     
     hhh = hot(64);
-    colors = hhh(round(linspace(1,40,nReliabilities)),:); % black to orange indicate high to low contrast
+    map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
+    colors = map.tan_contrast_colors; % formerly hot_contrast_colors
 end
 
 if ~isempty(models)
