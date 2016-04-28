@@ -9,6 +9,7 @@ root_datadir = '~/Google Drive/Will - Confidence/Data/v3_all';
 depvars = {'tf'};%,       'g',        'Chat',     'resp',     'rt'};
 nBins = 7;
 conf_levels = 4;
+nRespSquares = 8;
 symmetrify = false;
 slices = {'c_s'}; % 's', 'c_s', 'c_resp', etc etc etc. figure out how to add a blank
 means = {};% 'g', 'resp', 's', 'c', etc etc
@@ -176,7 +177,8 @@ for fig = 1:n.fig
                 'plot_reliabilities', plot_reliabilities, ...
                 'label_x', label_x, 'label_y', label_y, 's_labels', s_labels,...
                 'task', tasks{task}, 'errorbarwidth', errorbarwidth,...
-                'plot_connecting_line', plot_connecting_line);
+                'plot_connecting_line', plot_connecting_line,...
+                'nRespSquares', nRespSquares);
             
             % clean this section up?
             fake_data = false;

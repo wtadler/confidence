@@ -18,6 +18,7 @@ task = 'A';
 s_labels = -8:2:8;
 resp_square_offset = .05;
 plot_connecting_line = true;
+nRespSquares = 8;
 assignopts(who, varargin);
 
 if isempty(plot_reliabilities)
@@ -79,13 +80,13 @@ for c = plot_reliabilities
 end
 
 yl.tf = [.3 1];
-yt.tf = [.25:.25:1];
+yt.tf = [0:.1:1];
 yl.g  = [1 4];
 yt.g = 1:4;
 yl.Chat = [0 1];
 yt.Chat = 0:.25:1;
-yl.resp = [1 8];
-yt.resp = 1:8;
+yl.resp = [5-nRespSquares/2, 4+nRespSquares/2];
+yt.resp = (5-nRespSquares/2):(4+nRespSquares/2);
 yl.rt = [0 4];
 yt.rt = 0:4;
 yl.proportion = [0 .5];
@@ -105,9 +106,14 @@ if label_y
         % blue to red colormap
         map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
         button_colors = map.button_colors;
+        if strcmp(x_name, 'c')
+            square_x = 6.5+resp_square_offset*len;
+        else
+            square_x = .5-resp_square_offset*len;
+        end
         
-        for r = 1:8
-            plot(.5-resp_square_offset*len, r, 'square', 'markerfacecolor', button_colors(r,:), 'markersize', 12, 'markeredgecolor','none')
+        for r = (5-nRespSquares/2):(4+nRespSquares/2) % 1:8 or 3:6 is typical
+            plot(square_x, r, 'square', 'markerfacecolor', button_colors(r,:), 'markersize', 12, 'markeredgecolor','none')
         end
     end
 end
