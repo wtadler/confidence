@@ -22,7 +22,11 @@ assignopts(who, varargin);
 
 if isempty(plot_reliabilities)
     plot_reliabilities = 1:nReliabilities;
-end 
+end
+
+if strcmp(x_name, 'c')
+    set(gca, 'xdir', 'reverse')
+end
 
 for c = plot_reliabilities
     color = colors(c,:);
@@ -37,14 +41,14 @@ for c = plot_reliabilities
         if fake_data
             errorbarheight = binned_stats.std.(y_name)(c, :); % std of means of fake group datasets. very close to .mean_sem.
         else % real data
-            errorbarheight = binned_stats.edgar_sem2.(y_name)(c, :); % this is hardly diff than sem
-        end        
+            errorbarheight = binned_stats.sem.(y_name)(c, :); % sem or edgar_sem2 to take account of within subject variability.
+        end
         
     else % individual data
         if fake_data
-            errorbarheight = binned_stats.std.(y_name)(c, :); % should this be std or edgar_sem?
+            errorbarheight = binned_stats.std.(y_name)(c, :);
         else % real data
-            errorbarheight = binned_stats.std.(y_name)(c, :); % this is hardly diff than sem
+            errorbarheight = binned_stats.std.(y_name)(c, :);
         end
     end
     
@@ -52,15 +56,14 @@ for c = plot_reliabilities
         m(1:ceil(len/2)-1) = fliplr(m(ceil(len/2)+1:end));
         errorbarheight(1:ceil(len/2)-1) = fliplr(errorbarheight(ceil(len/2)+1:end));
     end
-        
+    
     if ~fake_data
         % errorbar is stupid. to customize width, have to plot a dummy point, with no connecting line. and then plot a line.
         
         dummy_point = 1+len*errorbarwidth; % this method makes all bars equally wide, regardless of how many points there are.
-%         dummy_point = 1 + errorbarwidth; % this makes the total width of the bars constant, but requires that errorbarwidth be higher
-        
-        errorbar([1:len dummy_point], [m -100], [errorbarheight 0], 'marker', 'none', 'linestyle', 'none', 'linewidth', linewidth, 'color', color)
+        %         dummy_point = 1 + errorbarwidth; % this makes the total width of the bars constant, but requires that errorbarwidth be higher
         hold on
+        errorbar([1:len dummy_point], [m -100], [errorbarheight 0], 'marker', 'none', 'linestyle', 'none', 'linewidth', linewidth, 'color', color)
         handle(c)=plot(1:len, m, '-', 'linewidth', linewidth, 'color', color);
         if ~plot_connecting_line
             set(handle(c), 'visible', 'off') % this is weird, but have to do it to show up in legend
@@ -71,7 +74,7 @@ for c = plot_reliabilities
         handle(c) = fill(x, y, color);
         set(handle(c), 'edgecolor', 'none', 'facealpha', fill_alpha);
     end
-        
+    
     hold on
 end
 
@@ -102,7 +105,7 @@ if label_y
         % blue to red colormap
         map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
         button_colors = map.button_colors;
-
+        
         for r = 1:8
             plot(.5-resp_square_offset*len, r, 'square', 'markerfacecolor', button_colors(r,:), 'markersize', 12, 'markeredgecolor','none')
         end
@@ -111,7 +114,7 @@ end
 
 if any(strcmp(x_name, {'s', 'c_s'}))
     [~, centers] = bin_generator(len, 'task', task);
-
+    
     set(gca, 'xtick', interp1(centers, 1:len, s_labels));
 else
     set(gca, 'xtick', 1:len)
@@ -148,14 +151,18 @@ if label_x
     end
 end
 
-if strcmp(x_name, 'c')
-    set(gca, 'xdir', 'reverse')
-end
+% flip plotting order
+ax = gca;
+ax.Children = flipud(ax.Children);
 
 switch y_name
     case {'tf','Chat'}
-        plot_horizontal_line(.5)
+        chanceline=plot_horizontal_line(.5);
     case 'resp'
         set(gca, 'ydir', 'reverse')
-        plot_horizontal_line(4.5)
+        chanceline=plot_horizontal_line(4.5);
+end
+
+if exist('chanceline', 'var') && isvalid(chanceline)
+    uistack(chanceline, 'top')
 end
