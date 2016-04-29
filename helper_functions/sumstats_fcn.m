@@ -7,7 +7,7 @@ function sumstats = sumstats_fcn(data, varargin)
 % g_exists  = isfield(data(1).raw, 'g');
 % rt_exists = isfield(data(1).raw, 'rt');
 trial_types = setdiff(fieldnames(data(1).stats), 'sig_levels');
-slices = setdiff(fieldnames(data(1).stats.all), {'index', 'subindex_by_c'});
+slices = setdiff(fieldnames(data(1).stats.(trial_types{1})), {'index', 'subindex_by_c'});
 
 % fields = {'bin_counts','percent_correct','Chat1_prop','g_mean','resp_mean'}
 fields = {'tf','resp','g','Chat', 'rt'};%'rt'

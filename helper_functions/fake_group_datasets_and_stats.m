@@ -16,7 +16,7 @@ for m = 1:length(model)
 
     for task = 1:length(tasks)
         trial_types = fieldnames(model(m).extracted(1).fake_datasets.(tasks{task}).sumstats);
-        bin_types = setdiff(fieldnames(model(m).extracted(1).fake_datasets.(tasks{task}).sumstats.all), {'index', 'subindex_by_c'});
+        bin_types = setdiff(fieldnames(model(m).extracted(1).fake_datasets.(tasks{task}).sumstats.(trial_types{1})), {'index', 'subindex_by_c'});
 
         for t = 1:length(trial_types)
             for f = 1:length(fields)

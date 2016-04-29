@@ -72,6 +72,11 @@ for c = plot_reliabilities
     else
         x = [1:len fliplr(1:len)];
         y = [m + errorbarheight, fliplr(m - errorbarheight)];
+        % nans in fill will fail. set to mean
+        if any(isnan(y))
+            warning('empty fill bins found. filling some stuff in...');
+            y(isnan(y))=nanmean(y);
+        end
         handle(c) = fill(x, y, color);
         set(handle(c), 'edgecolor', 'none', 'facealpha', fill_alpha);
     end
