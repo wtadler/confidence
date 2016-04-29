@@ -21,12 +21,15 @@ plot_connecting_line = true;
 nRespSquares = 8;
 assignopts(who, varargin);
 
-if isempty(plot_reliabilities)
-    plot_reliabilities = 1:nReliabilities;
+if strcmp(x_name, 'c') || strcmp(x_name, 'c_C')
+    reliability_x_axis = true;
+    set(gca, 'xdir', 'reverse');
+else
+    reliability_x_axis = false;
 end
 
-if strcmp(x_name, 'c')
-    set(gca, 'xdir', 'reverse')
+if isempty(plot_reliabilities) || reliability_x_axis
+    plot_reliabilities = 1:nReliabilities;
 end
 
 for c = plot_reliabilities
@@ -111,7 +114,7 @@ if label_y
         % blue to red colormap
         map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
         button_colors = map.button_colors;
-        if strcmp(x_name, 'c')
+        if reliability_x_axis
             square_x = 6.5+resp_square_offset*len;
         else
             square_x = .5-resp_square_offset*len;
@@ -140,7 +143,7 @@ if label_x
             xlabel('button press');
         case {'Chat', 'c_Chat'}
             xlabel('cat. choice');
-        case 'c'
+        case {'c', 'c_C'}
             if attention_task
                 xlabel('cue validity')
             else

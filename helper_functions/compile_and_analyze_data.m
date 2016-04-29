@@ -5,7 +5,7 @@ symmetrify = false;
 conf_levels = 4;
 trial_types = {'all'};
 output_fields = {'tf','resp','g','rt','Chat','proportion'};
-bin_types = {'c', 's', 'Chat', 'g', 'resp', 'c_s', 'c_Chat', 'c_g', 'c_resp'};
+bin_types = {'c', 's', 'Chat', 'g', 'resp', 'c_s', 'c_C', 'c_Chat', 'c_g', 'c_resp'};
 group_stats = false;
 assignopts(who, varargin)
 

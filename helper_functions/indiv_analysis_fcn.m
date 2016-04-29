@@ -10,7 +10,7 @@ flipsig = 1; % implement this. 12/4/15
 % discrete = 0;
 trial_types = {'all'};
 output_fields = {'tf','resp','g','rt','Chat','proportion'};
-bin_types = {'c', 's', 'Chat', 'g', 'resp', 'c_s', 'c_Chat', 'c_g', 'c_resp'};
+bin_types = {'c', 's', 'Chat', 'g', 'resp', 'c_s', 'c_C', 'c_Chat', 'c_g', 'c_resp'};
 assignopts(who,varargin);
 
 stats = struct;
@@ -139,6 +139,11 @@ end
                         for bin = 1 : length(bins)+1
                             idx = bin_index == bin;
                             st = compute(st, raw.by_contrast(contrast), idx, contrast, bin);
+                        end
+                    case 'c_C'
+                        for C = 1:2
+                            idx = raw.by_contrast(contrast).C == 2*C-3; % convert [1 2] to [-1 1]
+                            st = compute(st, raw.by_contrast(contrast), idx, C, contrast);
                         end
                     case 'c_Chat'
                         for Chat = 1:2

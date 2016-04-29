@@ -65,13 +65,13 @@ real_data = compile_and_analyze_data(root_datadir, 'nBins', nBins,...
 
 nSubjects = length(real_data.(tasks{1}).data);
 
-
+map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
+ 
 if isfield(real_data.(tasks{1}).data(1).raw, 'cue_validity') && ~isempty(real_data.(tasks{1}).data(1).raw.cue_validity)
     % attention
     nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.cue_validity_id));
     attention_manipulation = true;
-    colors = flipud([.7 0 0;.6 .6 .6;0 .7 0]);
-    
+    colors = map.attention_colors
 else
     nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.contrast_id));
     attention_manipulation = false;
@@ -80,8 +80,6 @@ else
     
     if max(plot_reliabilities) > nReliabilities; error('you requested to plot more reliabilities than there are'); end
     
-    hhh = hot(64);
-    map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
     colors = map.tan_contrast_colors; % formerly hot_contrast_colors
 end
 
@@ -140,7 +138,6 @@ for fig = 1:n.fig
         
         for row = 1:n.row
             for i = 1:3
-                
                 switch axis.(plot_axes{i})
                     case 'depvar'
                         depvar = eval(plot_axes{i});
@@ -155,6 +152,15 @@ for fig = 1:n.fig
                 end
             end
             
+            if strcmp(slices{slice}, 'c_C')
+                colors = [map.cat1; map.cat2];
+            else
+                if attention_manipulation
+                    colors = map.attention_colors;
+                else
+                    colors = map.tan_contrast_colors;
+                end
+            end
             
             ah(row, col, fig) = tight_subplot(n.row, n.col, row, col, gutter, margins);
             
@@ -235,7 +241,11 @@ for fig = 1:n.fig
                 end
                 if strcmp(depvars{depvar}, 'resp')
                     ylpos = get(yl, 'position');
-                    set(yl, 'position', ylpos-[.8 0 0]);
+                    if strcmp(slices{slice}, 'c_s')
+                        set(yl, 'position', ylpos-[.8 0 0]);
+                    elseif strcmp(slices{slice}, 'c_C')
+                        set(yl, 'position', ylpos+[.4 0 0]);
+                    end
                 end
             end
             
