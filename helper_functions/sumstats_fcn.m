@@ -1,5 +1,5 @@
 function sumstats = sumstats_fcn(data, varargin)
-
+bootstrap = true;
 % define default
 % decb_analysis = 0;
 % assignopts(who,varargin);
@@ -49,7 +49,19 @@ for type = 1 : length(trial_types)
             
             st.edgar_sem2 = edgar_sem(varpop);
             
-                                    
+            if bootstrap
+                dim = size(st.mean);
+                bootstat = bootstrp(1e2, @nanmean, permute(st.Mean, [3 1 2]));
+                st.mean = mean(bootstat);
+                st.mean = reshape(st.mean, dim(1), dim(2));
+                
+                midrange = .95;
+                quantiles = quantile(bootstat, [.5 - midrange/2, .5 + midrange/2]);
+                quantiles = reshape(quantiles', dim(1), dim(2), 2);
+                st.CI = quantiles;
+            end
+               
+            
             stats = fieldnames(st);
             for s = 1:length(stats)
                 sumstats.(trial_types{type}).(slices{slice}).(stats{s}).(fields{f}) = st.(stats{s});
