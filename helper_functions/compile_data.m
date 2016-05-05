@@ -148,7 +148,7 @@ for subject = 1 : length(names)
                 
                 if multi_prior
                     raw.prior = [raw.prior data.R.prior{block}(section, :)];
-                    [raw.prior_values, raw.prior_id] = unique_contrasts(raw.prior, 'flipsig', false);
+                    [raw.prior_values, raw.prior_id] = unique_contrasts(raw.prior, 'flipsig', true);
                 end
                     
                     

@@ -1,9 +1,7 @@
 function handle=single_dataset_plot(binned_stats, y_name, x_name, varargin)
 % plot data or fits in a "smart" way. adjusts ylim and labels according to y_name and x_name.
 plot_reliabilities = [];
-hhh = hot;
-slice = 'c_s';
-colors = hhh(round(linspace(1, 40, 6)),:);
+colors = [];
 linewidth = 2;
 symmetrify = false;
 fill_alpha = .5;
@@ -21,15 +19,12 @@ nRespSquares = 8;
 show_legend = false;
 assignopts(who, varargin);
 
-map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
-switch slice
-    case 'c_s'
-        colors = map.tan_contrast_colors;
-        labels = {'high reliability', 'low reliability'};
-    case 'c_C'
-        colors = [map.cat1; map.cat2];
-        labels = {'cat. 1', 'cat. 2'};
+if ~isempty(colors)
+    input_colors = colors;
+else
+    input_colors = [];
 end
+
 if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
     reliability_x_axis = true;
     set(gca, 'xdir', 'reverse');
@@ -58,8 +53,52 @@ else
     end
 end
 
+map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
+set(gca, 'xticklabelmode', 'auto')
+if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
+    if attention_task
+        xlabel('cue validity')
+    else
+        xlabel('reliability')
+    end
+    xtl = cell(1,nCols);
+    xtl{1} = 'high';
+    xtl{end} = 'low';
+    set(gca, 'xticklabel', xtl);
+    
+    colors = [map.cat1; map.cat2];
+    labels = {'cat. 1', 'cat. 2'};
+elseif strcmp(x_name, 'g')
+    xlabel('confidence');
+elseif strcmp(x_name, 'resp')
+    xlabel('button press');
+elseif strcmp(x_name, 'Chat')
+    xlabel('cat. choice')
+elseif any(strcmp(x_name, {'s', 'c_s'}))
+    if symmetrify
+        xlabel('abs. orientation')
+        set(gca, 'xticklabel', abs(s_labels))
+    else
+        xlabel('orientation')
+        set(gca, 'xticklabel', s_labels)
+    end
+    
+    colors = map.tan_contrast_colors;
+    labels = {'high reliability', 'low reliability'};
+    % ADD ATTENTION STUFF IN HERE
+elseif strcmp(x_name, 'c_prior')
+    colors = [map.cat1; .3 .3 .3; map.cat2];
+    labels = {'cat. 1 prior', 'neutral prior', 'cat. 2 prior'}; % REVERSE THIS IN SOME OTHER FUNCTION AND THEN HERE
+end
 
+if ~isempty(input_colors);
+    colors = input_colors;
+end
 
+if ~label_x % clear out
+    xlabel('')
+    set(gca, 'xticklabels', '')
+end
 
 for row = plot_rows
     color = colors(row,:);
@@ -133,7 +172,7 @@ set(gca, 'box', 'off',...
     'tickdir', 'out', 'ylim', yl.(y_name),...
     'ytick', yt.(y_name),...
     'xlim', [.5 nCols+.5], 'ticklength', [.018 .018],...
-    'yticklabel', '', 'xticklabel', '', 'color', 'none');
+    'yticklabel', '', 'color', 'none');
 
 if label_y
     if ~strcmp(y_name, 'resp')
@@ -160,35 +199,6 @@ if any(strcmp(x_name, {'s', 'c_s'}))
     set(gca, 'xtick', interp1(centers, 1:nCols, s_labels));
 else
     set(gca, 'xtick', 1:nCols)
-end
-
-if label_x
-    set(gca, 'xticklabelmode', 'auto')
-    if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
-        if attention_task
-            xlabel('cue validity')
-        else
-            xlabel('reliability')
-        end
-        xtl = cell(1,nCols);
-        xtl{1} = 'high';
-        xtl{end} = 'low';
-        set(gca, 'xticklabel', xtl);
-    elseif strcmp(x_name, 'g')
-        xlabel('confidence');
-    elseif strcmp(x_name, 'resp')
-        xlabel('button press');
-    elseif strcmp(x_name, 'Chat')
-        xlabel('cat. choice')
-    elseif any(strcmp(x_name, {'s', 'c_s'}))
-        if symmetrify
-                xlabel('abs. orientation')
-                set(gca, 'xticklabel', abs(s_labels))
-            else
-                xlabel('orientation')
-                set(gca, 'xticklabel', s_labels)
-        end
-    end
 end
 
 % flip plotting order

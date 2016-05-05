@@ -71,7 +71,7 @@ if isfield(real_data.(tasks{1}).data(1).raw, 'cue_validity') && ~isempty(real_da
     % attention
     nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.cue_validity_id));
     attention_manipulation = true;
-    colors = map.attention_colors
+    colors = map.attention_colors;
 else
     nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.contrast_id));
     attention_manipulation = false;
@@ -152,10 +152,11 @@ for fig = 1:n.fig
                 end
             end
             
+            % all colors functionality should be moved to single_dataset_plot
             if any(strcmp(slices{slice}, {'c_C', 'c_Chat'}))
                 colors = [map.cat1; map.cat2];
             elseif strcmp(slices{slice}, 'c_prior')
-                colors = [map.cat2; [.3 .3 .3]; map.cat1];
+                colors = [map.cat1; [.3 .3 .3]; map.cat2];
             else
                 if attention_manipulation
                     colors = map.attention_colors;
