@@ -21,7 +21,7 @@ plot_connecting_line = true;
 nRespSquares = 8;
 assignopts(who, varargin);
 
-if strcmp(x_name, 'c') || strcmp(x_name, 'c_C')
+if strcmp(x_name, 'c') || strcmp(x_name, 'c_C') || strcmp(x_name, 'c_prior')
     reliability_x_axis = true;
     set(gca, 'xdir', 'reverse');
 else
@@ -113,7 +113,6 @@ if label_y
         set(gca, 'clipping', 'off')
         % blue to red colormap
         map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
-        button_colors = map.button_colors;
         if reliability_x_axis
             square_x = 6.5+resp_square_offset*len;
         else
@@ -121,7 +120,7 @@ if label_y
         end
         
         for r = (5-nRespSquares/2):(4+nRespSquares/2) % 1:8 or 3:6 is typical
-            plot(square_x, r, 'square', 'markerfacecolor', button_colors(r,:), 'markersize', 12, 'markeredgecolor','none')
+            plot(square_x, r, 'square', 'markerfacecolor', map.button_colors(r,:), 'markersize', 12, 'markeredgecolor','none')
         end
     end
 end
@@ -143,7 +142,7 @@ if label_x
             xlabel('button press');
         case {'Chat', 'c_Chat'}
             xlabel('cat. choice');
-        case {'c', 'c_C'}
+        case {'c', 'c_C', 'c_prior'}
             if attention_task
                 xlabel('cue validity')
             else

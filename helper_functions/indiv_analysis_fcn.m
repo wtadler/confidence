@@ -24,7 +24,7 @@ end
 fields = {};
 rawfields = fieldnames(raw);
 for f = 1:length(rawfields)
-    if ~isempty(raw.(rawfields{f})) && ~any(strcmp(rawfields{f}, {'contrast_values', 'cue_validity_values'}))
+    if ~isempty(raw.(rawfields{f})) && ~any(strcmp(rawfields{f}, {'contrast_values', 'cue_validity_values', 'prior_values'}))
         fields = [fields rawfields{f}];
     end
 end
@@ -143,8 +143,14 @@ end
                     case 'c_C'
                         for C = 1:2
                             idx = raw.by_contrast(contrast).C == 2*C-3; % convert [1 2] to [-1 1]
-                            st = compute(st, raw.by_contrast(contrast), idx, C, contrast);
+                            st = compute(st, raw.by_contrast(contrast), idx, C, contrast); % this seems out of order?
                         end
+                    case 'c_prior'
+                        for prior = unique(raw.by_contrast(contrast).prior_id)
+                            idx = raw.by_contrast(contrast).prior_id == prior;
+                            st = compute(st, raw.by_contrast(contrast), idx, prior, contrast);
+                        end
+                        
                     case 'c_Chat'
                         for Chat = 1:2
                             idx = raw.by_contrast(contrast).Chat == 2*Chat-3; % convert [1 2] to [-1 1]

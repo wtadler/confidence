@@ -132,7 +132,7 @@ for fig = 1:n.fig
     for col = 1:n.col
         if col == 1
             label_y = true;
-        else
+        elseif col > 1 && ~strcmp(axis.col, 'depvar')
             label_y = false;
         end
         
@@ -154,6 +154,8 @@ for fig = 1:n.fig
             
             if strcmp(slices{slice}, 'c_C')
                 colors = [map.cat1; map.cat2];
+            elseif strcmp(slices{slice}, 'c_prior')
+                colors = [map.cat1; [.3 .3 .3]; map.cat2];
             else
                 if attention_manipulation
                     colors = map.attention_colors;
@@ -232,7 +234,7 @@ for fig = 1:n.fig
             end
             
             % y axis labels for left column
-            if col == 1
+            if col == 1 || strcmp(axis.col, 'depvar')
                 if strcmp(axis.row, 'model')
                     yl=ylabel({ylabels{depvar}, ['Task ' tasks{task}], rename_models(models(model).name)});
                     set(yl, 'fontsize', 9)
@@ -259,21 +261,21 @@ for fig = 1:n.fig
                         title(rename_models(models(model).name));
                 end
                 
-                if col == 1
+                if col == 1 || strcmp(axis.col, 'depvar')
                     if show_legend
-                        legend(labels)
-                        
-                        if ~group_fits
-                            t=title(upper(real_data.(tasks{task}).data(col).name))
-                        elseif group_fits
-                            t=title(rename_models(model.name));
-                            set(gca, 'xticklabel', ori_labels.(tasks{task}))
-                        end
-                        
-                        if col == 1
-                            if show_legend
+%                         legend(labels)
+%                         
+%                         if ~group_fits
+%                             t=title(upper(real_data.(tasks{task}).data(col).name))
+%                         elseif group_fits
+%                             t=title(rename_models(model.name));
+%                             set(gca, 'xticklabel', ori_labels.(tasks{task}))
+%                         end
+%                         
+%                         if col == 1
+%                             if show_legend
                                 warning('add legend functionality')
-                            end
+%                             end
                         end
                     end
                 end

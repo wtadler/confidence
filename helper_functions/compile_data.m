@@ -20,7 +20,7 @@ crossvalidate = false;
 
 old_attention_manipulation = false;
 attention_manipulation = false;
-
+multi_prior = false;
 
 training_data = false; % compiles training data instead of test data
 
@@ -56,7 +56,7 @@ for subject = 1 : length(names)
 
     % initialize raw fields
     clear raw
-    fields = {'C', 's', 'contrast', 'probe', 'cue', 'cue_validity', 'Chat', 'g', 'tf', 'rt', 'resp'};
+    fields = {'C', 's', 'contrast', 'probe', 'cue', 'cue_validity', 'prior', 'Chat', 'g', 'tf', 'rt', 'resp'};
     for f = 1:length(fields)
         raw.(fields{f}) = [];
     end
@@ -75,6 +75,11 @@ for subject = 1 : length(names)
         elseif ndims(data.R.draws{1}) == 3
             attention_manipulation = true;
         end
+        
+        if isfield(data.R, 'prior') && length(unique(data.R.prior{1})) > 1
+            multi_prior = true;
+        end
+        
         
         
         %tmp.Training = Training; % maybe work on this later. it's going to
@@ -139,6 +144,11 @@ for subject = 1 : length(names)
                     raw.s           = [raw.s        data.R.draws{block}(section,:)];
                     raw.contrast    = [raw.contrast data.R.sigma{block}(section,:)];
                     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);%,'flipsig',flipsig);
+                end
+                
+                if multi_prior
+                    raw.prior = [raw.prior data.R.prior{block}(section, :)];
+                    [raw.prior_values, raw.prior_id] = unique_contrasts(raw.prior, 'flipsig', false);
                 end
                     
                     
