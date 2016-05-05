@@ -152,10 +152,10 @@ for fig = 1:n.fig
                 end
             end
             
-            if strcmp(slices{slice}, 'c_C')
+            if any(strcmp(slices{slice}, {'c_C', 'c_Chat'}))
                 colors = [map.cat1; map.cat2];
             elseif strcmp(slices{slice}, 'c_prior')
-                colors = [map.cat1; [.3 .3 .3]; map.cat2];
+                colors = [map.cat2; [.3 .3 .3]; map.cat1];
             else
                 if attention_manipulation
                     colors = map.attention_colors;

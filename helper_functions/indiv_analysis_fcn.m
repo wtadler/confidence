@@ -133,7 +133,7 @@ end
                 switch bin_type
                     case 'c'
                         idx = true(1, nTrials);
-                        st = compute(st, raw.by_contrast(contrast), idx, contrast);
+                        st = compute(st, raw.by_contrast(contrast), idx, contrast, 1);
                     case 'c_s'
                         [~, bin_index] = histc(raw.by_contrast(contrast).s, [-Inf, bins, Inf]);
                         for bin = 1 : length(bins)+1
@@ -143,12 +143,12 @@ end
                     case 'c_C'
                         for C = 1:2
                             idx = raw.by_contrast(contrast).C == 2*C-3; % convert [1 2] to [-1 1]
-                            st = compute(st, raw.by_contrast(contrast), idx, C, contrast); % this seems out of order?
+                            st = compute(st, raw.by_contrast(contrast), idx, contrast, C);
                         end
                     case 'c_prior'
                         for prior = unique(raw.by_contrast(contrast).prior_id)
                             idx = raw.by_contrast(contrast).prior_id == prior;
-                            st = compute(st, raw.by_contrast(contrast), idx, prior, contrast);
+                            st = compute(st, raw.by_contrast(contrast), idx, contrast, prior);
                         end
                         
                     case 'c_Chat'
