@@ -53,6 +53,7 @@ if isempty(model_fitting_data)
     raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);
     raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1), category_type);
     
+    
     if attention_manipulation
         if model.nFreesigs==3
             v = .8;
@@ -87,6 +88,9 @@ if isempty(model_fitting_data)
 %         raw.cue_validity(raw.probe == raw.cue)                  =  1;  % valid cues
 %         raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
 %         raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
+    elseif multi_prior
+        % DO THIS
+    
     end
     
 else % take real data

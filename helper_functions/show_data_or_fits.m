@@ -17,7 +17,7 @@ tasks = {'A','B'};
 axis = struct;
 axis.col = 'slice'; % 'subject', 'slice', or 'model'. defaults to subject if not doing group plots
 axis.row = 'task'; % 'task', 'model', or 'depvar'
-axis.fig = 'none'; % 'model', 'task', 'depvar', or 'slice'
+axis.fig = 'none'; % 'model', 'task', 'depvar', 'slice'
 trial_type = 'all'; % 'all', 'correct', 'incorrect', etc...
 linewidth = 2;
 meanlinewidth = 4;
@@ -193,7 +193,8 @@ for fig = 1:n.fig
                 'label_x', label_x, 'label_y', label_y, 's_labels', s_labels,...
                 'task', tasks{task}, 'errorbarwidth', errorbarwidth,...
                 'plot_connecting_line', plot_connecting_line,...
-                'nRespSquares', nRespSquares, 'show_legend', (~fake_data && sdp_legend));
+                'nRespSquares', nRespSquares, 'show_legend', (~fake_data && sdp_legend),...
+                'attention_task', attention_manipulation);
             
             % clean this section up?
             fake_data = false;

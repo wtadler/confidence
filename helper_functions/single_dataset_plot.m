@@ -56,14 +56,18 @@ end
 map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
 set(gca, 'xticklabelmode', 'auto')
 if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
+    xtl = cell(1,nCols);
     if attention_task
         xlabel('cue validity')
+        xtl{1} = 'valid';
+        xtl{2} = 'neutral';
+        xtl{3} = 'invalid';
     else
         xlabel('reliability')
+        xtl{1} = 'high';
+        xtl{end} = 'low';
     end
-    xtl = cell(1,nCols);
-    xtl{1} = 'high';
-    xtl{end} = 'low';
+    
     set(gca, 'xticklabel', xtl);
     if strcmp(x_name, 'c')
         colors = [0 0 0];
@@ -90,12 +94,14 @@ elseif any(strcmp(x_name, {'s', 'c_s'}))
         set(gca, 'xticklabel', s_labels)
     end
     
-    if nRows == 3 % attention experiment
+    if attention_task
         colors = map.attention_colors;
+        labels = {'valid cue', 'neutral cue', 'invalid cue'};
     else
         colors = map.tan_contrast_colors;
+        labels = {'high reliability', 'low reliability'};
     end
-    labels = {'high reliability', 'low reliability'};
+    
     % ADD ATTENTION STUFF IN HERE
 elseif strcmp(x_name, 'c_prior')
     
@@ -228,7 +234,7 @@ if exist('chanceline', 'var') && isvalid(chanceline)
 end
 
 if show_legend
-    if strcmp(x_name, 'c_prior')
+    if strcmp(x_name, 'c_prior') | attention_task
         l=legend(handle, labels);
     else
         try
