@@ -65,9 +65,16 @@ if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c
     xtl{1} = 'high';
     xtl{end} = 'low';
     set(gca, 'xticklabel', xtl);
-    
-    colors = [map.cat1; map.cat2];
-    labels = {'cat. 1', 'cat. 2'};
+    if strcmp(x_name, 'c')
+        colors = [0 0 0];
+        show_legend = false;
+    elseif strcmp(x_name, 'c_prior')
+        colors = [map.cat1; .3 .3 .3; map.cat2];
+        labels = {'cat. 1 prior', 'neutral prior', 'cat. 2 prior'};
+    else
+        colors = [map.cat1; map.cat2];
+        labels = {'cat. 1', 'cat. 2'};
+    end
 elseif strcmp(x_name, 'g')
     xlabel('confidence');
 elseif strcmp(x_name, 'resp')
@@ -83,12 +90,15 @@ elseif any(strcmp(x_name, {'s', 'c_s'}))
         set(gca, 'xticklabel', s_labels)
     end
     
-    colors = map.tan_contrast_colors;
+    if nRows == 3 % attention experiment
+        colors = map.attention_colors;
+    else
+        colors = map.tan_contrast_colors;
+    end
     labels = {'high reliability', 'low reliability'};
     % ADD ATTENTION STUFF IN HERE
 elseif strcmp(x_name, 'c_prior')
-    colors = [map.cat1; .3 .3 .3; map.cat2];
-    labels = {'cat. 1 prior', 'neutral prior', 'cat. 2 prior'}; % REVERSE THIS IN SOME OTHER FUNCTION AND THEN HERE
+    
 end
 
 if ~isempty(input_colors);
@@ -218,10 +228,14 @@ if exist('chanceline', 'var') && isvalid(chanceline)
 end
 
 if show_legend
-    try
-        l=legend(handle([1 end]), labels);
-    catch
-        l=legend(handle([2 end]), labels);
+    if strcmp(x_name, 'c_prior')
+        l=legend(handle, labels);
+    else
+        try
+            l=legend(handle([1 end]), labels);
+        catch
+            l=legend(handle([2 end]), labels);
+        end
     end
     set(l, 'box', 'off', 'location', 'northeast')
 end

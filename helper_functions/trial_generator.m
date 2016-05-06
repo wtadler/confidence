@@ -19,6 +19,8 @@ category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_me
 
 attention_manipulation = false;
 
+multi_prior = false;
+
 assignopts(who,varargin);
 
 % updating category_type according to the model. not sure why i wasn''t doing this before
@@ -54,8 +56,9 @@ if isempty(model_fitting_data)
     if attention_manipulation
         if model.nFreesigs==3
             v = .8;
+            prop_neutral_trials = 1/6;
             cue_validities = [(1-v)/3 .25 v];
-            freq = [(1-1/3)*(1-v) 1/3 (1-1/3)*v];
+            freq = [(1-prop_neutral_trials)*(1-v) prop_neutral_trials (1-prop_neutral_trials)*v];
         elseif model.nFreesigs==5
             v = .9;
             v2= .45;
@@ -96,6 +99,7 @@ else % take real data
         raw.cue          = model_fitting_data.cue;
         raw.cue_validity = model_fitting_data.cue_validity;
     end
+    
 end
 n_samples = length(raw.C);
 

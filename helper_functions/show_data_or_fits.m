@@ -13,7 +13,6 @@ nRespSquares = 8;
 symmetrify = false;
 slices = {'c_s'}; % 's', 'c_s', 'c_resp', etc etc etc. figure out how to add a blank
 means = {};% 'g', 'resp', 's', 'c', etc etc
-mean_color = [0 0 .8];
 tasks = {'A','B'};
 axis = struct;
 axis.col = 'slice'; % 'subject', 'slice', or 'model'. defaults to subject if not doing group plots
@@ -66,12 +65,10 @@ real_data = compile_and_analyze_data(root_datadir, 'nBins', nBins,...
 nSubjects = length(real_data.(tasks{1}).data);
 
 map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
- 
+
 if isfield(real_data.(tasks{1}).data(1).raw, 'cue_validity') && ~isempty(real_data.(tasks{1}).data(1).raw.cue_validity)
     % attention
-    nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.cue_validity_id));
     attention_manipulation = true;
-    colors = map.attention_colors;
 else
     nReliabilities = length(unique(real_data.(tasks{1}).data(1).raw.contrast_id));
     attention_manipulation = false;
@@ -79,8 +76,6 @@ else
     if isempty(plot_reliabilities); plot_reliabilities = 1:nReliabilities; end
     
     if max(plot_reliabilities) > nReliabilities; error('you requested to plot more reliabilities than there are'); end
-    
-    colors = map.tan_contrast_colors; % formerly hot_contrast_colors
 end
 
 if ~isempty(models)
@@ -152,17 +147,28 @@ for fig = 1:n.fig
                 end
             end
             
-            % all colors functionality should be moved to single_dataset_plot
-            if any(strcmp(slices{slice}, {'c_C', 'c_Chat'}))
-                colors = [map.cat1; map.cat2];
-            elseif strcmp(slices{slice}, 'c_prior')
-                colors = [map.cat1; [.3 .3 .3]; map.cat2];
-            else
-                if attention_manipulation
-                    colors = map.attention_colors;
-                else
-                    colors = map.tan_contrast_colors;
+            if show_legend
+                if length(slices)==1 || ~any(strcmp('slice', {axis.col, axis.row}))
+                    if row==1 && col==1
+                        sdp_legend = true;
+                    else
+                        sdp_legend = false;
+                    end
+                elseif strcmp('slice', axis.col)
+                    if row==1
+                        sdp_legend = true;
+                    else
+                        sdp_legend = false;
+                    end
+                elseif strcmp('slice', axis.row)
+                    if row==1
+                        sdp_legend = true;
+                    else
+                        sdp_legend = false;
+                    end
                 end
+            else
+                sdp_legend = false;
             end
             
             ah(row, col, fig) = tight_subplot(n.row, n.col, row, col, gutter, margins);
@@ -178,16 +184,16 @@ for fig = 1:n.fig
             else
                 label_x = false;
             end
-            shortcutplot = @(data, fake_data, x_name, colors, linewidth, plot_reliabilities)...
+            shortcutplot = @(data, fake_data, x_name, linewidth, plot_reliabilities)...
                 single_dataset_plot(data, depvars{depvar}, x_name, ...
                 'fake_data', fake_data, 'group_plot', group_plot, ...
-                'symmetrify', symmetrify_s, 'colors', colors, ...
+                'symmetrify', symmetrify_s, ...
                 'linewidth', linewidth, ...
                 'plot_reliabilities', plot_reliabilities, ...
                 'label_x', label_x, 'label_y', label_y, 's_labels', s_labels,...
                 'task', tasks{task}, 'errorbarwidth', errorbarwidth,...
                 'plot_connecting_line', plot_connecting_line,...
-                'nRespSquares', nRespSquares);
+                'nRespSquares', nRespSquares, 'show_legend', (~fake_data && sdp_legend));
             
             % clean this section up?
             fake_data = false;
@@ -198,7 +204,7 @@ for fig = 1:n.fig
                 else
                     data = real_data.(tasks{task}).sumstats.(trial_type).(slices{slice});
                 end
-                shortcutplot(data, fake_data, slices{slice}, colors, linewidth, plot_reliabilities);
+                shortcutplot(data, fake_data, slices{slice}, linewidth, plot_reliabilities);
             end
             
             % plot real "mean" data
@@ -208,7 +214,7 @@ for fig = 1:n.fig
                 else
                     data = real_data.(tasks{task}).sumstats.(trial_type).(means{slice});
                 end
-                shortcutplot(data, fake_data, means{slice}, mean_color, meanlinewidth, []);
+                shortcutplot(data, fake_data, means{slice}, meanlinewidth, []);
             end
             
             % plot fitted sliced data
@@ -220,7 +226,7 @@ for fig = 1:n.fig
                     else
                         data = models(model).(tasks{task}).sumstats.(trial_type).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_type. i think that's okay 12/11/15
                     end
-                    shortcutplot(data, fake_data, slices{slice}, colors, linewidth, plot_reliabilities);
+                    shortcutplot(data, fake_data, slices{slice}, linewidth, plot_reliabilities);
                 end
                 
                 if ~isempty(means) && ~isempty(means{slice})
@@ -229,7 +235,7 @@ for fig = 1:n.fig
                     else
                         data = models(model).(tasks{task}).sumstats.(trial_type).(means{slice});
                     end
-                    shortcutplot(data, fake_data, means{slice}, mean_color, meanlinewidth, []);
+                    shortcutplot(data, fake_data, means{slice}, meanlinewidth, []);
                 end
                 
             end
@@ -261,57 +267,39 @@ for fig = 1:n.fig
                     case 'model'
                         title(rename_models(models(model).name));
                 end
-                
-                if col == 1 || strcmp(axis.col, 'depvar')
-                    if show_legend
-%                         legend(labels)
-%                         
-%                         if ~group_fits
-%                             t=title(upper(real_data.(tasks{task}).data(col).name))
-%                         elseif group_fits
-%                             t=title(rename_models(model.name));
-%                             set(gca, 'xticklabel', ori_labels.(tasks{task}))
-%                         end
-%                         
-%                         if col == 1
-%                             if show_legend
-                                warning('add legend functionality')
-%                             end
-                        end
-                    end
-                end
             end
+        end
+    end
+end
+
+if show_MCM
+    % old way of doing it straight across:
+    %         tight_subplot(1,1,1,1, 0, [margins(1), margins(2), .1, 1-MCM_size+.07])
+    %         [score, group_mean, group_sem] = compare_models(models, 'show_names', true, 'show_model_names', false,...
+    %             'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model,...
+    %             'multiple_axes', true);
+    
+    for col = 1:n.col
+        tight_subplot(1, n.col, 1, col, gutter, [margins(1), margins(2), .1, 1-MCM_size+.07]);
+        
+        % it's dumb to do compare_models each time, but it gets the
+        % axes set correctly.
+        
+        [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_names', true, 'show_model_names', false,...
+            'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model);
+        if col == 1
+            yl = get(gca, 'ylim');
+        else
+            ylabel('');
+        end
+        
+        mybar(MCM_delta(col, :), 'barnames', subject_names);
+        ylim(yl);
+        
+        if col ~= 1
+            set(gca, 'yticklabel', '');
         end
     end
     
-    if show_MCM
-        % old way of doing it straight across:
-        %         tight_subplot(1,1,1,1, 0, [margins(1), margins(2), .1, 1-MCM_size+.07])
-        %         [score, group_mean, group_sem] = compare_models(models, 'show_names', true, 'show_model_names', false,...
-        %             'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model,...
-        %             'multiple_axes', true);
-
-        for col = 1:n.col
-            tight_subplot(1, n.col, 1, col, gutter, [margins(1), margins(2), .1, 1-MCM_size+.07]);
-            
-            % it's dumb to do compare_models each time, but it gets the
-            % axes set correctly.
-            
-            [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_names', true, 'show_model_names', false,...
-                'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model);
-            if col == 1
-                yl = get(gca, 'ylim');
-            else
-                ylabel('');
-            end
-            
-            mybar(MCM_delta(col, :), 'barnames', subject_names);
-            ylim(yl);
-            
-            if col ~= 1
-                set(gca, 'yticklabel', '');
-            end
-        end
-
-    end
+end
 end

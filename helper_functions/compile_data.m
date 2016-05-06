@@ -16,7 +16,7 @@ conflevels = 4;
 datadir='/Users/will/Google Drive/Will - Confidence/Data/v3/taskA';
 
 crossvalidate = false;
-    k = 2; % for k-fold cross-validation
+k = 2; % for k-fold cross-validation
 
 old_attention_manipulation = false;
 attention_manipulation = false;
