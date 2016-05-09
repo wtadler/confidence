@@ -2,28 +2,27 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'opt';
-opt_models(1).multi_lapse = 0;
-opt_models(1).partial_lapse = 0;
-opt_models(1).repeat_lapse = 1;
-opt_models(1).choice_only = 1;
-opt_models(1).diff_mean_same_std = 0;
-opt_models(1).ori_dep_noise = 0;
-opt_models(1).symmetric = 1;
-opt_models(1).joint_task_fit = 1;
-opt_models(1).d_noise = 0;
-opt_models(1).nFreesigs = 0;
-opt_models(1).joint_d = 0;
-opt_models(1).separate_measurement_and_inference_noise = 0;
+opt_models(3).family = 'opt';
+opt_models(3).multi_lapse = 0;
+opt_models(3).partial_lapse = 0;
+opt_models(3).repeat_lapse = 1;
+opt_models(3).choice_only = 1;
+opt_models(3).diff_mean_same_std = 0;
+opt_models(3).ori_dep_noise = 0;
+opt_models(3).symmetric = 1;
+opt_models(3).joint_task_fit = 1;
+opt_models(3).d_noise = 0;
+opt_models(3).nFreesigs = 0;
+opt_models(3).joint_d = 0;
+opt_models(3).nPriors = 1;
+opt_models(3).separate_measurement_and_inference_noise = 0;
 
-opt_models(2) = opt_models(1);
+opt_models(2) = opt_models(3);
 opt_models(2).joint_d = 1;
 
-for m = 3:4
-opt_models(m) = opt_models(m-2);
-opt_models(m).separate_measurement_and_inference_noise = 1;
-opt_models(m).one_inference_sig = 1;
-end
+opt_models(1) = opt_models(3);
+opt_models(1).family = 'fixed';
+opt_models(1).nPriors = 3;
 
 opt_models = parameter_constraints(opt_models);
 

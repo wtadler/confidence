@@ -7,13 +7,16 @@ for m_id = 1 : nModels
     options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only',...
         'symmetric','d_noise','free_cats','non_overlap','ori_dep_noise',...
         'diff_mean_same_std','joint_task_fit','joint_d', 'nFreesigs',...
-        'separate_measurement_and_inference_noise', 'biased_lapse', 'one_inference_sig'};
+        'separate_measurement_and_inference_noise', 'biased_lapse', 'nPriors'};
     for o = 1:length(options)
         if ~isfield(c,options{o}) || isempty(c.(options{o}))
             c.(options{o}) = 0;
         end
     end
     
+    if c.nPriors == 0
+        c.nPriors = 1;
+    end 
     
     if c.choice_only
         % the below options are only for confidence models. they don't make sense if choice_only has been specified

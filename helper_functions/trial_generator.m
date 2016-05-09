@@ -81,7 +81,6 @@ if isempty(model_fitting_data)
     raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
     raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);
     raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1), category_type);
-
     
 else % take real data
     raw.C           = model_fitting_data.C;
@@ -99,7 +98,6 @@ else % take real data
     else
         raw.prior = .5*ones(1, n_samples);
     end
-    
 end
 n_samples = length(raw.C);
 
@@ -218,7 +216,6 @@ if strcmp(model.family,'opt')
             raw.d = log( (erf((raw.x-a)./denom) - erf((raw.x+1-a)./denom)) ./ (erf((raw.x-1+a)./denom) - erf((raw.x+a)./denom)));
             
         case 'diff_mean_same_std'
-            
             if model.ori_dep_noise
                 raw.d = log(likelihood(category_params.sigma_s, category_params.mu_1) ./ likelihood(category_params.sigma_s, category_params.mu_2)) + log(raw.prior./(1-raw.prior));
             else
