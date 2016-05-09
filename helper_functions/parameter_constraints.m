@@ -63,7 +63,7 @@ for m_id = 1 : nModels
         end
     end
     c.name = str; % model name
-    %%
+    
     
     c.parameter_names = {
         'logsigma_c_low'
@@ -159,6 +159,7 @@ for m_id = 1 : nModels
     
     c = taskizer(c);
     c = familyizer(c);
+    c = priorizer(c);
     c = symmetricizer(c);
     c = choiceizer(c);
     c = d_noiseizer(c);
@@ -225,6 +226,22 @@ elseif strcmp(c.family, 'neural1')
 end
 
 c = p_stripper(c,unique([otherbounds{:}]));
+end
+
+function c = priorizer(c)
+% copy bounds for priors
+if c.nPriors > 1
+    all_bounds = find_parameter('[bm]_', c);
+    fields = {'lb', 'ub', 'lb_gen', 'ub_gen', 'beq'};
+    for prior = 1:c.nPriors
+        c.parameter_names = cat(1, c.parameter_names, strcat(c.parameter_names(all_bounds), sprintf('_prior%i', prior)));
+        
+        for l = 1:length(fields)
+            c.(fields{l}) = cat(1, c.(fields{l}), c.(fields{l})(all_bounds));
+        end
+    end
+    c = p_stripper(c, all_bounds);
+end
 end
 
 function c = symmetricizer(c)

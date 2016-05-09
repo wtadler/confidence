@@ -352,7 +352,11 @@ else % all non-Bayesian models
     elseif strcmp(model.family, 'quad')
         b = p.b_i(5) + p.m_i(5) * raw.sig.^2;
     else % fixed and neural
-        b = p.b_i(5);
+        if model.nPriors == 1
+            b = p.b_i(5);
+        else % MAKE THIS BETTER!
+            b = p.b_i(raw.prior_id, 5)';
+        end
     end
     
     if strcmp(category_type, 'same_mean_diff_std')

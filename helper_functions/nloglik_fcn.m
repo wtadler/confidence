@@ -248,7 +248,11 @@ elseif strcmp(model.family, 'quad') && model.diff_mean_same_std
     x_dec_bound = bf(0) + mf(0) * sig.^2;
     
 elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1')
-    x_dec_bound = bf(0)*ones(1,nContrasts);
+    if model.nPriors == 1
+        x_dec_bound = bf(0)*ones(1,nContrasts);
+    else
+        x_dec_bound = bf_prior(0, raw.prior_id)';
+    end
     
 elseif strcmp(model.family, 'MAP')
     if ~model.ori_dep_noise
@@ -310,7 +314,7 @@ end
 
 %if ~(model.non_overlap && model.d_noise)
 % do this for all models except nonoverlap+d noise, where k is already in this form.
-if any(size(x_dec_bound) == nContrasts) % k needs to be expanded for each trial
+if any(size(x_dec_bound) == nContrasts) % x_dec_bound needs to be expanded for each trial
     % index x_dec_bound by trial contrast and prior
     x_dec_bound = reshape(x_dec_bound, [nDNoiseSets, nContrasts*nPriors]);
     x_dec_bound = x_dec_bound(:, (raw.prior_id-1)*nContrasts+raw.contrast_id);
@@ -577,6 +581,10 @@ end
 
     function bval = bf(name)
         bval = p.b_i(name + conf_levels + 1);
+    end
+
+    function bval = bf_prior(name, prior)
+        bval = p.b_i(prior, name + conf_levels + 1);
     end
 
     function mval = mf(name)

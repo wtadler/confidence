@@ -1,5 +1,5 @@
 function p = parameter_variable_namer(p_in, parameter_names, model, contrasts)
-% this gets called by nloglikfcn as well as trial_generator
+%% this gets called by nloglikfcn as well as trial_generator
 % parameter_names is an input so that you don't have to run
 % parameter_constraints
 % exponentiate logs
@@ -66,7 +66,11 @@ if model.choice_only
     if strcmp(model.family, 'opt')
         p.b_i = [-Inf -Inf -Inf -Inf p.b_0_d Inf Inf Inf Inf];
     elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'MAP')
-        p.b_i = [0 0 0 0 p.b_0_x Inf Inf Inf Inf];
+        if model.nPriors == 1
+            p.b_i = [0 0 0 0 p.b_0_x Inf Inf Inf Inf];
+        else % UGLY! Make this adaptable to nPriors ~= 3, and make it work for confidence too
+            p.b_i = [0 0 0 0 p.b_0_x_prior1 Inf Inf Inf Inf;0 0 0 0 p.b_0_x_prior2 Inf Inf Inf Inf;0 0 0 0 p.b_0_x_prior3 Inf Inf Inf Inf];
+        end
     elseif strcmp(model.family, 'lin') || strcmp(model.family, 'quad')
         p.b_i = [0 0 0 0 p.b_0_x Inf Inf Inf Inf];
         p.m_i = [0 0 0 0 p.m_0 Inf Inf Inf Inf];
