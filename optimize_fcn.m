@@ -3,7 +3,7 @@ function [gen, aborted]=optimize_fcn(varargin)
 opt_models = struct;
 
 opt_models(1).family = 'opt';
-opt_models(1).biased_lapse = 1;
+opt_models(1).biased_lapse = 0;
 opt_models(1).repeat_lapse = 0;
 opt_models(1).multi_lapse = 0;
 opt_models(1).partial_lapse = 0;
@@ -15,7 +15,8 @@ opt_models(1).joint_task_fit = 0;
 opt_models(1).nFreesigs = 0;
 opt_models(1).d_noise = 0;
 opt_models(1).joint_d = 0;
-opt_models(1).separate_measurement_and_inference_noise = 0;
+opt_models(1).separate_measurement_and_inference_noise = 1;
+opt_models(1).one_inference_sig = 1;
 
 opt_models = parameter_constraints(opt_models);
 
@@ -59,6 +60,9 @@ category_params.mu_2 = 4;
 category_params.uniform_range = 1;
 category_params.sigma_1 = 3;
 category_params.sigma_2 = 12;
+
+priors = [.5; 1];
+% priors = [.7 .5 .3; 1/3 1/3 1/3];
 
 gen_models = opt_models;
 
@@ -186,7 +190,7 @@ if strcmp(data_type, 'fake')
             my_print(sprintf('generating dataset %i\n', dataset))
             good_dataset = false;
             while ~good_dataset
-                d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'attention_manipulation', attention_manipulation, 'category_type', category_type);
+                d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'attention_manipulation', attention_manipulation, 'category_type', category_type, 'priors', priors);
                 gen(gen_model_id).data(dataset).raw = d;
                 gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), d, g, nDNoiseSets, category_params);
                 gen(gen_model_id).data(dataset).true_logposterior = -gen(gen_model_id).data(dataset).true_nll + log_prior(gen(gen_model_id).p(:,dataset)');

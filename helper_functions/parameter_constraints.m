@@ -7,7 +7,7 @@ for m_id = 1 : nModels
     options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only',...
         'symmetric','d_noise','free_cats','non_overlap','ori_dep_noise',...
         'diff_mean_same_std','joint_task_fit','joint_d', 'nFreesigs',...
-        'separate_measurement_and_inference_noise', 'biased_lapse'};
+        'separate_measurement_and_inference_noise', 'biased_lapse', 'one_inference_sig'};
     for o = 1:length(options)
         if ~isfield(c,options{o}) || isempty(c.(options{o}))
             c.(options{o}) = 0;
@@ -295,13 +295,22 @@ end
 function c = separate_noiseizer(c)
 if c.separate_measurement_and_inference_noise
     fields = {'lb', 'ub', 'lb_gen', 'ub_gen', 'beq'};
-    params = {'logsigma_c', 'beta', 'sig_amplitude'};
-    params_to_duplicate = find(...
-        ~cellfun(@isempty, regexp(c.parameter_names, params{1})) + ...
-        ~cellfun(@isempty, regexp(c.parameter_names, params{2})) +...
-        ~cellfun(@isempty, regexp(c.parameter_names, params{3}))); % parameters that contain logsigma_c or beta in the name
-    for p = params_to_duplicate'
-        c.parameter_names = cat(1, c.parameter_names, sprintf('%s_inference', c.parameter_names{p}));
+    if ~c.one_inference_sig
+        params = {'logsigma_c', 'beta', 'sig_amplitude'};
+        
+        params_to_duplicate = find(...
+            ~cellfun(@isempty, regexp(c.parameter_names, params{1})) + ...
+            ~cellfun(@isempty, regexp(c.parameter_names, params{2})) +...
+            ~cellfun(@isempty, regexp(c.parameter_names, params{3}))); % parameters that contain logsigma_c or beta in the name
+        for p = params_to_duplicate'
+            c.parameter_names = cat(1, c.parameter_names, sprintf('%s_inference', c.parameter_names{p}));
+            for l = 1:length(fields)
+                c.(fields{l}) = cat(1, c.(fields{l}), c.(fields{l})(p));
+            end
+        end
+    else
+        p = ~cellfun(@isempty, regexp(c.parameter_names, 'logsigma_c_low'));
+        c.parameter_names = cat(1, c.parameter_names, 'logsigma_inference');
         for l = 1:length(fields)
             c.(fields{l}) = cat(1, c.(fields{l}), c.(fields{l})(p));
         end

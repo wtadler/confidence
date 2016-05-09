@@ -51,12 +51,14 @@ end
 nContrasts = length(raw.contrast_values);
 
 nTrials = length(raw.s);
+
+nPriors = length(raw.prior_values);
+logprior = log(raw.prior_values./(1-raw.prior_values));
+
 if ~model.d_noise
     nDNoiseSets = 1;
     normalized_weights = 1;
     d_noise_draws = 0;
-    d_noise = 0;
-    d_noise_big = 0;
 elseif model.d_noise
     if ~exist('nDNoiseSets','var')
         nDNoiseSets=101;
@@ -66,10 +68,9 @@ elseif model.d_noise
     normalized_weights = weights ./ sum(weights);
     
     d_noise_draws = linspace(-p.sigma_d*nSTDs, p.sigma_d*nSTDs, nDNoiseSets);
-    
-    d_noise = repmat(d_noise_draws',1,nContrasts);
-    d_noise_big = repmat(d_noise_draws',1,nTrials);% this is for non_overlap. too hard to figure out the indexing. going to be too many computations, because there's redundancy in the a,b,k vectors. but the bulk of computation has to be on an individual trial basis anyway.
 end
+d_noise = repmat(d_noise_draws',1,nContrasts);
+d_noise_big = repmat(d_noise_draws',1,nTrials);% this is for non_overlap. too hard to figure out the indexing. going to be too many computations, because there's redundancy in the a,b,k vectors. but the bulk of computation has to be on an individual trial basis anyway.
 
 if isfield(p,'b_i')
     conf_levels = (length(p.b_i) - 1)/2;
@@ -103,25 +104,24 @@ if model.ori_dep_noise
 
         sSteps = 199;
         sVec = linspace(-100,100,sSteps)';
-        s_mat = repmat(sVec,1, xSteps);
+%         s_mat = repmat(sVec,1, xSteps);
 
-        x_mat = repmat(xVec', sSteps,1);
+%         x_mat = repmat(xVec', sSteps,1);
         
         
-        likelihood = @(sigma, sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./ sigma .*exp(-(x_mat-s_mat).^2 ./ (2*sigma.^2) - (s_mat - mu_cat) .^2 ./ (2*sigma_cat^2))); % 7.3 secs
-        % equivalently (after normalization or ratio), more readable, but slower. doesn't require computation of x_mat, s_mat, or ODN_s_mat.
+%         likelihood = @(sigma, sigma_cat, mu_cat) 1/sigma_cat * sum(1 ./ sigma .*exp(-(x_mat-s_mat).^2 ./ (2*sigma.^2) - (s_mat - mu_cat) .^2 ./ (2*sigma_cat^2))); % 7.3 secs
+%         % equivalently (after normalization or ratio), more readable, but slower. doesn't require computation of x_mat, s_mat, or ODN_s_mat.
 %         likelihood2 = @(sigma, sigma_cat, mu_cat) sum(normpdf(x_mat,s_mat,sigma) .* normpdf(s_mat, mu_cat, sigma_cat));
-%         likelihood3 = @(sigma_flat, sigma_cat, mu_cat) sum(bsxfun(@times, bsxfun_normpdf(xVec', sVec, sigma), normpdf(sVec, mu_cat, sigma_cat)));
+        likelihood = @(sigma, sigma_cat, mu_cat) sum(bsxfun(@times, bsxfun_normpdf(xVec', sVec, sigma), normpdf(sVec, mu_cat, sigma_cat)));
+
         
         % this is reversed from trial_generator. there, we generate x first, with regular sigs. here, we get the boundaries first, with sigs_inference
         if model.separate_measurement_and_inference_noise
             sig = p.unique_sigs_inference;
-            ODN_s_mat = repmat(ODN(sVec, p.sig_amplitude_inference), 1, xSteps);
-        %    computed_ODN = ODN(sVec, p.sig_amplitude_inference);  % this is instead of ODN_s_mat if you use likelihood2() or likelihood3()
+           	ODN_s_mat = ODN(sVec, p.sig_amplitude_inference);
         else
             sig = p.unique_sigs;
-            ODN_s_mat = repmat(ODN(sVec, p.sig_amplitude), 1, xSteps); 
-            %%%% computed_ODN
+            ODN_s_mat = ODN(sVec, p.sig_amplitude);
         end
         
     else
@@ -143,23 +143,21 @@ else
 end
 
     function [d_lookup_table, k] = d_table_and_choice_bound(sig_cat1, sig_cat2, mu_cat1, mu_cat2)
+        sig_plusODN = reshape(bsxfun(@plus, ODN_s_mat, p.unique_sigs), [sSteps 1 nContrasts]);
+        LLR = log(likelihood(sig_plusODN, sig_cat1, mu_cat1) ./ likelihood(sig_plusODN, sig_cat2, mu_cat2));
+        d_lookup_table = permute(bsxfun(@plus, LLR, logprior'), [3 2 1]);
+        
+        d_plus_noise = bsxfun(@plus, fliplr(d_lookup_table), permute(d_noise_draws, [4 3 1 2]));
+        k = zeros(nDNoiseSets, nContrasts, nPriors);
         for contrast = 1:nContrasts
-            if model.separate_measurement_and_inference_noise
-                cur_sig = p.unique_sigs_inference(contrast);
-            else
-                cur_sig = p.unique_sigs(contrast);
+            for prior = 1:nPriors
+                k(:, contrast, prior) = lininterp1_multiple(squeeze(d_plus_noise(contrast, :, prior, :))', fliplr(xVec'), bf(0));
             end
-            sig_plusODN = cur_sig + ODN_s_mat;
-            d_lookup_table(contrast,:) = log(likelihood(sig_plusODN, sig_cat1, mu_cat1) ./ likelihood(sig_plusODN, sig_cat2, mu_cat2));
-            
-            %k(:, c) = lininterp1m(repmat(fliplr(d_lookup_table(c,:)),nDNoiseSets,1)+repmat(d_noise_draws',1,xSteps), fliplr(xVec'), p.b_i(5))'; % take this out of the loop?
-            % would be faster to take this out of the loop for the models without d_noise. but we're not really using models w/o d noise
-            k(:, contrast) = lininterp1_multiple(bsxfun(@plus, fliplr(d_lookup_table(contrast,:)), d_noise_draws'), fliplr(xVec'), bf(0)); % take this out of the loop?
-            
         end
     end
 
     function [x_lb, x_ub] = x_bounds_by_trial()
+        % NEED TO MAKE THIS WORK FOR PRIORS
         x_bounds = zeros(nContrasts, nBounds, nDNoiseSets);
         
         for contrast = 1:nContrasts
@@ -210,7 +208,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % k is the category decision boundary in measurement space for each trial
 % f computes the probability mass on the chosen side of k.
-if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian family, qamar
+if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian family, task B
     
     if model.non_overlap
         x_bounds = find_intersect_truncated_cats(p, sig1, sig2, contrasts, d_noise_big, raw);
@@ -224,21 +222,21 @@ if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian
         end
         
     elseif model.ori_dep_noise
-        [d_lookup_table, x_dec_bound] = d_table_and_choice_bound(sig1, sig2, 0, 0);        
+        [d_lookup_table, x_dec_bound] = d_table_and_choice_bound(sig1, sig2, 0, 0);
     else
-%         sq_flag = 1; % this is because f gets passed a square root that can be negative. causes f to ignore the resulting imaginaries
-        k1 = .5 * log( (sig.^2 + sig2^2) ./ (sig.^2 + sig1^2)); %log(prior / (1 - prior));
+        k1_pre = .5 * log( (sig.^2 + sig2^2) ./ (sig.^2 + sig1^2));
+        k1 = repmat(k1_pre, 1, 1, nPriors) + repmat(permute(logprior, [1 3 2]), 1, nContrasts, 1);
         k2 = (sig2^2 - sig1^2) ./ (2 .* (sig.^2 + sig1^2) .* (sig.^2 + sig2^2));
-        x_dec_bound  = real(sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - bf(0)) ./ repmat(k2, nDNoiseSets, 1)));
-        % equivalently, but slower: x_dec_bound = sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'),bf(0)),k2));
+        x_dec_bound = real(sqrt((repmat(k1, nDNoiseSets, 1) + repmat(d_noise,1,1,nPriors) - bf(0)) ./ repmat(k2, nDNoiseSets, 1, nPriors)));
+        % using bsxfun instead of repmat takes about 1.3x as much time
     end
 elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
     
     if model.ori_dep_noise
         [d_lookup_table, x_dec_bound] = d_table_and_choice_bound(category_params.sigma_s, category_params.sigma_s, category_params.mu_1, category_params.mu_2);        
     else
-        x_dec_bound = (2*(bf(0)+d_noise).*(repmat(sig, nDNoiseSets, 1).^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
-            / (2*(category_params.mu_1 - category_params.mu_2)); % ADAPT FOR D NOISE? does this d noise work?
+        x_dec_bound = (2*(bsxfun(@minus, d_noise, permute(logprior, [1 3 2])) + bf(0)).*(repmat(sig, nDNoiseSets, 1, nPriors).^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
+            / (2*(category_params.mu_1 - category_params.mu_2));
     end
 elseif strcmp(model.family, 'lin') && ~model.diff_mean_same_std
     x_dec_bound = max(bf(0) + mf(0) * sig, 0);
@@ -290,9 +288,9 @@ elseif strcmp(model.family, 'MAP')
         sVec(1,1,:) = xVec(:);
         
         if ~model.diff_mean_same_std % task B
-            logprior = log(1/(2*sqrt(2*pi)) * (sig1^-1 * exp(-sVec.^2 / (2*sig1^2)) + sig2^-1 * exp(-sVec.^2 / (2*sig2^2))));
+            logprior_s = log(1/(2*sqrt(2*pi)) * (sig1^-1 * exp(-sVec.^2 / (2*sig1^2)) + sig2^-1 * exp(-sVec.^2 / (2*sig2^2))));
         elseif model.diff_mean_same_std % task A
-            logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
+            logprior_s = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
         
         if model.separate_measurement_and_inference_noise
@@ -302,7 +300,7 @@ elseif strcmp(model.family, 'MAP')
         end
         loglikelihood = bsxfun_normlogpdf(xVec', sVec, noise);
         
-        logposterior = bsxfun(@plus, loglikelihood, logprior); % 3d
+        logposterior = bsxfun(@plus, loglikelihood, logprior_s); % 3d
         
         shat_lookup_table = qargmax1(sVec, logposterior, 3);
     end
@@ -313,7 +311,10 @@ end
 %if ~(model.non_overlap && model.d_noise)
 % do this for all models except nonoverlap+d noise, where k is already in this form.
 if any(size(x_dec_bound) == nContrasts) % k needs to be expanded for each trial
-    x_dec_bound = x_dec_bound(:,raw.contrast_id);
+    % index x_dec_bound by trial contrast and prior
+    x_dec_bound = reshape(x_dec_bound, [nDNoiseSets, nContrasts*nPriors]);
+    x_dec_bound = x_dec_bound(:, (raw.prior_id-1)*nContrasts+raw.contrast_id);
+    %x_dec_bound = x_dec_bound(:, raw.contrast_id);
 end
 
 % the following two if statements could be joined in some nice way eventually
@@ -396,8 +397,9 @@ if ~model.choice_only
             [x_lb, x_ub] = x_bounds_by_trial();
             
         else
-            k1 = k1(raw.contrast_id);
-            k2 = k2(raw.contrast_id);
+            ind = sub2ind(size(k1), ones(1,nTrials), raw.contrast_id, raw.prior_id);
+            k1 = k1(ind);
+            k2 = k2(ind);
 
             d_lb=p.b_i(2*conf_levels+1-raw.resp);
             d_ub=p.b_i(2*conf_levels+2-raw.resp);
@@ -410,9 +412,9 @@ if ~model.choice_only
         if model.ori_dep_noise
             [x_lb, x_ub] = x_bounds_by_trial();
         else
-            d_lb = p.b_i(2*conf_levels+1-raw.resp);
-            d_ub = p.b_i(2*conf_levels+2-raw.resp); % this is the same as doing fliplr on p.b_i first
-                        
+            d_lb = p.b_i(2*conf_levels+1-raw.resp) + logprior(raw.prior_id);  % should the sign of this be flipped?
+            d_ub = p.b_i(2*conf_levels+2-raw.resp) + logprior(raw.prior_id); % this is the same as doing fliplr on p.b_i first
+            % INTEGRATE PRIOR HERE
             x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
             x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
         end

@@ -19,8 +19,9 @@ category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_me
 
 attention_manipulation = false;
 
-multi_prior = false;
-
+priors = [.5; 1];
+% priors = [.7 .5 .3; 1/3 1/3 1/3];
+    
 assignopts(who,varargin);
 
 % updating category_type according to the model. not sure why i wasn''t doing this before
@@ -48,12 +49,6 @@ end
 
 
 if isempty(model_fitting_data)
-    raw.C         = randsample([-1 1], n_samples, 'true');
-    raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
-    raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);
-    raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1), category_type);
-    
-    
     if attention_manipulation
         if model.nFreesigs==3
             v = .8;
@@ -71,27 +66,22 @@ if isempty(model_fitting_data)
         for i = 1:model.nFreesigs
             raw.cue_validity(raw.cue_validity>temp_freq(i) & raw.cue_validity<temp_freq(i+1)) = i;
         end
-        % do we need probe and cue?
-        
-%         cue_validity = .7;
-%         
-%         raw.cue = randsample([-1 0 1], n_samples, 'true');
-%         raw.probe = raw.cue;
-%         
-%         % make 30% of cues invalid
-%         flip_idx = rand(1, n_samples) > cue_validity;
-%         raw.cue(flip_idx) = -raw.cue(flip_idx);
-%         
-%         neutral_cue_idx = raw.cue == 0;
-%         raw.probe(neutral_cue_idx) = randsample([-1 1], nnz(neutral_cue_idx), true);
-%         
-%         raw.cue_validity(raw.probe == raw.cue)                  =  1;  % valid cues
-%         raw.cue_validity(raw.cue == 0)                          =  0;  % neutral cues
-%         raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
-    elseif multi_prior
-        % DO THIS
-    
     end
+    
+    [~, raw.prior] = histc(rand(1, n_samples), [0, cumsum(priors(2,:))]);
+    raw.prior = priors(1, raw.prior);
+
+    for p_no = 1:size(priors, 2);
+        prior = priors(1, p_no);
+        prior_trials = raw.prior == prior;
+        n_prior_trials = sum(prior_trials);
+        [~, raw.C(prior_trials)] = histc(rand(1, n_prior_trials), [0, prior, 1]);
+    end
+    raw.C = 2*raw.C-3;
+    raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
+    raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);
+    raw.s(raw.C ==  1) = stimulus_orientations(category_params, 2, sum(raw.C == 1), category_type);
+
     
 else % take real data
     raw.C           = model_fitting_data.C;
@@ -102,6 +92,12 @@ else % take real data
         raw.probe        = model_fitting_data.probe;
         raw.cue          = model_fitting_data.cue;
         raw.cue_validity = model_fitting_data.cue_validity;
+    end
+    
+    if isfield(model_fitting_data, 'prior') && ~isempty(model_fitting_data.prior)
+        raw.prior = model_fitting_data.prior;
+    else
+        raw.prior = .5*ones(1, n_samples);
     end
     
 end
@@ -118,11 +114,9 @@ if ~attention_manipulation
     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
         raw.sig_inference = p.unique_sigs_inference(raw.contrast_id);
     end
-    %     c_low = min(raw.contrast_values);
-    %     c_hi = max(raw.contrast_values);
-    %     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
-    %     sigs =    sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast_values .^ -p.beta); % the list of possible sigma values
-    %     raw.sig = sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha * raw.contrast        .^ -p.beta); % sigma values on every trial
+    
+    [raw.prior_values, raw.prior_id] = unique_contrasts(raw.prior, 'flipsig', true);
+
 elseif attention_manipulation
     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.contrast);
     [raw.cue_validity_values, raw.cue_validity_id] = unique_contrasts(raw.cue_validity);
@@ -130,9 +124,6 @@ elseif attention_manipulation
     if model.separate_measurement_and_inference_noise
         raw.sig_inference = p.unique_sigs_inference(raw.cue_validity_id);
     end
-    %     raw.sig(raw.cue_validity  == -1) = p.sigma_c_low; % invalid cue -> high sigma (c_low means low "contrast")
-    %     raw.sig(raw.cue_validity  ==  0) = p.sigma_c_mid;
-    %     raw.sig(raw.cue_validity ==  1) = p.sigma_c_hi;
 end
 raw.sig = reshape(raw.sig,1,length(raw.sig)); % make sure it's a row.
 if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
@@ -175,13 +166,9 @@ end
 if model.ori_dep_noise && strcmp(model.family, 'opt')
     ds = 1;
     sVec = -90:ds:90;
-    s_mat = repmat(sVec',1, n_samples);
-    x_mat = repmat(raw.x,length(sVec),1);
+    s_mat = repmat(sVec', 1, n_samples);
+    x_mat = repmat(raw.x, length(sVec), 1);
     
-    %     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
-    %         sig_mat = repmat(pre_sig_inference, length(sVec), 1);
-    %         sig_plusODN_mat = sig_mat + ODN(s_mat, p.sig_amplitude_inference);
-    %     else
     sig_mat=repmat(pre_sig, length(sVec), 1); % nTrials vector of sigma levels repeated some number of rows defined by ds
     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
         sig_plusODN_mat = sig_mat + ODN(s_mat, p.sig_amplitude_inference);
@@ -213,9 +200,9 @@ if strcmp(model.family,'opt')
                     raw.d(assumed_sig==cursig) = trun_da(raw.x(assumed_sig==cursig), s);
                 end
             elseif model.ori_dep_noise
-                raw.d = log(likelihood(category_params.sigma_1, 0) ./ likelihood(category_params.sigma_2, 0));
+                raw.d = log(likelihood(category_params.sigma_1, 0) ./ likelihood(category_params.sigma_2, 0)) + log(raw.prior./(1-raw.prior));
             else
-                raw.k1 = .5 * log( (assumed_sig.^2 + category_params.sigma_2^2) ./ (assumed_sig.^2 + category_params.sigma_1^2));% + p.b_i(5);
+                raw.k1 = .5 * log( (assumed_sig.^2 + category_params.sigma_2^2) ./ (assumed_sig.^2 + category_params.sigma_1^2)) + log(raw.prior./(1-raw.prior));
                 raw.k2 = (category_params.sigma_2^2 - category_params.sigma_1^2) ./ (2 .* (assumed_sig.^2 + category_params.sigma_1^2) .* (assumed_sig.^2 + category_params.sigma_2^2));
                 raw.d = raw.k1 - raw.k2 .* raw.x.^2;
             end
@@ -233,10 +220,10 @@ if strcmp(model.family,'opt')
         case 'diff_mean_same_std'
             
             if model.ori_dep_noise
-                raw.d = log(likelihood(category_params.sigma_s, category_params.mu_1) ./ likelihood(category_params.sigma_s, category_params.mu_2));
+                raw.d = log(likelihood(category_params.sigma_s, category_params.mu_1) ./ likelihood(category_params.sigma_s, category_params.mu_2)) + log(raw.prior./(1-raw.prior));
             else
                 raw.d = (2*raw.x * (category_params.mu_1 - category_params.mu_2) - category_params.mu_1^2 + category_params.mu_2^2) ./ ...
-                    (2*(assumed_sig.^2 + category_params.sigma_s^2));
+                    (2*(assumed_sig.^2 + category_params.sigma_s^2)) + log(raw.prior./(1-raw.prior));
             end
         otherwise
             error('DIST_TYPE is not valid.')
