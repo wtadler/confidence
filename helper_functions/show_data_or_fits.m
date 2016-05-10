@@ -271,9 +271,8 @@ for fig = 1:n.fig
             end
         end
     end
-end
-
-if show_MCM
+    
+    if show_MCM
     % old way of doing it straight across:
     %         tight_subplot(1,1,1,1, 0, [margins(1), margins(2), .1, 1-MCM_size+.07])
     %         [score, group_mean, group_sem] = compare_models(models, 'show_names', true, 'show_model_names', false,...
@@ -300,7 +299,9 @@ if show_MCM
         if col ~= 1
             set(gca, 'yticklabel', '');
         end
-    end
-    
+    end    
 end
+
+end
+
 end
