@@ -57,6 +57,12 @@ for type = 1:length(trial_types)
             idx = raw.C == -1;
         case 'C2'
             idx = raw.C == 1;
+        case 'prior1'
+            idx = raw.prior_id == 1;
+        case 'prior2'
+            idx = raw.prior_id == 2;
+        case 'prior3'
+            idx = raw.prior_id == 3;
     end
     stats.(trial_types{type}).index = idx;
     
