@@ -296,9 +296,9 @@ elseif strcmp(model.family, 'MAP')
         end
         
         if model.separate_measurement_and_inference_noise
-            noise = bsxfun(@plus, reshape(p.unique_sigs_inference, 6, 1), ODN(sVec, p.sig_amplitude_inference)); % 2d slice dependent on c and s;
+            noise = bsxfun(@plus, reshape(p.unique_sigs_inference, nContrasts, 1), ODN(sVec, p.sig_amplitude_inference)); % 2d slice dependent on c and s;
         else
-            noise = bsxfun(@plus, reshape(p.unique_sigs, 6, 1), ODN(sVec, p.sig_amplitude)); % 2d slice dependent on c and s;
+            noise = bsxfun(@plus, reshape(p.unique_sigs, nContrasts, 1), ODN(sVec, p.sig_amplitude)); % 2d slice dependent on c and s;
         end
         loglikelihood = bsxfun_normlogpdf(xVec', sVec, noise);
         
