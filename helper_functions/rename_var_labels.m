@@ -1,4 +1,11 @@
 function str_out = rename_var_labels(str_in)
+if isstr(str_in)
+    one_input = true;
+    str_in = {str_in};
+else
+    one_input = false;
+end
+
 for s = 1:length(str_in)
     switch str_in{s}
         case 'tf'
@@ -16,4 +23,8 @@ for s = 1:length(str_in)
     end
     
     str_out{s} = out;
+end
+
+if one_input
+    str_out = str_out{1};
 end
