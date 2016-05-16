@@ -12,6 +12,8 @@ slices = setdiff(fieldnames(data(1).stats.(trial_types{1})), {'index', 'subindex
 % fields = {'bin_counts','percent_correct','Chat1_prop','g_mean','resp_mean'}
 fields = {'tf','resp','g','Chat', 'rt'};%'rt'
 % eventually, move all the if statement checks to the beginning here
+nBootstrapSamples = 1e3;
+bootstrapConfInterval = .95;
 assignopts(who,varargin);
 
 for type = 1 : length(trial_types)
@@ -51,12 +53,11 @@ for type = 1 : length(trial_types)
             
             if bootstrap
                 dim = size(st.mean);
-                bootstat = bootstrp(1e2, @nanmean, permute(st.Mean, [3 1 2]));
+                bootstat = bootstrp(nBootstrapSamples, @nanmean, permute(st.Mean, [3 1 2]));
                 st.mean = mean(bootstat);
                 st.mean = reshape(st.mean, dim(1), dim(2));
                 
-                midrange = .95;
-                quantiles = quantile(bootstat, [.5 - midrange/2, .5 + midrange/2]);
+                quantiles = quantile(bootstat, [.5 - bootstrapConfInterval/2, .5 + bootstrapConfInterval/2]);
                 quantiles = reshape(quantiles', dim(1), dim(2), 2);
                 st.CI = quantiles;
             end

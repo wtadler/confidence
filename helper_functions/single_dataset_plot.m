@@ -18,6 +18,7 @@ plot_connecting_line = true;
 nRespSquares = 8;
 show_legend = false;
 legend_loc = 'northwest';
+bootstrap = true;
 assignopts(who, varargin);
 
 if ~isempty(colors)
@@ -33,14 +34,12 @@ if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c
     % transpose everything
     fields = fieldnames(binned_stats);
     for f = 1:length(fields)
-        try
-            binned_stats.(fields{f}).(y_name) = binned_stats.(fields{f}).(y_name)';
-        end
+        binned_stats.(fields{f}).(y_name) = permute(binned_stats.(fields{f}).(y_name), [2 1 3]);
     end
     
     nRows = size(binned_stats.mean.(y_name), 1);
     nCols = size(binned_stats.mean.(y_name), 2);
-
+    
     plot_rows = 1:nRows;
 else
     reliability_x_axis = false;
@@ -120,24 +119,28 @@ end
 for row = plot_rows
     color = colors(row,:);
     
-    if ~strcmp(y_name, 'proportion') && isfield(binned_stats, 'trial_weighted_mean')
-        m = binned_stats.trial_weighted_mean.(y_name)(row, :);
+    if bootstrap
+        quantiles = binned_stats.CI.(y_name)(row, :, :);
+        errorbarheight = diff(quantiles, [], 3)/2;
+        m = mean(quantiles, 3);
     else
-        m = binned_stats.mean.(y_name)(row, :);
-    end
-    
-    if group_plot
-        if fake_data
-            errorbarheight = binned_stats.std.(y_name)(row, :); % std of means of fake group datasets. very close to .mean_sem.
-        else % real data
-            errorbarheight = binned_stats.sem.(y_name)(row, :); % sem or edgar_sem2 to take account of within subject variability.
+        if ~strcmp(y_name, 'proportion') && isfield(binned_stats, 'trial_weighted_mean')
+            m = binned_stats.trial_weighted_mean.(y_name)(row, :);
+        else
+            m = binned_stats.mean.(y_name)(row, :);
         end
-        
-    else % individual data
-        if fake_data
-            errorbarheight = binned_stats.std.(y_name)(row, :);
-        else % real data
-            errorbarheight = binned_stats.std.(y_name)(row, :);
+        if group_plot
+            if fake_data
+                errorbarheight = binned_stats.std.(y_name)(row, :); % std of means of fake group datasets. very close to .mean_sem.
+            else % real data
+                errorbarheight = binned_stats.sem.(y_name)(row, :); % sem or edgar_sem2 to take account of within subject variability.
+            end
+        else % individual data
+            if fake_data
+                errorbarheight = binned_stats.std.(y_name)(row, :);
+            else % real data
+                errorbarheight = binned_stats.std.(y_name)(row, :);
+            end
         end
     end
     

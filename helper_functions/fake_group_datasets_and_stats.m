@@ -6,6 +6,7 @@ function fake_sumstats = fake_group_datasets_and_stats(model, nFakeGroupDatasets
 % use this after having used dataset_generator.
 
 fields = {'tf','resp','g','Chat'};
+confInterval = .95;
 assignopts(who, varargin);
 
 
@@ -38,7 +39,9 @@ for m = 1:length(model)
             end
             
             % summarize those fake datasets across subjects
-            sumstats = sumstats_fcn(hyperplotdata, 'fields', fields);
+            fprintf('\nModel %i/%i, Task %i/%i, Hyperplot %i/%i: Analyzing fake data...', m, length(model), task, length(tasks), h, nFakeGroupDatasets);
+
+            sumstats = sumstats_fcn(hyperplotdata, 'fields', fields, 'bootstrap', false);
             trial_types = fieldnames(sumstats);
 
             % save means for that summary
@@ -59,7 +62,10 @@ for m = 1:length(model)
                 for b = 1:length(bin_types)
                     fake_sumstats.(tasks{task}).(trial_types{t}).(bin_types{b}).mean.(fields{f}) = mean(hyperplot_means.(trial_types{t}).(bin_types{b}).(fields{f}),    3);
                     fake_sumstats.(tasks{task}).(trial_types{t}).(bin_types{b}).std.(fields{f})  = std (hyperplot_means.(trial_types{t}).(bin_types{b}).(fields{f}), 0, 3);
-                    fake_sumstats.(tasks{task}).(trial_types{t}).(bin_types{b}).mean_sem.(fields{f}) = mean(hyperplot_sems.(trial_types{t}).(bin_types{b}).(fields{f}), 3);
+                    fake_sumstats.(tasks{task}).(trial_types{t}).(bin_types{b}).mean_sem.(fields{f}) = mean(hyperplot_sems.(trial_types{t}).(bin_types{b}).(fields{f}), 3); % this is very close to std
+                    
+                    quantiles = quantile(hyperplot_means.(trial_types{t}).(bin_types{b}).(fields{f}), [.5 - confInterval/2, .5 + confInterval/2], 3);
+                    fake_sumstats.(tasks{task}).(trial_types{t}).(bin_types{b}).CI.(fields{f}) = quantiles;
                 end
             end
         end

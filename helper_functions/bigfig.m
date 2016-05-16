@@ -1,4 +1,4 @@
-function h=fig1(varargin)
+function h=bigfig(varargin)
 %%% FIX LABELING
 root_datadir = '~/Google Drive/Will - Confidence/Data/v3_all';
 nBins = 11;
@@ -59,7 +59,7 @@ colors = map.tan_contrast_colors;
 figure(1)
 set(gcf,'position', [100 100 250*nCols 200*nRows])
 clf
-
+letter = 1;
 %%
 if ~isempty(model)
     model = generate_and_analyze_fitted_data(model, tasks, 'real_data', real_data, 'nBins', nBins, 'nPlotSamples', nPlotSamples, ...
@@ -73,7 +73,7 @@ if A
 tight_subplot(nRows, nCols, 1,1, gutter, margins);
 crazyplot(real_data, model, 'A', 'all', 'c_C', 'Chat', 'label_x', false, 'label_y', true, 'show_legend', true, 'legend_loc', 'northwest');
 ylabel('prop. report "cat. 1"');
-axeslabel('a');
+letter = axeslabel(letter);
 % label Task A
 yl=get(gca,'ylim');
 half=yl(1)+diff(yl)/2;
@@ -84,7 +84,7 @@ if B
 tight_subplot(nRows, nCols, 2,1, gutter, margins);
 crazyplot(real_data, model, 'B', 'all', 'c_C', 'Chat', 'label_x', true, 'label_y', true);
 ylabel('prop. report "cat. 1"');
-axeslabel('b')
+letter = axeslabel(letter);
 % label Task B
 yl=get(gca,'ylim');
 half=yl(1)+diff(yl)/2;
@@ -95,20 +95,20 @@ end
 % mean button press vs category and reliability
 if A
 tight_subplot(nRows, nCols, 1,2, gutter, margins);
-crazyplot(real_data, model, 'A', 'all', 'c_C', 'resp', 'label_x', false, 'label_y', true, 'nRespSquares', 4);
+crazyplot(real_data, model, 'A', 'all', 'c_C', 'resp', 'label_x', false, 'label_y', true, 'nRespSquares', 6);
 yl=ylabel('mean button press');
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos+[.4 0 0]);
-axeslabel('c');
+letter = axeslabel(letter);
 end
 
 if B
 tight_subplot(nRows, nCols, 2,2, gutter, margins);
-crazyplot(real_data, model, 'B', 'all', 'c_C', 'resp', 'label_x', true, 'label_y', true, 'nRespSquares', 4);
+crazyplot(real_data, model, 'B', 'all', 'c_C', 'resp', 'label_x', true, 'label_y', true, 'nRespSquares', 6);
 yl=ylabel('mean button press')
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos+[.4 0 0]);
-axeslabel('d')
+letter = axeslabel(letter);
 end
 
 if A
@@ -116,8 +116,8 @@ if A
 tight_subplot(nRows, nCols, 1,3, gutter, margins);
 crazyplot(real_data, model, 'A', 'C1', 'g', 'proportion', 'label_x', false, 'label_y', true, 'color', map.cat1);
 crazyplot(real_data, model, 'A', 'C2', 'g', 'proportion', 'label_x', false, 'label_y', true, 'color', map.cat2);
-ylim([0 .55])
-axeslabel('e')
+ylim([0 .6])
+letter = axeslabel(letter);
 ylabel('prop. of total')
 end
 
@@ -125,8 +125,8 @@ if B
 tight_subplot(nRows, nCols, 2,3, gutter, margins);
 crazyplot(real_data, model, 'B', 'C1', 'g', 'proportion', 'label_x', true, 'label_y', true, 'color', map.cat1);
 crazyplot(real_data, model, 'B', 'C2', 'g', 'proportion', 'label_x', true, 'label_y', true, 'color', map.cat2);
-ylim([0 .55])
-axeslabel('f')
+ylim([0 .6])
+letter = axeslabel(letter);
 ylabel('prop. of total')
 end
 
@@ -139,10 +139,10 @@ set(gca, 'position', apos - [0 delta_y 0 0]);
 a=crazyplot(real_data, model, 'A', 'all', 'g', 'tf', 'label_x', true, 'label_y', true, 'color', map.taskA);
 b=crazyplot(real_data, model, 'B', 'all', 'g', 'tf', 'label_x', true, 'label_y', true, 'color', map.taskB);
 ylabel('prop. correct');
-ylim([.45 .88])
+ylim([.45 .93])
 l=legend([a{1}(1),b{1}(1)],'Task A','Task B');
 set(l,'box','off','location','northwest');
-axeslabel('g');
+letter = axeslabel(letter);
 end
 
 if A
@@ -152,7 +152,7 @@ correct=crazyplot(real_data, model, 'A', 'correct', 'c', 'g', 'label_x', false, 
 incorrect=crazyplot(real_data, model, 'A', 'incorrect', 'c', 'g', 'label_x', false, 'label_y', true, 'color', map.incorrect);
 l=legend([correct{1}(1),incorrect{1}(1)],'correct','incorrect');
 set(l,'box','off','location','northwest')
-axeslabel('h')
+letter = axeslabel(letter);
 ylabel('mean confidence')
 % label Task A
 yl=get(gca,'ylim');
@@ -165,7 +165,7 @@ if B
 tight_subplot(nRows, nCols, 4,1, gutter, margins);
 crazyplot(real_data, model, 'B', 'correct', 'c', 'g', 'label_x', false, 'label_y', true, 'color', map.correct);
 crazyplot(real_data, model, 'B', 'incorrect', 'c', 'g', 'label_x', true, 'label_y', true, 'color', map.incorrect);
-axeslabel('i')
+letter = axeslabel(letter);
 ylabel('mean confidence')
 % label Task B
 yl=get(gca,'ylim');
@@ -178,14 +178,14 @@ if A
 tight_subplot(nRows, nCols, 3,2, gutter, margins);
 correct=crazyplot(real_data, model, 'A', 'correct', 's', 'g', 'label_x', false, 'label_y', true, 'color', map.correct);
 incorrect=crazyplot(real_data, model, 'A', 'incorrect', 's', 'g', 'label_x', false, 'label_y', true, 'color', map.incorrect);
-axeslabel('j')
+letter = axeslabel(letter);
 end
 
 if B
 tight_subplot(nRows, nCols, 4,2, gutter, margins);
 crazyplot(real_data, model, 'B', 'correct', 's', 'g', 'label_x', false, 'label_y', true, 'color', map.correct);
 crazyplot(real_data, model, 'B', 'incorrect', 's', 'g', 'label_x', true, 'label_y', true, 'color', map.incorrect);
-axeslabel('k')
+letter = axeslabel(letter);
 end
 
 
@@ -193,14 +193,14 @@ if A
 % choice vs orientation for all reliabilities
 tight_subplot(nRows, nCols, 3,3, gutter, margins);
 h=crazyplot(real_data, model, 'A', 'all', 'c_s', 'Chat', 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities, 'show_legend', true, 'legend_loc', 'southwest');
-axeslabel('l')
+letter = axeslabel(letter);
 ylabel('prop. report "cat. 1"')
 end
 
 if B
 tight_subplot(nRows, nCols, 4,3, gutter, margins);
 h=crazyplot(real_data, model, 'B', 'all', 'c_s', 'Chat', 'label_x', true, 'label_y', true,  'plot_reliabilities', plot_reliabilities);
-axeslabel('m')
+letter = axeslabel(letter);
 ylabel('prop. report "cat. 1"')
 end
 
@@ -209,7 +209,7 @@ if A
 % resp vs orientation for all reliabilities
 tight_subplot(nRows, nCols, 3,4, gutter, margins);
 crazyplot(real_data, model, 'A', 'all', 'c_s', 'resp', 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities)
-axeslabel('n')
+letter = axeslabel(letter);
 yl=ylabel('mean button press');
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos-[.8 0 0]);
@@ -218,7 +218,7 @@ end
 if B
 tight_subplot(nRows, nCols, 4,4, gutter, margins);
 crazyplot(real_data, model, 'B', 'all', 'c_s', 'resp', 'label_x', true, 'label_y', true, 'plot_reliabilities', plot_reliabilities)
-axeslabel('o')
+letter = axeslabel(letter);
 yl=ylabel('mean button press');
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos-[.8 0 0]);

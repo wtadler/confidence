@@ -33,6 +33,6 @@ for task = 1:nTasks;
 
     if group_stats
         real_data.(tasks{task}).sumstats = sumstats_fcn(real_data.(tasks{task}).data, ...
-            'fields', output_fields);
+            'fields', output_fields, 'bootstrap', true);
     end
 end

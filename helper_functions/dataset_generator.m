@@ -55,5 +55,5 @@ for task = 1:length(tasks)
         fake_datasets.(tasks{task}).dataset(s).stats = indiv_analysis_fcn(fake_datasets.(tasks{task}).dataset(s).raw, bins, 'output_fields', dep_vars, 'bin_types', bin_types, 'trial_types', trial_types);
     end
     
-    fake_datasets.(tasks{task}).sumstats = sumstats_fcn(fake_datasets.(tasks{task}).dataset, 'fields', dep_vars);
+    fake_datasets.(tasks{task}).sumstats = sumstats_fcn(fake_datasets.(tasks{task}).dataset, 'fields', dep_vars, 'bootstrap', false);
 end
