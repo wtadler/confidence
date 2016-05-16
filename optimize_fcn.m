@@ -459,7 +459,12 @@ for gen_model_id = active_gen_models
                         end
                         
                         if any(aborted_flags)
-                            my_print(sprintf('aborted during slice_sample'));
+                            try
+                                my_print(sprintf('aborted during slice_sample'));
+                            catch
+                                warning('aborted during slice_sample, and my_print() undefined');
+                            end
+                            
                             save([savedir 'aborted/aborted_' filename])
                             aborted=true;
                             fclose(log_fid);
