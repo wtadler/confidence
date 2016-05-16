@@ -17,6 +17,7 @@ resp_square_offset = .05;
 plot_connecting_line = true;
 nRespSquares = 8;
 show_legend = false;
+legend_loc = 'northwest';
 assignopts(who, varargin);
 
 if ~isempty(colors)
@@ -87,10 +88,10 @@ elseif strcmp(x_name, 'Chat')
     xlabel('cat. choice')
 elseif any(strcmp(x_name, {'s', 'c_s'}))
     if symmetrify
-        xlabel('abs. orientation')
+        xlabel('abs. orientation (°)')
         set(gca, 'xticklabel', abs(s_labels))
     else
-        xlabel('orientation')
+        xlabel('orientation (°)')
         set(gca, 'xticklabel', s_labels)
     end
     
@@ -235,13 +236,14 @@ end
 
 if show_legend
     if strcmp(x_name, 'c_prior') | attention_task
-        l=legend(handle, labels);
+        [l, lobj]=legend(handle, labels);
     else
         try
-            l=legend(handle([1 end]), labels);
+            [l, lobj]=legend(handle([1 end]), labels);
         catch
-            l=legend(handle([2 end]), labels);
+            [l, lobj]=legend(handle([2 end]), labels);
         end
     end
-    set(l, 'box', 'off', 'location', 'northeast')
+    % do stuff with lobj odd-numbered line objects, with xdata, to shorten line.
+    set(l, 'edgecolor', [1 1 1], 'location', legend_loc)
 end
