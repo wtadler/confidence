@@ -18,7 +18,7 @@ plot_connecting_line = true;
 nRespSquares = 8;
 show_legend = false;
 legend_loc = 'northwest';
-bootstrap = true;
+bootstrap = false;
 assignopts(who, varargin);
 
 if ~isempty(colors)

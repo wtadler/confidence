@@ -95,7 +95,7 @@ end
 % mean button press vs category and reliability
 if A
 tight_subplot(nRows, nCols, 1,2, gutter, margins);
-crazyplot(real_data, model, 'A', 'all', 'c_C', 'resp', 'label_x', false, 'label_y', true, 'nRespSquares', 6);
+crazyplot(real_data, model, 'A', 'all', 'c_C', 'resp', 'label_x', false, 'label_y', true, 'nRespSquares', 4);
 yl=ylabel('mean button press');
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos+[.4 0 0]);
@@ -104,7 +104,7 @@ end
 
 if B
 tight_subplot(nRows, nCols, 2,2, gutter, margins);
-crazyplot(real_data, model, 'B', 'all', 'c_C', 'resp', 'label_x', true, 'label_y', true, 'nRespSquares', 6);
+crazyplot(real_data, model, 'B', 'all', 'c_C', 'resp', 'label_x', true, 'label_y', true, 'nRespSquares', 4);
 yl=ylabel('mean button press')
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos+[.4 0 0]);

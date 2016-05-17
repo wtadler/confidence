@@ -39,8 +39,13 @@ for m = 1:length(model)
             end
             
             % summarize those fake datasets across subjects
-            fprintf('\nModel %i/%i, Task %i/%i, Hyperplot %i/%i: Analyzing fake data...', m, length(model), task, length(tasks), h, nFakeGroupDatasets);
-
+            if mod(h, 50) == 0
+                if length(model) == 1
+                    fprintf('\nTask %i/%i, Hyperplot %i/%i: Analyzing fake data...', m, length(model), task, length(tasks), h, nFakeGroupDatasets);
+                else
+                    fprintf('\nModel %i/%i, Task %i/%i, Hyperplot %i/%i: Analyzing fake data...', m, length(model), task, length(tasks), h, nFakeGroupDatasets);
+                end
+            end
             sumstats = sumstats_fcn(hyperplotdata, 'fields', fields, 'bootstrap', false);
             trial_types = fieldnames(sumstats);
 
