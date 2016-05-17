@@ -612,8 +612,11 @@ for gen_model_id = active_gen_models
             clear ex;
 %             save([savedir filename '~'])
         end
-        
-        my_print(sprintf('Total model %s time: %.1f mins\n\n', o.name, toc(model_start_t)/60));
+        try
+            my_print(sprintf('Total model %s time: %.1f mins\n\n', o.name, toc(model_start_t)/60));
+        catch
+            warning(sprintf('Total model %s time: %.1f mins and my_print() undefined\n\n', o.name, toc(model_start_t)/60));
+        end
         
     end
 end
