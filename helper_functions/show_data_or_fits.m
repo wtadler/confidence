@@ -18,7 +18,7 @@ axis = struct;
 axis.col = 'slice'; % 'subject', 'slice', or 'model'. defaults to subject if not doing group plots
 axis.row = 'task'; % 'task', 'model', or 'depvar'
 axis.fig = 'none'; % 'model', 'task', 'depvar', 'slice'
-trial_type = 'all'; % 'all', 'correct', 'incorrect', etc...
+trial_types = {'all'}; % 'all', 'correct', 'incorrect', etc...
 linewidth = 2;
 meanlinewidth = 4;
 gutter = [.0175 .025];
@@ -42,7 +42,7 @@ else
     show_MCM = false;
 end
 
-if strcmp(axis.col, 'subject') % in all non-group plots, subjects are along the col axis
+if strcmp(axis.col, 'subject') || strcmp(axis.fig, 'subject') || strcmp(axis.row, 'subject') % in all non-group plots, subjects are along one axis
     group_plot = false;
 else
     group_plot = true;
@@ -53,13 +53,14 @@ if rem(nBins, 2) == 0; nBins = nBins +1; end % make sure nBins is odd.
 nDepvars = length(depvars);
 nSlices = length(slices);
 nTasks = length(tasks);
+nTypes = length(trial_types);
 
 for task = 1:nTasks
     [edges.(tasks{task}), centers.(tasks{task})] = bin_generator(nBins, 'task', tasks{task});
 end
 
 real_data = compile_and_analyze_data(root_datadir, 'nBins', nBins,...
-    'symmetrify', symmetrify, 'conf_levels', conf_levels, 'trial_types', {trial_type},...
+    'symmetrify', symmetrify, 'conf_levels', conf_levels, 'trial_types', trial_types,...
     'output_fields', depvars, 'bin_types', union(slices, means), 'group_stats', group_plot);
 
 nSubjects = length(real_data.(tasks{1}).data);
@@ -107,6 +108,8 @@ for i = 1:3
             n.(plot_axes{i}) = nSlices;
         case 'subject'
             n.(plot_axes{i}) = nSubjects;
+        case 'trial_type'
+            n.(plot_axes{i}) = nTypes;
         case 'none'
             n.(plot_axes{i}) = 1;
     end
@@ -116,7 +119,7 @@ ah = zeros(n.row, n.col, n.fig);
 
 ylabels = rename_var_labels(depvars); % translate from variable names to something other people can understand.
 
-[depvar, task, model, slice, subject] = deal(1); % update these in the for loop switch below.
+[depvar, task, model, slice, subject, trial_type] = deal(1); % update these in the for loop switch below.
 
 %%
 for fig = 1:n.fig
@@ -144,6 +147,8 @@ for fig = 1:n.fig
                         slice = eval(plot_axes{i});
                     case 'subject'
                         subject = eval(plot_axes{i});
+                    case 'trial_type'
+                        trial_type = eval(plot_axes{i});
                 end
             end
             
@@ -201,9 +206,9 @@ for fig = 1:n.fig
             % plot real sliced data
             if ~isempty(slices{slice})
                 if ~group_plot
-                    data = real_data.(tasks{task}).data(subject).stats.(trial_type).(slices{slice});
+                    data = real_data.(tasks{task}).data(subject).stats.(trial_types{trial_type}).(slices{slice});
                 else
-                    data = real_data.(tasks{task}).sumstats.(trial_type).(slices{slice});
+                    data = real_data.(tasks{task}).sumstats.(trial_types{trial_type}).(slices{slice});
                 end
                 shortcutplot(data, fake_data, slices{slice}, linewidth, plot_reliabilities);
             end
@@ -211,9 +216,9 @@ for fig = 1:n.fig
             % plot real "mean" data
             if ~isempty(means) && ~isempty(means{slice})
                 if ~group_plot
-                    data = real_data.(tasks{task}).data(subject).stats.(trial_type).(means{slice});
+                    data = real_data.(tasks{task}).data(subject).stats.(trial_types{trial_type}).(means{slice});
                 else
-                    data = real_data.(tasks{task}).sumstats.(trial_type).(means{slice});
+                    data = real_data.(tasks{task}).sumstats.(trial_types{trial_type}).(means{slice});
                 end
                 shortcutplot(data, fake_data, means{slice}, meanlinewidth, []);
             end
@@ -223,18 +228,18 @@ for fig = 1:n.fig
                 fake_data = true;
                 if ~isempty(slices{slice})
                     if ~group_plot
-                        data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(slices{slice});
+                        data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_types{trial_type}).(slices{slice});
                     else
-                        data = models(model).(tasks{task}).sumstats.(trial_type).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_type. i think that's okay 12/11/15
+                        data = models(model).(tasks{task}).sumstats.(trial_types{trial_type}).(slices{slice}); % fake_group_datasets_and_stats doesn't have support for trial_types. i think that's okay 12/11/15
                     end
                     shortcutplot(data, fake_data, slices{slice}, linewidth, plot_reliabilities);
                 end
                 
                 if ~isempty(means) && ~isempty(means{slice})
                     if ~group_plot
-                        data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_type).(means{slice});
+                        data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_types{trial_type}).(means{slice});
                     else
-                        data = models(model).(tasks{task}).sumstats.(trial_type).(means{slice});
+                        data = models(model).(tasks{task}).sumstats.(trial_types{trial_type}).(means{slice});
                     end
                     shortcutplot(data, fake_data, means{slice}, meanlinewidth, []);
                 end
@@ -267,6 +272,8 @@ for fig = 1:n.fig
                         title(upper(real_data.(tasks{task}).data(subject).name));
                     case 'model'
                         title(rename_models(models(model).name));
+                    case 'trial_type'
+                        title(trial_types{trial_type});
                 end
             end
         end
@@ -286,7 +293,8 @@ for fig = 1:n.fig
         % axes set correctly.
         
         [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_names', true, 'show_model_names', false,...
-            'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model);
+            'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model, ...
+            'MCM', MCM);
         if col == 1
             yl = get(gca, 'ylim');
         else

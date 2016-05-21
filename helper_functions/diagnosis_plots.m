@@ -152,7 +152,7 @@ elseif strcmp(fig_type, 'mcmc_grid')
                 show_legend = true;
             end
             
-            tight_subplot(length(model_struct), 2*length(m.extracted), model_id, 2*dataset_id-1, [], [.06 .01 .04 .06]);
+            tight_subplot(length(model_struct), 2*length(m.extracted), model_id, 2*dataset_id-1, .01, [.06 .01 .04 .06]);
             plot_logposterior_over_samples(ex.logposterior, 'true_logposterior', true_logposterior', 'show_legend', false, 'show_labels', false)
             if model_id == 1
                 set(gca, 'visible', 'on')
@@ -162,7 +162,7 @@ elseif strcmp(fig_type, 'mcmc_grid')
                 set(gca, 'visible', 'on')
                 ylabel(rename_models(m.name))
             end
-            tight_subplot(length(model_struct), 2*length(m.extracted), model_id, 2*dataset_id, [], [.06 .01 .04 .06]);
+            tight_subplot(length(model_struct), 2*length(m.extracted), model_id, 2*dataset_id, .01, [.06 .01 .04 .06]);
             plot_logposterior_hist(ex.logposterior, 'true_logposterior', true_logposterior, 'show_legend', show_legend, 'show_labels', false)
             view(90,-90)
 

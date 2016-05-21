@@ -41,7 +41,7 @@ for m = 1:length(model)
             % summarize those fake datasets across subjects
             if mod(h, 50) == 0
                 if length(model) == 1
-                    fprintf('\nTask %i/%i, Hyperplot %i/%i: Analyzing fake data...', m, length(model), task, length(tasks), h, nFakeGroupDatasets);
+                    fprintf('\nTask %i/%i, Hyperplot %i/%i: Analyzing fake data...', task, length(tasks), h, nFakeGroupDatasets);
                 else
                     fprintf('\nModel %i/%i, Task %i/%i, Hyperplot %i/%i: Analyzing fake data...', m, length(model), task, length(tasks), h, nFakeGroupDatasets);
                 end

@@ -145,6 +145,8 @@ set(l,'box','off','location','northwest');
 letter = axeslabel(letter);
 end
 
+
+
 if A
 % mean confidence vs binned orientation conditioned on correctness
 tight_subplot(nRows, nCols, 3,1, gutter, margins);

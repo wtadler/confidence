@@ -1,17 +1,22 @@
-function names_out = rename_models(names_in)
+function names_out = rename_models(names_in, family_only)
 % eventually, this would be cleaner if it took in a model struct rather than the strings
+
+if ~exist('family_only', 'var')
+    family_only = true;
+end
+
 if iscell(names_in)
     names_out = cell(size(names_in));
     for n = 1:length(names_in)
-        names_out{n} = namify(names_in{n});
+        names_out{n} = namify(names_in{n}, family_only);
     end
 elseif isstr(names_in)
-    names_out = namify(names_in);
+    names_out = namify(names_in, family_only);
 end
 
 end
 
-function name_out = namify(name_in)
+function name_out = namify(name_in, family_only)
 if isempty(regexp(name_in, ':')) % if names have already been namified, they won't have any colons
     name_out = name_in;
     return
@@ -30,7 +35,7 @@ if regexp(name_in, '^opt')
     end
     
     if regexp(name_in, 'd_noise')
-        name_out = [name_out, ' + D noise'];
+        name_out = [name_out, ' + $d$ noise'];
     end
     
 elseif regexp(name_in, '^lin')
@@ -38,11 +43,15 @@ elseif regexp(name_in, '^lin')
 elseif regexp(name_in, '^quad')
     name_out = ['Quad'];
 elseif regexp(name_in, '^neural1')
-    name_out = ['Neur_{Lin}'];
+    name_out = ['Neural'];
 elseif regexp(name_in, '^fixed')
     name_out = ['Fixed'];
 elseif regexp(name_in, '^MAP')
     name_out = ['Orientation Estimation'];
+end
+
+if family_only
+    return
 end
 
 if isempty(regexp(name_in, 'joint_task_fit'))

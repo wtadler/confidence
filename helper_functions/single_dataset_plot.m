@@ -32,7 +32,7 @@ if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c
     set(gca, 'xdir', 'reverse');
     
     % transpose everything
-    fields = fieldnames(binned_stats);
+    fields = setdiff(fieldnames(binned_stats), 'bin_counts');
     for f = 1:length(fields)
         binned_stats.(fields{f}).(y_name) = permute(binned_stats.(fields{f}).(y_name), [2 1 3]);
     end
@@ -202,7 +202,7 @@ if label_y
         % blue to red colormap
         map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
         if reliability_x_axis
-            square_x = 6.5+resp_square_offset*nCols;
+            square_x = nCols + .5+ resp_square_offset*nCols;
         else
             square_x = .5-resp_square_offset*nCols;
         end

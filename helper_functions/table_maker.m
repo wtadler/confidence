@@ -20,7 +20,7 @@ for d = 1:length(models(1).extracted);
 end
 
 for m = 1:nModels
-    model_names{m} = rename_models(models(m).name);
+    model_names{m} = rename_models(models(m).name, true);
     name_str = '';
     for d = 1:length(models(m).extracted);
         name_str = [name_str models(m).extracted(d).name];
@@ -63,9 +63,9 @@ for m = 1:nModels-1
         group_sem = std(delta, [], 2)./sqrt(nSubjects);
         fprintf(fid, '%s,', model_names{end-m+1});
         if m ~= nModels-1
-            fprintf(fid, '%.0f\\ \\pm\\ %.0f,', fliplr([group_mean(2+m:end) group_sem(2+m:end)]'));
+            fprintf(fid, '$%.0f\\ \\pm\\ %.0f$,', fliplr([group_mean(2+m:end) group_sem(2+m:end)]'));
         end
-        fprintf(fid, '%.0f\\ \\pm\\ %.0f%s\n', [group_mean(1+m) group_sem(1+m)]', repmat(',',1,m-1));
+        fprintf(fid, '$%.0f\\ \\pm\\ %.0f$%s\n', [group_mean(1+m) group_sem(1+m)]', repmat(',',1,m-1));
     end
 
 end

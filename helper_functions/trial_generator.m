@@ -336,7 +336,7 @@ elseif strcmp(model.family, 'MAP')
             logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
         
-        noise = bsxfun(@plus, assumed_sig(raw.contrast_id), ODN(sVec, p.sig_amplitude));
+        noise = bsxfun(@plus, raw.sig, ODN(sVec, p.sig_amplitude));
         loglikelihood = bsxfun_normlogpdf(raw.x, sVec, noise);
         
         logposterior = bsxfun(@plus, loglikelihood, logprior);
