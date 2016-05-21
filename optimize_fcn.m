@@ -621,7 +621,12 @@ for gen_model_id = active_gen_models
     end
 end
 
-my_print(sprintf('Total optimization time: %.2f mins.\n',toc(start_t)/60));
+try
+    my_print(sprintf('Total optimization time: %.2f mins.\n',toc(start_t)/60));
+catch
+    warning(sprintf('Total optimization time: %.2f mins and my_print() or log_fid undefined.\n',toc(start_t)/60));
+end
+
 clear ex_p ex_nll ex_logposterior ex_logprior all_nll all_p d varargin;
 if hpc
     for g = active_gen_models
