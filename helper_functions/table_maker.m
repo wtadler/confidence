@@ -1,6 +1,7 @@
 function table_maker(models, filename)
-
+%%
 bootstrap = false;
+latex = true;
 
 fid = fopen(filename,'w+');
 
@@ -20,7 +21,7 @@ for d = 1:length(models(1).extracted);
 end
 
 for m = 1:nModels
-    model_names{m} = rename_models(models(m).name, true);
+    model_names{m} = rename_models(models(m).name, 'latex', true, 'short', true);
     name_str = '';
     for d = 1:length(models(m).extracted);
         name_str = [name_str models(m).extracted(d).name];
@@ -32,13 +33,25 @@ for m = 1:nModels
         error('names don''t match up!')
     end
 end
+model_names_rev = model_names;
 model_names = fliplr(model_names);
 
-fprintf(fid, '%i subjects,', nSubjects);
-fprintf(fid, '%s,', model_names{1:end-2});
-fprintf(fid, '%s\n', model_names{end-1});
 
-
+if latex
+    %%
+    fprintf(fid, ['\\begin{tabular}{c|'...
+        repmat('c',1,nModels-1)...
+        '}\n'...
+        sprintf('&%s', model_names_rev{1:end-1}), '\\\\\n'... % header row
+        '\\hline\n'...
+        '\\Centerstack{'...
+        sprintf('%s\\\\cr ', model_names{1:end-2})... % header col
+        model_names{end-1}, '} &\n']);
+else
+    fprintf(fid, '%i subjects,', nSubjects);
+    fprintf(fid, '%s,', model_names{1:end-2});
+    fprintf(fid, '%s\n', model_names{end-1});
+end
 
 
 for m = 1:nModels-1
@@ -61,13 +74,30 @@ for m = 1:nModels-1
     else
         group_mean = mean(delta, 2);
         group_sem = std(delta, [], 2)./sqrt(nSubjects);
-        fprintf(fid, '%s,', model_names{end-m+1});
-        if m ~= nModels-1
-            fprintf(fid, '$%.0f\\ \\pm\\ %.0f$,', fliplr([group_mean(2+m:end) group_sem(2+m:end)]'));
+        
+        if latex
+            fprintf(fid, ['{\\ensurestackMath{\n'...
+                    '\\alignCenterstack{']);
+            if m ~= nModels-1
+                fprintf(fid, '%.0f\\pm&%.0f\\cr ', fliplr([-group_mean(2+m:end) group_sem(2+m:end)]'));
+                fprintf(fid, '%.0f\\pm&%.0f%s}}}\n&\n', [-group_mean(1+m) group_sem(1+m)]', repmat('\cr &', 1, m-1));
+            else
+                fprintf(fid, '%.0f\\pm&%.0f%s}}}\n', [-group_mean(1+m) group_sem(1+m)]', repmat('\cr &', 1, m-1));
+            end
+            
+        else
+            fprintf(fid, '%s,', model_names{end-m+1});
+            if m ~= nModels-1
+                fprintf(fid, '$%.0f\\ \\pm\\ %.0f$,', fliplr([group_mean(2+m:end) group_sem(2+m:end)]'));
+            end
+            fprintf(fid, '$%.0f\\ \\pm\\ %.0f$%s\n', [group_mean(1+m) group_sem(1+m)]', repmat(',',1,m-1));
         end
-        fprintf(fid, '$%.0f\\ \\pm\\ %.0f$%s\n', [group_mean(1+m) group_sem(1+m)]', repmat(',',1,m-1));
     end
 
+end
+
+if latex
+    fprintf(fid, '\\end{tabular}');
 end
 
 fclose(fid);

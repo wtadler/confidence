@@ -158,6 +158,7 @@ switch fig_type
                 MCM_delta = bsxfun(@minus, ref_value, score);
         end
         
+        MCM_delta = -MCM_delta;
         
         if show_names
             if anonymize
@@ -189,5 +190,5 @@ switch fig_type
             MCM_name = upper(MCM);
         end
         
-        ylabel(sprintf('%s_{%s} - %s', MCM_name, model_names{ref_model}, MCM_name))
+        ylabel(sprintf('%s - %s_{%s}', MCM_name, MCM_name, model_names{ref_model}))
 end
