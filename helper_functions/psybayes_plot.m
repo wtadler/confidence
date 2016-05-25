@@ -84,6 +84,6 @@ for i = 1:nCurves
     running_minimum_x = min([running_minimum_x, min(contrasts)])
 end
 plot_horizontal_line(.5)
-set(gca, 'tickdir', 'out', 'ylim', yl, 'xlim', [running_minimum_x 0], 'clipping', 'on', 'xgrid', 'on')
+set(gca, 'tickdir', 'out', 'ylim', yl, 'xlim', [running_minimum_x 0], 'clipping', 'on', 'xgrid', 'on', 'ygrid', 'on')
 xlabel('log contrast')
 ylabel('prop. correct')
