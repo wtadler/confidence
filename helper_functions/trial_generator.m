@@ -30,24 +30,13 @@ elseif ~model.diff_mean_same_std
     category_type = 'same_mean_diff_std';
 end
 
-
-if ~attention_manipulation
-    contrasts = exp(linspace(-5.5,-2,6));
-else
-    contrasts = .08;
-end
-
-nContrasts = length(contrasts);
-
-p = parameter_variable_namer(p_in, model.parameter_names, model);
-
-if model.free_cats
-    category_params.sigma_1 = p.sig1;
-    category_params.sigma_2 = p.sig2;
-end
-
-
 if isempty(model_fitting_data)
+    if ~attention_manipulation
+        contrasts = exp(linspace(-5.5,-2,6));
+    else
+        contrasts = .08;
+    end
+
     raw.C         = randsample([-1 1], n_samples, 'true');
     raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
     raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);
@@ -90,10 +79,11 @@ if isempty(model_fitting_data)
 %         raw.cue_validity(raw.probe ~= raw.cue & raw.cue ~= 0)   = -1; % invalid cues
     elseif multi_prior
         % DO THIS
-    
     end
     
 else % take real data
+    contrasts = model_fitting_data.contrast_values;
+    
     raw.C           = model_fitting_data.C;
     raw.contrast    = model_fitting_data.contrast;
     raw.s           = model_fitting_data.s;
@@ -103,9 +93,18 @@ else % take real data
         raw.cue          = model_fitting_data.cue;
         raw.cue_validity = model_fitting_data.cue_validity;
     end
-    
 end
+
+p = parameter_variable_namer(p_in, model.parameter_names, model, contrasts);
+
+
+nContrasts = length(contrasts);
 n_samples = length(raw.C);
+
+if ~model.free_cats
+    p.sig1 = category_params.sigma_1;
+    p.sig2 = category_params.sigma_2;
+end
 
 [raw.sig, raw.Chat] = deal(zeros(1, n_samples));
 if ~model.choice_only
@@ -213,10 +212,10 @@ if strcmp(model.family,'opt')
                     raw.d(assumed_sig==cursig) = trun_da(raw.x(assumed_sig==cursig), s);
                 end
             elseif model.ori_dep_noise
-                raw.d = log(likelihood(category_params.sigma_1, 0) ./ likelihood(category_params.sigma_2, 0));
+                raw.d = log(likelihood(p.sig1, 0) ./ likelihood(p.sig2, 0));
             else
-                raw.k1 = .5 * log( (assumed_sig.^2 + category_params.sigma_2^2) ./ (assumed_sig.^2 + category_params.sigma_1^2));% + p.b_i(5);
-                raw.k2 = (category_params.sigma_2^2 - category_params.sigma_1^2) ./ (2 .* (assumed_sig.^2 + category_params.sigma_1^2) .* (assumed_sig.^2 + category_params.sigma_2^2));
+                raw.k1 = .5 * log( (assumed_sig.^2 + p.sig2^2) ./ (assumed_sig.^2 + p.sig1^2));% + p.b_i(5);
+                raw.k2 = (p.sig2^2 - p.sig1^2) ./ (2 .* (assumed_sig.^2 + p.sig1^2) .* (assumed_sig.^2 + p.sig2^2));
                 raw.d = raw.k1 - raw.k2 .* raw.x.^2;
             end
             %raw.posterior = 1 ./ (1 + exp(-raw.d));
@@ -275,8 +274,8 @@ elseif strcmp(model.family, 'MAP')
         
         switch category_type
             case 'same_mean_diff_std' % task B
-                k1sq = 1./(assumed_sig.^-2 + category_params.sigma_1^-2);
-                k2sq = 1./(assumed_sig.^-2 + category_params.sigma_2^-2);
+                k1sq = 1./(assumed_sig.^-2 + p.sig1^-2);
+                k2sq = 1./(assumed_sig.^-2 + p.sig2^-2);
                 k1 = sqrt(k1sq);
                 k2 = sqrt(k2sq);
                 
@@ -291,13 +290,13 @@ elseif strcmp(model.family, 'MAP')
             
             switch category_type
                 case 'same_mean_diff_std'
-                    %                 k1 = sqrt(1/(sig^-2 + category_params.sigma_1^-2));
+                    %                 k1 = sqrt(1/(sig^-2 + p.sig1^-2));
                     mu1 = raw.x(idx)*cur_sig^-2 * k1sq(i);
-                    %                 k2 = sqrt(1/(sig^-2 + category_params.sigma_2^-2));
+                    %                 k2 = sqrt(1/(sig^-2 + p.sig2^-2));
                     mu2 = raw.x(idx)*cur_sig^-2 * k2sq(i);
                     
-                    w1 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_1^2 + cur_sig^2));
-                    w2 = normpdf(raw.x(idx),0,sqrt(category_params.sigma_2^2 + cur_sig^2));
+                    w1 = normpdf(raw.x(idx),0,sqrt(p.sig1^2 + cur_sig^2));
+                    w2 = normpdf(raw.x(idx),0,sqrt(p.sig2^2 + cur_sig^2));
                     
                     raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k1(i) k2(i)],length(idx),1));
                     
@@ -331,7 +330,7 @@ elseif strcmp(model.family, 'MAP')
         sVec = reshape(linspace(-60,60,sSteps), 1, 1, sSteps);
         
         if ~model.diff_mean_same_std % task B
-            logprior = log(1/(2*sqrt(2*pi)) * (category_params.sigma_1^-1 * exp(-sVec.^2 / (2*category_params.sigma_1^2)) + category_params.sigma_2^-1 * exp(-sVec.^2 / (2*category_params.sigma_2^2))));
+            logprior = log(1/(2*sqrt(2*pi)) * (p.sig1^-1 * exp(-sVec.^2 / (2*p.sig1^2)) + p.sig2^-1 * exp(-sVec.^2 / (2*p.sig2^2))));
         elseif model.diff_mean_same_std % task A
             logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
