@@ -1,7 +1,9 @@
-function table_maker(models, filename)
+function table_maker(models, filename, varargin)
 %%
 bootstrap = false;
 latex = true;
+short_names = true;
+assignopts(who, varargin);
 
 fid = fopen(filename,'w+');
 
@@ -21,7 +23,7 @@ for d = 1:length(models(1).extracted);
 end
 
 for m = 1:nModels
-    model_names{m} = rename_models(models(m).name, 'latex', true, 'short', true);
+    model_names{m} = rename_models(models(m).name, 'latex', latex, 'short', short_names);
     name_str = '';
     for d = 1:length(models(m).extracted);
         name_str = [name_str models(m).extracted(d).name];
@@ -49,8 +51,8 @@ if latex
         model_names{end-1}, '} &\n']);
 else
     fprintf(fid, '%i subjects,', nSubjects);
-    fprintf(fid, '%s,', model_names{1:end-2});
-    fprintf(fid, '%s\n', model_names{end-1});
+    fprintf(fid, '"%s",', model_names{1:end-2});
+    fprintf(fid, '"%s"\n', model_names{end-1});
 end
 
 
@@ -60,16 +62,16 @@ for m = 1:nModels-1
     if bootstrap
         bootstat = bootstrp(1e4, @mean, delta'); % 1e4 is sufficient
 %         group_mean = mean(bootstat)';
-        midrange = .95;
-        group_quantiles = quantile(bootstat, [.5 - midrange/2, .5 + midrange/2]);
+        CI = .95;
+        group_quantiles = quantile(bootstat, [.5 - CI/2, .5, .5 + CI/2]);
 %         if size(group_quantiles, 1) == 1
 %             group_quantiles = group_quantiles';
 %         end
-        fprintf(fid, '%s,', model_names{end-m+1});
+        fprintf(fid, '"%s",', model_names{end-m+1});
         if m ~= nModels-1
-            fprintf(fid, '{[%.0f, %.0f]},', fliplr([group_quantiles(1, 2+m:end) group_quantiles(2, 2+m:end)]'));
+            fprintf(fid, '"%.0f [%.0f, %.0f]",', fliplr(group_quantiles([2 1 3], 2+m:end)));
         end
-        fprintf(fid, '{[%.0f, %.0f]}\n', [group_quantiles(1, 1+m) group_quantiles(2, 1+m)]');
+        fprintf(fid, '"%.0f [%.0f, %.0f]"\n', group_quantiles([2 1 3], 1+m));
 
     else
         group_mean = mean(delta, 2);

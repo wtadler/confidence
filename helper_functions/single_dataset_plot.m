@@ -64,8 +64,8 @@ if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c
         xtl{3} = 'invalid';
     else
         xlabel('reliability')
-        xtl{1} = 'high';
-        xtl{end} = 'low';
+        xtl{1} = 'highest';
+        xtl{end} = 'lowest';
     end
     
     set(gca, 'xticklabel', xtl);
@@ -99,7 +99,7 @@ elseif any(strcmp(x_name, {'s', 'c_s'}))
         labels = {'valid cue', 'neutral cue', 'invalid cue'};
     else
         colors = map.tan_contrast_colors;
-        labels = {'high reliability', 'low reliability'};
+        labels = {'highest rel.', 'lowest rel.'};
     end
     
     % ADD ATTENTION STUFF IN HERE
@@ -181,8 +181,15 @@ yl.g  = [1 4];
 yt.g = 1:4;
 yl.Chat = [0 1];
 yt.Chat = 0:.25:1;
+%%
 yl.resp = [5-nRespSquares/2, 4+nRespSquares/2];
 yt.resp = (5-nRespSquares/2):(4+nRespSquares/2);
+if nRespSquares ~= 8
+    extra = .3; % to indicate that data continues beyond the axis
+    yl.resp = [yl.resp(1)-extra yl.resp(2)+extra];
+end
+
+%%
 yl.rt = [0 4];
 yt.rt = 0:4;
 yl.proportion = [0 .5];
