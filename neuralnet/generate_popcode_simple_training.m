@@ -1,14 +1,9 @@
-function [R,P,S,C] = generate_popcode_simple_training(ndatapergain, nneuron, sig1_sq, sig2_sq, sigtc_sq)
+function [R,P,S,C] = generate_popcode_simple_training(ndatapergain, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigma)
+
+var = sigma.^2;
+gains = 100./(var.*15.3524)*ones(ndatapergain, 1);
 
 sprefs = linspace(-40,40,nneuron);
-
-% noise params
-alpha  = 9.9828;
-beta   = 2.3454;
-gamma  = 4.2008;   
-
-gains  = (alpha.*1).^(-beta) + gamma;
-gains  = (100./(gains.*15.3524))*ones(ndatapergain,1);
 
 S1  = [sqrt(sig1_sq) * randn(ndatapergain/2,1); sqrt(sig2_sq) * randn(ndatapergain/2,1)];
 R1  = repmat(gains,1,nneuron) .* exp(-(repmat(S1,1,nneuron) - repmat(sprefs,ndatapergain,1)).^2 / (2*sigtc_sq));

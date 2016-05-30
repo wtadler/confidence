@@ -1,30 +1,31 @@
 function fake_datasets = dataset_generator(model, param_samples, nSamples, varargin)
 
 % this makes a bunch of fake datasets for each model/subject combination, and summarizes them
-% the tasks, tasks_in thing here is weird. figure it out. 9/23/15.
+% the tasks, tasks_in thing here is weird. figure it out. 9/23/15. commented out, 5/28/16
 
 nBins = 13;
 raw = [];
-tasks_in = [];
+% tasks_in = [];
 dep_vars = {'resp','g','Chat'};
 symmetrify = false;
 bin_types = {'c_s'};
 attention_manipulation = false;
 trial_types = {'all'};
+analyze = true;
 assignopts(who,varargin);
 
 [tasks, modelstruct, param_idx] = submodels_for_analysis(model);
-
-if length(tasks_in) == 1 && length(tasks) == 2
-    if strcmp(tasks_in{1}, 'A')
-        i = 1;
-    elseif strcmp(tasks_in{1}, 'B')
-        i = 2;
-    end
-    tasks = tasks(i);
-    modelstruct = modelstruct(i);
-    param_idx = param_idx(i,:);
-end
+% 
+% if length(tasks_in) == 1 && length(tasks) == 2
+%     if strcmp(tasks_in{1}, 'A')
+%         i = 1;
+%     elseif strcmp(tasks_in{1}, 'B')
+%         i = 2;
+%     end
+%     tasks = tasks(i);
+%     modelstruct = modelstruct(i);
+%     param_idx = param_idx(i,:);
+% end
 
 if iscell(param_samples)
     param_samples = vertcat(param_samples{:});
@@ -52,8 +53,11 @@ for task = 1:length(tasks)
         if symmetrify && strcmp(tasks{task}, 'B')
             fake_datasets.(tasks{task}).dataset(s).raw.s = abs(fake_datasets.(tasks{task}).dataset(s).raw.s);
         end
-        fake_datasets.(tasks{task}).dataset(s).stats = indiv_analysis_fcn(fake_datasets.(tasks{task}).dataset(s).raw, bins, 'output_fields', dep_vars, 'bin_types', bin_types, 'trial_types', trial_types);
+        if analyze
+            fake_datasets.(tasks{task}).dataset(s).stats = indiv_analysis_fcn(fake_datasets.(tasks{task}).dataset(s).raw, bins, 'output_fields', dep_vars, 'bin_types', bin_types, 'trial_types', trial_types);
+        end
     end
-    
-    fake_datasets.(tasks{task}).sumstats = sumstats_fcn(fake_datasets.(tasks{task}).dataset, 'fields', dep_vars, 'bootstrap', false);
+    if analyze
+        fake_datasets.(tasks{task}).sumstats = sumstats_fcn(fake_datasets.(tasks{task}).dataset, 'fields', dep_vars, 'bootstrap', false);
+    end
 end

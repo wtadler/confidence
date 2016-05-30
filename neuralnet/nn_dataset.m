@@ -1,17 +1,15 @@
-function qamar_learning_psychophysics(int_indx)
+function [InfLoss, data] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigmas_test)
 
-rng(int_indx);
-
-n_data_list = floor(logspace(2,5,16)); % cumsum(repmat([72 48 48],1,5)); % 
-run_list    = 1:30;
-
-[NDATA,RUNID] = meshgrid(n_data_list,run_list);
-NDATA         = NDATA(:);
-RUNID         = RUNID(:);
-
-run_idx   = RUNID(int_indx);
-ndata     = NDATA(int_indx);
-ndata     = ndata + (rem(ndata,2)==1); 
+% rng(int_indx);
+% 
+% nTrials = floor(logspace(2,5,16)); % cumsum(repmat([72 48 48],1,5)); % 
+% nDatasets = 30;
+% 
+% [nTrials, dataset_ids] = meshgrid(nTrials, 1:nDatasets);
+% 
+% dataset   = dataset_ids(int_indx);
+% nTrials     = nTrials(int_indx);
+% nTrials     = nTrials + (rem(nTrials,2)==1); 
 
 % network parameters
 nhu       = 200;
@@ -26,17 +24,17 @@ mu         = 0.0;
 lambda_eff = 0.0;
 nepch      = 1; 
 bsize      = 1; 
-eta_0      = 0.05;
-gamma_e    = 0.0001;
-eta        = eta_0 ./ (1 + gamma_e*(0:(ndata-1))); % learning rate policy
-lambda     = 0.0705; % lapse
+% eta_0      = 0.05; % optimize this
+% gamma_e    = 0.0001; % and this
+eta        = eta_0 ./ (1 + gamma_e*(0:(nTrainingTrials-1))); % learning rate policy
+% lambda     = 0.0705; % lapse
 
 % generate data
 sig1_sq     = 3^2;
 sig2_sq     = 12^2;
 sigtc_sq    = 10^2;
-[R,P,~,C]   = generate_popcode_simple_training(ndata, nneuron, sig1_sq, sig2_sq, sigtc_sq);
-fprintf('Generated training data\n');
+[R,P,~,C]   = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigma_train); % figure out how to set sigma. it's not fit, because we don't fit the sigma on training trials.
+% fprintf('Generated training data\n');
 
 Xdata      = R';
 Ydata      = C';
@@ -57,9 +55,9 @@ ninfloss = 12000;
 %% Train network with SGD
 for e = 1:nepch
     
-    pp = randperm(ndata);
+    pp = randperm(nTrainingTrials);
     
-    for bi = 1:(ndata/bsize)
+    for bi = 1:(nTrainingTrials/bsize)
     
         bbegin = (bi-1)*bsize+1;
         bend   = bi*bsize;
@@ -76,15 +74,15 @@ for e = 1:nepch
     end
     
     % Performance over training set
-    Yhattrain           = zeros(1,ndata);
-    for ti = 1:ndata
+    Yhattrain           = zeros(1,nTrainingTrials);
+    for ti = 1:nTrainingTrials
         [a, ~]          = fwd_pass(Xdata(:,ti),W,b,L,ftype);
         Yhattrain(1,ti) = a{end};
     end
     RMSEtrain = sqrt(mean((Yhattrain-P').^2));
     
     % Evaluate network at the end of epoch
-    [Rinf,Pinf,Sinf,Cinf,Knet] = generate_popcode_noisy_data_allgains_6(ninfloss, nneuron, sig1_sq, sig2_sq, sigtc_sq);
+    [Rinf, Pinf, s, C] = generate_popcode_noisy_data_allgains_6(ninfloss, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test);
     Xinfloss                   = Rinf';
     Yinfloss                   = Pinf';
     Yhatinf                    = zeros(1,ninfloss);
@@ -101,20 +99,14 @@ for e = 1:nepch
                      
     RMSE = sqrt(mean((Yhatinf-Yinfloss).^2));
     
-    fprintf('Epoch: %i done, InfLoss on test: %f, RMSE on test: %f, NoAcceptedTrials: %i, RMSE on training data: %f \n', e, InfLoss, RMSE, length(Yinfloss), RMSEtrain);
+%     fprintf('Epoch: %i done, InfLoss on test: %f, RMSE on test: %f, NoAcceptedTrials: %i, RMSE on training data: %f \n', e, InfLoss, RMSE, length(Yinfloss), RMSEtrain);
 
 end
 
-Rnet        = (Yhatinf'>0.5) + 0.0;
-Ropt        = (Yinfloss'>0.5) + 0.0;
-lapses      = binornd(1,lambda,[length(Rnet),1]);
-lapse_resps = (rand(length(Rnet),1)>0.5) + 0.0;
-Rnet        = lapses .* lapse_resps + (1-lapses) .* Rnet + 0.0;
-Snet        = Sinf;
-
-filename = strcat('qamar_psychophysics_run_',num2str(run_idx),'_ndata_',num2str(ndata),'.mat');
-save(filename,'Rnet','Snet','Knet','InfLoss','Cinf','Ropt'); % save everything
-
-fprintf('RUN %i DONE \n',run_idx);
+data.prob = Yhatinf;
+data.Chat = (Yhatinf'>0.5)' + 0.0; % category choice
+data.Chat_opt = (Yinfloss'>0.5)' + 0.0; % optimal category choice
+data.s = s';
+data.C = C';
 
 end
