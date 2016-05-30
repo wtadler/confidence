@@ -105,7 +105,7 @@ if hpc
     datadir_joint='/home/wta215/data/v3';
     savedir = '/scratch/wta215/output/';
 else
-    datadir_joint = '/Users/will/Google Drive/Will - Confidence/Data/v3b_ellipse';
+    datadir_joint = '~/Google Drive/Will - Confidence/Data/v3_all';
     savedir = '~/Google Drive/Ma lab/output/';
 end
 
@@ -314,7 +314,7 @@ for gen_model_id = active_gen_models
         extracted_nll = zeros(1, nOptimizations);
         extracted_hessian=zeros(nParams, nParams, nOptimizations);
         tmp = o;
-        tmp.extracted(max(datasets)) = struct;
+%         tmp.extracted(max(datasets)) = struct;
         gen(gen_model_id).opt(opt_model_id) = tmp;
         
         % OPTIMIZE

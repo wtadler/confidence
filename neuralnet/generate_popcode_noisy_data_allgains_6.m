@@ -5,7 +5,7 @@ nSigmas = length(sigmas);
 sigmas = reshape(sigmas, nSigmas, 1);
 sigmas = sort(sigmas, 1, 'descend');
 vars = sigmas.^2;
-gains  = repmat(100./(vars.*15.3524), ndatapergain/nSigmas, 1);
+gains  = repmat(100./(vars.*15.3524), round(ndatapergain/nSigmas), 1);
 
 sprefs    = linspace(-40, 40, nneuron);
 
