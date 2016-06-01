@@ -31,9 +31,9 @@ sig2_sq     = 12^2;
 sigtc_sq    = 10^2;
 
 if ~train_on_test_noise
-    [R,P,~,C]   = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigma_train); % figure out how to set sigma. it's not fit, because we don't fit the sigma on training trials.
+    [R, P, ~, C, ~]   = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigma_train); % figure out how to set sigma. it's not fit, because we don't fit the sigma on training trials.
 else
-    [R, P, ~, C] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test);
+    [R, P, ~, C, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test);
 end
 % fprintf('Generated training data\n');
 
@@ -83,7 +83,7 @@ for e = 1:nepch
     RMSEtrain = sqrt(mean((Yhattrain-P').^2));
     
     % Evaluate network at the end of epoch
-    [Rinf, Pinf, s, C] = generate_popcode_noisy_data_allgains_6(ninfloss, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test);
+    [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(ninfloss, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test);
     Xinfloss                   = Rinf';
     Yinfloss                   = Pinf';
     Yhatinf                    = zeros(1,ninfloss);
@@ -104,10 +104,33 @@ for e = 1:nepch
     
 end
 
-data.prob = Yhatinf;
-data.Chat = (Yhatinf'>0.5)' + 0.0; % category choice
-data.Chat_opt = (Yinfloss'>0.5)' + 0.0; % optimal category choice
-data.s = s';
 data.C = C';
+data.C(data.C==1) = -1;
+data.C(data.C==0) = 1;
+
+data.gains = gains';
+data.sigmas = sigmas';
+
+data.s = s';
+
+data.nTrainingTrials = nTrainingTrials;
+
+data.prob = Yhatinf;
+% data.Chat = (Yhatinf'>0.5)' + 0.0; % category choice
+% data.Chat_opt = (Yinfloss'>0.5)' + 0.0; % optimal category choice
+
+% quantile confidences
+[~, data.resp] = histc(data.prob, [0 quantile(data.prob, .125:.125:.875) 1]);
+
+data.resp = 9-data.resp;
+data.Chat = real(data.resp >= 5);
+data.Chat(data.Chat==0) = -1;
+data.tf = data.C==data.Chat;
+
+c1 = data.Chat == -1;
+c2 = data.Chat == 1;
+data.g = [];
+data.g(c1) = 5 - data.resp(c1);
+data.g(c2) = -4 + data.resp(c2);
 
 end

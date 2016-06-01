@@ -1,7 +1,7 @@
-function [R,P,s,C] = generate_popcode_simple_training(ndatapergain, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigma)
+function [R, P, s, C, gains, sigmas] = generate_popcode_simple_training(ndatapergain, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigma)
 
-var = sigma.^2;
-gains = 100./(var.*15.3524)*ones(ndatapergain, 1);
+sigmas = sigma*ones(ndatapergain, 1);
+gains = 100./(15.3524*sigmas.^2);
 
 sprefs = linspace(-40,40,nneuron);
 

@@ -2,36 +2,19 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'opt';
+opt_models(1).family = 'fixed';
 opt_models(1).multi_lapse = 0;
 opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
 opt_models(1).choice_only = 1;
-opt_models(1).diff_mean_same_std = 0;
+opt_models(1).diff_mean_same_std = 1;
 opt_models(1).ori_dep_noise = 1;
-opt_models(1).joint_task_fit = 1;
+opt_models(1).joint_task_fit = 0;
 opt_models(1).nFreesigs = 0;
-opt_models(1).d_noise = 1;
+opt_models(1).d_noise = 0;
 
 opt_models(2) = opt_models(1);
-opt_models(2).family = 'MAP';
-
-opt_models(3) = opt_models(2);
-opt_models(3).family = 'neural1';
-
-opt_models(4) = opt_models(3);
-opt_models(4).family = 'lin';
-
-opt_models(5) = opt_models(4);
-opt_models(5).family = 'quad';
-
-opt_models(6) = opt_models(5);
-opt_models(6).family = 'fixed';
-
-for m = 7:12
-opt_models(m) = opt_models(m-6);
-opt_models(m).repeat_lapse = 1;
-end
+opt_models(2).nFreesigs = 6;
 
 opt_models = parameter_constraints(opt_models);
 nModels = length(opt_models);

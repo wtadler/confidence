@@ -1,11 +1,12 @@
-function [R,P,s,C] = generate_popcode_noisy_data_allgains_6(ndatapergain, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas)
+function [R, P, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(ndatapergain, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas)
 % sigmas should be in decreasing order
 
 nSigmas = length(sigmas);
 sigmas = reshape(sigmas, nSigmas, 1);
 sigmas = sort(sigmas, 1, 'descend');
+sigmas = repmat(sigmas, round(ndatapergain/nSigmas), 1);
 vars = sigmas.^2;
-gains  = repmat(100./(vars.*15.3524), round(ndatapergain/nSigmas), 1);
+gains  = 100./(vars.*15.3524);
 
 sprefs    = linspace(-40, 40, nneuron);
 

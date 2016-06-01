@@ -57,7 +57,9 @@ nDatasets = length(models(1).extracted);
 score = nan(nModels, nDatasets);
 for m = 1:nModels
     for d = 1:nDatasets
-        score(m,d) = models(m).extracted(d).(MCM);
+        try
+            score(m,d) = models(m).extracted(d).(MCM);
+        end
     end
 end
 

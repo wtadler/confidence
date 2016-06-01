@@ -1,4 +1,4 @@
-%% animated criteria
+%% animated criteria plots
 close all
 
 % VIDEO PARAMETERS
