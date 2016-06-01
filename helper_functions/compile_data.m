@@ -70,6 +70,12 @@ for subject = 1 : length(names)
             data = Test;
         end
         
+        if any(unique(data.R.trial_order{1})==-1)
+            transform_C = @(x) x;
+        else
+            transform_C = @(x) 2*x - 3;
+        end
+        
         if isfield(data, 'R2')
             old_attention_manipulation = true;
         elseif ndims(data.R.draws{1}) == 3
@@ -80,22 +86,14 @@ for subject = 1 : length(names)
             multi_prior = true;
         end
         
-        
-        
-        %tmp.Training = Training; % maybe work on this later. it's going to
-        %change how the data comes out and might mess with other scripts.
-        %tmp.data = data;
-        %TrTest = {'Training', 'data'}
-        
+                
         for block = 1:length(data.responses)
             for section = 1:size(data.responses{block}.c,1)
-                %                 start_trial = (session - 1) * data.n.blocks * data.n.sections * data.n.trials + (block - 1) * data.n.sections * data.n.trials + (section - 1) * data.n.trials + 1;
-                %                 end_trial   = (session - 1) * data.n.blocks * data.n.sections * data.n.trials + (block - 1) * data.n.sections * data.n.trials + (section - 1) * data.n.trials + data.n.trials;
                 nTrials = size(data.R.draws{block}, 2);
                 st.data(subject).name = names{subject};
                 
                 % trials
-                raw.C           = [raw.C        data.R.trial_order{block}(section,:) * 2 - 3];
+                raw.C           = [raw.C        transform_C(data.R.trial_order{block}(section,:))];
                 
                 if attention_manipulation
                     draws = data.R.draws{block}(section, :, :);
@@ -104,7 +102,6 @@ for subject = 1 : length(names)
                     index = sub2ind(size(draws), ones(1, nTrials), 1:nTrials, probe);
                     
                     raw.s = [raw.s draws(index)];
-%                     raw.contrast = [raw.contrast sigma(index)];
                     raw.cue_validity = [raw.cue_validity data.R.cue_validity{block}(section, :)];
                     [raw.contrast_values, raw.contrast_id] = unique_contrasts(raw.cue_validity);
                     raw.cue_validity_id = raw.contrast_id;
@@ -167,7 +164,7 @@ for subject = 1 : length(names)
                 
                 % responses
                 
-                raw.Chat    = [raw.Chat data.responses{block}.c(section,:) * 2 - 3];
+                raw.Chat    = [raw.Chat transform_C(data.responses{block}.c(section,:))];
                 raw.tf      = [raw.tf   data.responses{block}.tf(section,:)];
                 raw.g       = [raw.g    data.responses{block}.conf(section,:)];
                 raw.rt      = [raw.rt   data.responses{block}.rt(section,:)];
@@ -177,6 +174,8 @@ for subject = 1 : length(names)
                                 
             end
         end
+        
+        raw.resp = raw.g + 4 + (-.5 + .5*raw.Chat).*(2*raw.g-1); % check this
     end
 %     fields = fieldnames(raw);
 %     fields = fields([1 2 3 5 6 7 8 9 10]); % drop 'contrast_values'

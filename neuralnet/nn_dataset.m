@@ -51,7 +51,7 @@ W_init{3} = 0.05*randn(nnode(3),nnode(2));
 b_init{3} = 0.00*randn(nnode(3),1);
 
 % Evaluate network at the end of epoch
-ninfloss = 12000;
+nTestTrials = 12000; % should this be 2160 to match the experiment?
 
 %% Train network with SGD
 for e = 1:nepch
@@ -83,11 +83,11 @@ for e = 1:nepch
     RMSEtrain = sqrt(mean((Yhattrain-P').^2));
     
     % Evaluate network at the end of epoch
-    [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(ninfloss, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test);
+    [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test);
     Xinfloss                   = Rinf';
     Yinfloss                   = Pinf';
-    Yhatinf                    = zeros(1,ninfloss);
-    for ti = 1:ninfloss
+    Yhatinf                    = zeros(1,nTestTrials);
+    for ti = 1:nTestTrials
         [a, ~]        = fwd_pass(Xinfloss(:,ti),W,b,L,ftype);
         Yhatinf(1,ti) = a{end};
     end
