@@ -15,14 +15,11 @@ end
 
 for t = model.term_params'
     p_in(t)=p_in(t-1)+p_in(t);
-    parameter_names{t} = parameter_names{t}(1:end-4);
+    parameter_names{t} = parameter_names{t}(1:end-4); % chop off the 'term' in the name
 end
 
 % name all the single variables
 for i = 1 : length(parameter_names)
-%     warning('saving pvntest')
-%     save pvntest
-
     p.(parameter_names{i}) = p_in(i);
 end
 
@@ -37,7 +34,7 @@ if ~isfield(model, 'nFreesigs') || model.nFreesigs == 0
     c_hi = max(contrasts);
     alpha = (p.sigma_c_low^2-p.sigma_c_hi^2)/(c_low^-p.beta - c_hi^-p.beta);
     p.unique_sigs = fliplr(sqrt(p.sigma_c_low^2 - alpha * c_low^-p.beta + alpha*contrasts.^-p.beta)); % low to high sigma. should line up with contrast id
-    p.unique_sigs = max(p.unique_sigs, exp(-4)); % prevents problems in nloglik_fcn. this is temporary. won't need this after changes in parameter_constraints.m trickle down.
+    p.unique_sigs = max(real(p.unique_sigs), exp(-4)); % prevents problems in nloglik_fcn. this is temporary. won't need this after changes in parameter_constraints.m trickle down.
     
     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise
         alpha_inference = (p.sigma_c_low_inference^2-p.sigma_c_hi_inference^2)/(c_low^-p.beta_inference - c_hi^-p.beta_inference);
