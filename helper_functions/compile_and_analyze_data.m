@@ -7,6 +7,7 @@ trial_types = {'all'};
 output_fields = {'tf','resp','g','rt','Chat','proportion'};
 bin_types = {'c', 's', 'Chat', 'g', 'resp', 'c_s', 'c_C', 'c_Chat', 'c_g', 'c_resp', 'c_prior'};
 group_stats = false;
+matchstring = '';
 assignopts(who, varargin)
 
 datadir = check_datadir(root_datadir);
@@ -14,9 +15,9 @@ tasks = fieldnames(datadir);
 nTasks = length(tasks);
 
 for task = 1:nTasks;
-    fprintf('\nTask %i/%i: Analyzing subject data...', task, nTasks);
+    fprintf('Task %i/%i: Analyzing subject data...\n', task, nTasks);
 
-    real_data.(tasks{task}) = compile_data('datadir',datadir.(tasks{task}));
+    real_data.(tasks{task}) = compile_data('datadir',datadir.(tasks{task}), 'matchstring', matchstring);
     [edges.(tasks{task}), centers.(tasks{task})] = bin_generator(nBins, 'task', tasks{task});
     
     nSubjects = length(real_data.(tasks{task}).data);

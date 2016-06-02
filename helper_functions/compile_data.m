@@ -24,6 +24,8 @@ multi_prior = false;
 
 training_data = false; % compiles training data instead of test data
 
+matchstring = ''; % filter for certain files
+
 assignopts(who,varargin);
 
 if ~any(regexp(datadir, '/$'))
@@ -39,6 +41,9 @@ session_files = session_files.mat;
 % find unique subject names
 names = regexp(session_files,'^[a-zA-Z0-9]+(?=_)','match'); % find characters before _ in session_files. make this accept caps
 names = unique(cat(1,names{:}));
+if ~isempty(matchstring)
+    names = names(~cellfun(@isempty, strfind(names, matchstring)));
+end
 
 % compile raw data for individual subjects, compute individual stats, and summary stats.
 st = struct; % probably want to pre-allocate this in some way.

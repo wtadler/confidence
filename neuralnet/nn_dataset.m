@@ -51,7 +51,7 @@ W_init{3} = 0.05*randn(nnode(3),nnode(2));
 b_init{3} = 0.00*randn(nnode(3),1);
 
 % Evaluate network at the end of epoch
-nTestTrials = 12000; % should this be 2160 to match the experiment?
+nTestTrials = 2160; % should this be 2160 to match the experiment? or need more
 
 %% Train network with SGD
 for e = 1:nepch

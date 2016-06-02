@@ -27,12 +27,13 @@ models = [];
 nPlotSamples = 10;
 nFakeGroupDatasets = 100;
 plot_reliabilities = [];
-show_legend = false;
+show_legend = true;
 s_labels = -8:2:8;
 errorbarwidth = 1.7;
 MCM = ''; % 'dic', 'waic2', whatever. add extra row with MCM scores.
 MCM_size = .38; % percentage of plot height taken up by model comparison.
 ref_model = [];
+matchstring = '';
 assignopts(who, varargin);
 
 if ~isempty(MCM) && strcmp(axis.col, 'model')
@@ -61,7 +62,8 @@ end
 
 real_data = compile_and_analyze_data(root_datadir, 'nBins', nBins,...
     'symmetrify', symmetrify, 'conf_levels', conf_levels, 'trial_types', trial_types,...
-    'output_fields', depvars, 'bin_types', union(slices, means), 'group_stats', group_plot);
+    'output_fields', depvars, 'bin_types', union(slices, means), 'group_stats', group_plot,...
+    'matchstring', matchstring);
 
 nSubjects = length(real_data.(tasks{1}).data);
 
