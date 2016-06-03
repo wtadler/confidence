@@ -2,6 +2,7 @@ function [InfLoss, data] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_tra
 
 train_on_test_noise = false;
 baseline = 0;
+quantile_type = 'weak';
 assignopts(who, varargin);
 
 % if train_on_test_noise
@@ -11,7 +12,7 @@ assignopts(who, varargin);
 % network parameters
 nhu       = 200;
 L         = 3;
-nneuron   = 50;
+nneuron   = 100;
 nnode     = [nneuron nhu 1];
 ftype     = 'relu';
 objective = 'xent';
@@ -29,12 +30,21 @@ eta        = eta_0 ./ (1 + gamma_e*(0:(nTrainingTrials-1))); % learning rate pol
 % generate data
 sig1_sq     = 3^2;
 sig2_sq     = 12^2;
-sigtc_sq    = 10^2;
+tc_precision    = .0001; % aka tau_t. formerly .01
+
+% sum activity for unit gain. i'm sure this is a dumb way to do it. also,
+% have a check to ensure that the space is uniformly covered with neural
+% response
+K = 0;
+sprefs = linspace(-140, 140, nneuron);
+for i = 1:nneuron
+    K = K + exp(-(0-sprefs(i)).^2 * tc_precision / 2);
+end
 
 if ~train_on_test_noise
-    [R, P, ~, C, ~]   = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigma_train, baseline);
+    [R, P, ~, C, ~] = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigma_train, baseline, K, sprefs);
 else
-    [R, P, ~, C, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test, baseline);
+    [R, P, ~, C, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
 end
 % fprintf('Generated training data\n');
 
@@ -84,7 +94,7 @@ for e = 1:nepch
     RMSEtrain = sqrt(mean((Yhattrain-P').^2));
     
     % Evaluate network at the end of epoch
-    [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test, baseline);
+    [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
     Xinfloss                   = Rinf';
     Yinfloss                   = Pinf';
     Yhatinf                    = zeros(1,nTestTrials);
@@ -117,11 +127,26 @@ data.s = s';
 data.nTrainingTrials = nTrainingTrials;
 
 data.prob = Yhatinf;
-% data.Chat = (Yhatinf'>0.5)' + 0.0; % category choice
-% data.Chat_opt = (Yinfloss'>0.5)' + 0.0; % optimal category choice
 
-% quantile confidences
-[~, data.resp] = histc(data.prob, [0 quantile(data.prob, .125:.125:.875) 1]);
+switch quantile_type
+    case 'ultraweak'
+        % quantile for confidence and choice (analogous to Bayes_Weak)
+        edges = [0 quantile(data.prob, linspace(1/8, 7/8, 7)) 1];
+    case 'weak'
+        % quantile confidences but fix choice boundary at .5
+        edges = [0, quantile(data.prob(data.prob<=.5), linspace(1/4, 3/4, 3)), 1/2, quantile(data.prob(data.prob>.5), linspace(1/4, 3/4, 3)), 1];
+    case 'lowconfonly'
+        edges = [zeros(1,4) 1/2 ones(1,4)];
+end
+
+for i = 2:length(edges)
+    if isnan(edges(i))
+        edges(i) = edges(i-1);
+    end
+end
+[~, data.resp] = histc(data.prob, edges);
+
+
 
 data.resp = 9-data.resp;
 data.Chat = real(data.resp >= 5);

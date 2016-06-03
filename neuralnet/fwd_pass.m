@@ -1,15 +1,19 @@
 function [a, z] = fwd_pass(h,W,b,L,ftype)
-
+bias_output = true;
 a        = cell(L,1);
 z        = cell(L,1);
 a{1}     = h;
+%%
+for i = 2:L
 
-for i = 1:(L-1)
-
-    z{i+1} = W{i+1} * a{i} + b{i+1};
-    if i == L-1
-        a{i+1} = sigma_func(W{i+1} * a{i} + b{i+1},'sigm');
-    else
-        a{i+1} = sigma_func(W{i+1} * a{i} + b{i+1},ftype);
+    z{i} = W{i} * a{i-1} + b{i};
+    if i == L % output layer
+        if bias_output
+            a{i} = sigma_func(W{i} * a{i-1} + b{i},'sigm');
+        else
+            a{i} = sigma_func(W{i} * a{i-1},'sigm');
+        end
+    else % hidden layer(s)
+        a{i} = sigma_func(W{i} * a{i-1} + b{i},ftype);
     end
 end
