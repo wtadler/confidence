@@ -1,6 +1,7 @@
 function [InfLoss, data] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigmas_test, varargin)
 
 train_on_test_noise = false;
+baseline = 0;
 assignopts(who, varargin);
 
 % if train_on_test_noise
@@ -31,9 +32,9 @@ sig2_sq     = 12^2;
 sigtc_sq    = 10^2;
 
 if ~train_on_test_noise
-    [R, P, ~, C, ~]   = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigma_train); % figure out how to set sigma. it's not fit, because we don't fit the sigma on training trials.
+    [R, P, ~, C, ~]   = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigma_train, baseline);
 else
-    [R, P, ~, C, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test);
+    [R, P, ~, C, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test, baseline);
 end
 % fprintf('Generated training data\n');
 
@@ -83,7 +84,7 @@ for e = 1:nepch
     RMSEtrain = sqrt(mean((Yhattrain-P').^2));
     
     % Evaluate network at the end of epoch
-    [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test);
+    [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, sigtc_sq, sigmas_test, baseline);
     Xinfloss                   = Rinf';
     Yinfloss                   = Pinf';
     Yhatinf                    = zeros(1,nTestTrials);
