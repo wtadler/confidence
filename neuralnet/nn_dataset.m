@@ -1,6 +1,6 @@
 function [InfLoss, data] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigmas_test, varargin)
 
-train_on_test_noise = false;
+train_on_test_noise = true;
 baseline = 0;
 quantile_type = 'weak';
 assignopts(who, varargin);
@@ -12,7 +12,7 @@ assignopts(who, varargin);
 % network parameters
 nhu       = 200;
 L         = 3;
-nneuron   = 100;
+nneuron   = 50;
 nnode     = [nneuron nhu 1];
 ftype     = 'relu';
 objective = 'xent';
@@ -30,13 +30,13 @@ eta        = eta_0 ./ (1 + gamma_e*(0:(nTrainingTrials-1))); % learning rate pol
 % generate data
 sig1_sq     = 3^2;
 sig2_sq     = 12^2;
-tc_precision    = .0001; % aka tau_t. formerly .01
+tc_precision    = .01; % aka tau_t. formerly .01
 
 % sum activity for unit gain. i'm sure this is a dumb way to do it. also,
 % have a check to ensure that the space is uniformly covered with neural
 % response
 K = 0;
-sprefs = linspace(-140, 140, nneuron);
+sprefs = linspace(-40, 40, nneuron);
 for i = 1:nneuron
     K = K + exp(-(0-sprefs(i)).^2 * tc_precision / 2);
 end
@@ -92,6 +92,7 @@ for e = 1:nepch
         Yhattrain(1,ti) = a{end};
     end
     RMSEtrain = sqrt(mean((Yhattrain-P').^2));
+    mean((Yhattrain > .5) == C')
     
     % Evaluate network at the end of epoch
     [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
