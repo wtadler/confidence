@@ -25,6 +25,7 @@ for m_id = 1 : nModels
     if ~strcmp(c.family, 'opt')
         % these options are only for bayesian models
         c.d_noise = 0;
+        c.joint_d = 0;
     end
     
     if ~strcmp(c.family, 'opt') && ~strcmp(c.family, 'MAP')
