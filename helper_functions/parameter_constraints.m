@@ -62,10 +62,17 @@ for m_id = 1 : nModels
     end
     c.name = str; % model name
     %%
+    if isfield(c, 'parameter_names') && strcmp(c.parameter_names{2}, 'logsigma_c_lowTerm') % already defined, usually if parent function is prepare_submodels()
+        c.parameter_names = c.parameter_names(1:2);
+    else
+        c.parameter_names = {
+            'logsigma_c_low'
+            'logsigma_c_hi'
+            };
+    end
     
-    c.parameter_names = {
-        'logsigma_c_hi'       % switched the order here (6/2/16)
-        'logsigma_c_lowTerm'
+    c.parameter_names = [
+        c.parameter_names
         'beta'
         'b_n3_d'
         'b_n2_dTerm'
@@ -130,7 +137,7 @@ for m_id = 1 : nModels
         'b_3_neural1Term_TaskA'
         'b_0_neural1Choice_TaskA'
         'lambda_bias'
-        };
+        ];
     
     % 8/11: lb(1:3) used to be [0 -4 10]
     % scl/sch can't be lower than -4 otherwise we get problems in nloglik_fcn
