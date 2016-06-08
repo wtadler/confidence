@@ -303,7 +303,7 @@ for fig = 1:n.fig
             ylabel('');
         end
         
-        mybar(MCM_delta(col, :), 'barnames', subject_names);
+        mybar(MCM_delta(col, :), 'barnames', subject_names, 'bootstrap', true);
         ylim(yl);
         
         if col ~= 1
