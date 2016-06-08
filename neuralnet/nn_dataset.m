@@ -1,4 +1,4 @@
-function [InfLoss, data] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigmas_test, varargin)
+function [RMSEtrain, data] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigmas_test, varargin)
 
 train_on_test_noise = true;
 baseline = 0;
@@ -91,8 +91,8 @@ for e = 1:nepch
         [a, ~]          = fwd_pass(Xdata(:,ti),W,b,L,ftype);
         Yhattrain(1,ti) = a{end};
     end
-    RMSEtrain = sqrt(mean((Yhattrain-P').^2));
-    mean((Yhattrain > .5) == C')
+    RMSEtrain = sqrt(mean((Yhattrain-P').^2)); % use this as objective
+%     mean((Yhattrain > .5) == C')
     
     % Evaluate network at the end of epoch
     [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
