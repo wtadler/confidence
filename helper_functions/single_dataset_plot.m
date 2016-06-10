@@ -17,6 +17,7 @@ resp_square_offset = .05;
 plot_connecting_line = true;
 nRespSquares = 8;
 show_legend = false;
+legend_loc = 'northwest';
 assignopts(who, varargin);
 
 if ~isempty(colors)
@@ -243,5 +244,5 @@ if show_legend
             l=legend(handle([2 end]), labels);
         end
     end
-    set(l, 'box', 'off', 'location', 'northeast')
+    set(l, 'box', 'off', 'location', legend_loc)
 end
