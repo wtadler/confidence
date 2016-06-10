@@ -4,7 +4,8 @@ bootstrap = true;
 latex = true;
 short_names = true;
 flipsign = false;
-p_correction = 'hb'; % 'hb' (holm-bonferroni) or 'b' (bonferroni). bonferroni is slightly more conservative
+report_significance = false;
+    p_correction = 'hb'; % 'hb' (holm-bonferroni) or 'b' (bonferroni). bonferroni is slightly more conservative
 assignopts(who, varargin);
 
 fid = fopen(filename,'w+');
@@ -61,14 +62,16 @@ for m = 1:nModels
         means(1:nModels-m, m) = fliplr(mean(delta(1+m:end, :), 2))';
         sems(1:nModels-m, m) = fliplr(std(delta(1+m:end, :), [], 2)/sqrt(nSubjects))';
         
-        for comparison = 1+m:nModels
-            [h, p(nModels+1-comparison, m)] = ttest(score(m,:), score(comparison,:), 'alpha', alpha/nCells);
-            
-            if strcmp(p_correction, 'b')
-                if h
-                    significance{nModels+1-comparison, m} = '*';
-                else
-                    significance{nModels+1-comparison, m} = '';
+        if report_significance
+            for comparison = 1+m:nModels
+                [h, p(nModels+1-comparison, m)] = ttest(score(m,:), score(comparison,:), 'alpha', alpha/nCells);
+                
+                if strcmp(p_correction, 'b')
+                    if h
+                        significance{nModels+1-comparison, m} = '*';
+                    else
+                        significance{nModels+1-comparison, m} = '';
+                    end
                 end
             end
         end
@@ -79,7 +82,7 @@ if strcmp(p_correction, 'hb')
     nZeroCells = sum(1:nModels-2);
     [p_sort, sort_idx] = sort(p(:));%(p(:) > 0));
     last_sig_cell = find(diff(p_sort > alpha./(nCells + 1 - (-nZeroCells+1:nCells))'));
-    significant_cells = sort_idx(nZeroCells+1:last_sig_cell)
+    significant_cells = sort_idx(nZeroCells+1:last_sig_cell);
     significance(significant_cells) = {'*'};
 end
 model_names_rev = model_names;
@@ -130,7 +133,7 @@ for m = 1:nModels-1
         else % print col
             for comparison = fliplr(1+m:nModels)
                 %                 fprintf(fid, '%.0f\\ [%.0f, %.0f]%s', quantiles(nModels+1-comparison, m, 2), quantiles(nModels+1-comparison, m, 1), quantiles(nModels+1-comparison, m, 3), significance{nModels+1-comparison, m});
-                if strcmp(significance{nModels+1-comparison, m}, '*')
+                if report_significance && strcmp(significance{nModels+1-comparison, m}, '*')
                     fprintf(fid, '\\textbf{%.0f\\ [%.0f, %.0f]}', quantiles(nModels+1-comparison, m, 2), quantiles(nModels+1-comparison, m, 1), quantiles(nModels+1-comparison, m, 3));
                 else
                     fprintf(fid, '%.0f\\ [%.0f, %.0f]', quantiles(nModels+1-comparison, m, 2), quantiles(nModels+1-comparison, m, 1), quantiles(nModels+1-comparison, m, 3));

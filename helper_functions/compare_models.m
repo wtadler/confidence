@@ -7,7 +7,7 @@ else
 end
 sort_subjects = false;
 
-fig_type = 'bar'; % 'grid' or 'bar'
+fig_type = 'bar'; % 'grid' or 'bar' or 'sumbar'
 
 % BAR OPTIONS
 group_gutter=.02;
@@ -83,6 +83,12 @@ if sort_subjects
 end
 
 model_names = rename_models({models.name});
+
+if strcmp(MCM, 'waic2') || strcmp(MCM, 'waic1')
+    MCM_name = 'WAIC';
+else
+    MCM_name = upper(MCM);
+end
 
 switch fig_type
     case 'grid'
@@ -186,11 +192,31 @@ switch fig_type
             set(gca, 'xcolor', 'w')
         end
         
-        if strcmp(MCM, 'waic2') || strcmp(MCM, 'waic1')
-            MCM_name = 'WAIC';
-        else
-            MCM_name = upper(MCM);
-        end
         
         ylabel(sprintf('%s - %s_{%s}', MCM_name, MCM_name, model_names{ref_model}))
+        
+    case 'sumbar'
+%         switch normalize_by
+%             case 'best_model'
+%                 [~, ref_model] = min(mean(score, 2));
+%                 MCM_delta = bsxfun(@minus, score(ref_model,:), score);
+%             case 'specific_model'
+%                 MCM_delta = bsxfun(@minus, score(ref_model,:), score);
+%             case 'specific_value'
+%                 MCM_delta = bsxfun(@minus, ref_value, score);
+%         end
+%         MCM_delta = -MCM_delta
+
+%         [bars, sort_idx] = sort(sum(MCM_delta,2));
+        
+        LL = score'/-2;
+        [alpha, exp_r, xp, pxp, bor] = spm_BMS(LL);
+        % bars is expectation of posterior p(r|y)
+        [bars, sort_idx] = sort(exp_r);
+        
+        barh(bars, 'k', 'edgecolor', 'none')
+        set(gca, 'box', 'off', 'tickdir', 'out', 'ytick', 1:nModels, 'yticklabel', model_names(sort_idx), 'xtick', 0:.25:1)
+%         xlabel(['\Delta ' MCM_name])
+        xlabel('model probability for random subject')
+        xlim([0 1])
 end
