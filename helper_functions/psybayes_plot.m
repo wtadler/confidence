@@ -1,4 +1,4 @@
-% load('/Local/Users/adler/Google Drive/Will - Confidence/Analysis/attention3/notrain_20160309_155331.mat')
+% load('/Desktop/Rachel/Confidence/confidence/data/GB_notrain_final.mat')
 st(1) = psybayes_struct.valid;
 st(2) = psybayes_struct.neutral;
 st(3) = psybayes_struct.invalid;
@@ -18,7 +18,7 @@ catch
     colors = [0 .7 0; .6 .6 .6; .7 0 0];
 end
 
-figure(1)
+figure(2)
 clf
 
 yl = [.5 .8];

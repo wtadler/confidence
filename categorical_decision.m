@@ -1,4 +1,4 @@
-function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback, staircase, psybayes_struct)
+function categorical_decision(category_type, subject_name, new_subject, room_letter, nStimuli, eye_tracking, stim_type, exp_number, nExperiments, choice_only, two_response, test_feedback, staircase, psybayes_struct, opt_c, nTestBlocks)
 
 % Ryan George
 % Theoretical Neuroscience Lab, Baylor College of Medicine
@@ -7,6 +7,10 @@ function categorical_decision(category_type, subject_name, new_subject, room_let
 
 if ~nStimuli % because this used to be attention_manipulation which could be true or false
     nStimuli = 1;
+end
+
+if ~exist('opt_c', 'var') || isempty(opt_c)
+    opt_c = .35; % default contrast for attention experiment
 end
 
 if (~exist('exp_number','var') || isempty(exp_number)) || (~exist('nExperiments','var') || isempty(exp_number))
@@ -34,6 +38,10 @@ if ~exist('psybayes_struct', 'var')
     psybayes_struct = [];
 end
 
+if ~exist('nTestBlocks', 'var')
+    nTestBlocks = 3;
+end
+
 try
     rng('shuffle','twister')
 catch
@@ -48,7 +56,7 @@ Screen('Preference', 'VisualDebuglevel', 3);
 eye_data_dir = 'eyedata';
 eye_file = sprintf('%s%s', subject_name([1:2 end-1:end]), datestr(now, 'mmdd'));
 
-P.eye_rad = 1.5; % allowable radius of eye motion, in degrees visual angle. changed from 1.5 for Roshni
+P.eye_rad = 2; % allowable radius of eye motion, in degrees visual angle. changed from 1.5 for Roshni
 P.eye_slack = 0.05; % (s) cushion between the fixation check and the next stim presentation
 P.eye_tracking = eye_tracking; % are we eye tracking?
 
@@ -102,7 +110,7 @@ switch room_letter
         [scr.key1, scr.key2, scr.key3, scr.key4, scr.key5, scr.key6,...
             scr.key7, scr.key8, scr.key9, scr.key10] ...
             = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
-        scr.keyenter=40; % return
+        scr.keyenter=53; % tilde
         scr.keyinsert=42;% normal delete
     case 'GBLaptop'
         screen_width = 38.5;  % 40 with Roshni
@@ -127,7 +135,7 @@ if strcmp(room_letter,'home') || strcmp(room_letter,'mbp')
         = deal(30, 31, 32, 33, 34, 37, 38, 39, 45, 46); % This is for keys 1,2,3,4,5,8,9,0,-,=
     scr.keyenter=88;
     scr.keyinsert=76;% delete
-%     scr.keyenter=42;%tilde
+%   scr.keyenter=42;%tilde
     %scr.keyx=27; %x
     %scr.keyz=29; %z
 end
@@ -141,9 +149,9 @@ addpath(genpath(dir))
 close all;
 %%
 if new_subject
-    nDemoTrials = 72;
+    nDemoTrials = 50;
 elseif ~new_subject
-    nDemoTrials = 36; % changed from 36 for Roshni
+    nDemoTrials = 25; % changed from 36 for Roshni
 end
 
 elapsed_mins = 0;
@@ -200,9 +208,7 @@ if strcmp(P.stim_type, 'ellipse')
     Test.category_params.test_sigmas = linspace(.15,.8,6); % are these reasonable eccentricities? prev .4:.9.
 else
     if nStimuli > 1
-        % AttentionTraining.category_params.test_sigmas = 1;
-        % AttentionTrainingConf.category_params.test_sigmas = Test.category_params.test_sigmas;        
-        Training.category_params.test_sigmas = 0.08; % ran as 0.08 in pilot 1
+        Training.category_params.test_sigmas = opt_c;
         Test.category_params.test_sigmas = Training.category_params.test_sigmas;
 %         Test.category_params.test_sigmas = exp(-3.5);
     else
@@ -249,7 +255,7 @@ if nStimuli > 1
 
     Training.t.betwtrials = 800;
 
-    Test.n.blocks = 3; % 3
+    Test.n.blocks = nTestBlocks; % 3
     Test.n.sections = 4; % changed from 4 for Roshni
     Test.n.trials = 36; % changed from 36 for Roshni
     Test.t.betwtrials = 800;
@@ -273,7 +279,7 @@ else
 
     Training.t.betwtrials = 1000; %1000
 
-    Test.n.blocks = 3; % main experiment: 3, feedback experiment: 3
+    Test.n.blocks = nTestBlocks; % main experiment: 3, feedback experiment: 3
     Test.n.sections = 3; % main experiment: 3, feedback experiment: 3
     Test.n.trials = 8*numel(Test.category_params.test_sigmas); % main experiment: 8*, feedback experiment: 6*
     
@@ -286,7 +292,7 @@ Training.initial.n.blocks = 1; %Do Not Change
 Training.initial.n.sections = 2; % main experiment: 2, feedback experiment: 1
 Training.initial.n.trials = 36;% main experiment: 36, feedback experiment: 48
 
-Training.n.blocks = Test.n.blocks; % was 0 before, but 0 is problematic.
+Training.n.blocks = nTestBlocks; % was 0 before, but 0 is problematic.
 Training.n.sections = 2;
 Training.n.trials = 36;
 
@@ -378,7 +384,6 @@ else
     noconftraining = false;
 end
 
-
 try
     % Choose screen with maximum id - the secondary display:
     %primary display
@@ -396,6 +401,40 @@ try
     [scr.win, scr.rect] = Screen('OpenWindow', screenid, color.bg); %scr.win is the window id (10?), and scr.rect is the coordinates in the form [ULx ULy LRx LRy]
     % OPEN IN WINDOW
     %[scr.win, scr.rect] = Screen('OpenWindow', screenid, color.bg, [100 100 1200 1000]);
+    
+        %% Start eyetracker
+    if eye_tracking
+        % Initialize eye tracker
+        [el exit_flag] = rd_eyeLink('eyestart', scr.win, eye_file);
+        if exit_flag
+            return
+        end
+        
+        % Write subject ID into the edf file
+        Eyelink('message', 'BEGIN DESCRIPTIONS');
+        Eyelink('message', 'Subject code: %s', subject_name);
+        Eyelink('message', 'END DESCRIPTIONS');
+        
+        % No sounds for drift correction
+        el.drift_correction_target_beep = [0 0 0];
+        el.drift_correction_failed_beep = [0 0 0];
+        el.drift_correction_success_beep = [0 0 0];
+        
+        % Accept input from all keyboards
+        el.devicenumber = -1; %see KbCheck for details of this value
+        
+        % Update with custom settings
+        EyelinkUpdateDefaults(el);
+        
+        % Calibrate eye tracker
+        [cal exit_flag] = rd_eyeLink('calibrate', scr.win, el);
+        if exit_flag
+            return
+        end
+        
+        scr.el = el; % store el in scr
+    end
+
     
     %LoadIdentityClut(scr.win) % default gamma table
     switch room_letter
@@ -417,11 +456,11 @@ try
             % rgbtable = calib.calib.table*[1 1 1];
 %             calib = load('calibration/carrasco_l1_calibration_42215_grayscale.mat');
 
-%             calib = load('calibration/carrasco_l1_calibration_42015.mat'); % used in experiment with Roshni
-%             rgbtable = calib.gammaTable1*[1 1 1];
+            calib = load('calibration/carrasco_l1_calibration_42015.mat'); % used in experiment with Roshni
+            rgbtable = calib.gammaTable1*[1 1 1];
             
-            load('calibration/Carrasco_L1_SonyGDM5402_sRGB_calibration_02292016.mat')
-            rgbtable = CLUT;
+%             load('calibration/Carrasco_L1_SonyGDM5402_sRGB_calibration_02292016.mat')
+%             rgbtable = CLUT;
             
             % RGB
             % calib = load('calibration/carrasco_l1_calibration_42215_rgb.mat');
@@ -533,38 +572,6 @@ try
     ConfidenceTraining.R = setup_exp_order(ConfidenceTraining.n, ConfidenceTraining.category_params, nStimuli, cue_validity);
     Test.R = setup_exp_order(Test.n, Test.category_params, nStimuli, cue_validity);
     
-    %% Start eyetracker
-    if eye_tracking
-        % Initialize eye tracker
-        [el exit_flag] = rd_eyeLink('eyestart', scr.win, eye_file);
-        if exit_flag
-            return
-        end
-        
-        % Write subject ID into the edf file
-        Eyelink('message', 'BEGIN DESCRIPTIONS');
-        Eyelink('message', 'Subject code: %s', subject_name);
-        Eyelink('message', 'END DESCRIPTIONS');
-        
-        % No sounds for drift correction
-        el.drift_correction_target_beep = [0 0 0];
-        el.drift_correction_failed_beep = [0 0 0];
-        el.drift_correction_success_beep = [0 0 0];
-        
-        % Accept input from all keyboards
-        el.devicenumber = -1; %see KbCheck for details of this value
-        
-        % Update with custom settings
-        EyelinkUpdateDefaults(el);
-        
-        % Calibrate eye tracker
-        [cal exit_flag] = rd_eyeLink('calibrate', scr.win, el);
-        if exit_flag
-            return
-        end
-        
-        scr.el = el; % store el in scr
-    end
     
     start_t = tic;
     
@@ -665,7 +672,7 @@ try
                             scr, color, P, 'Attention Training', k, new_subject, task_str, final_task, subject_name);
                     elseif ~noconftraining
                         [ConfidenceTraining.responses, flag] = run_exp(ConfidenceTraining.n, ConfidenceTraining.R, Test.t,...
-                            scr, color, P, 'Confidence and Attention Training', k, new_subject, task_str, final_task, subject_name);
+                            scr, color, P, 'Confidence and Attention Training', k, new_subject, task_str, final_task, subject_name, choice_only);
                     end
                 end
                 
@@ -689,7 +696,7 @@ try
             break
         end
         
-        if exist('psybayes_struct', 'var')
+        if exist('psybayes_struct', 'var') && ~isempty(psybayes_struct)
             fields = fieldnames(psybayes_struct);
             for f = 1:length(fields)
                 psybayes_struct.(fields{f}).f = [];

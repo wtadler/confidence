@@ -47,7 +47,7 @@ switch type
     case 'Confidence Training'
         str=['Let''s get some quick practice with confidence ratings.\n\n'...
             'Coming up: ' task_str type];
-    case 'Confidence and Atention Training'
+    case 'Confidence and Attention Training'
         str=['Let''s get some practice with confidence ratings and attentional cues.\n\n'...
             'Coming up: ' task_str type];
     case 'Attention Training'
@@ -257,8 +257,8 @@ try
             while Chat == 0
                 [tCatResp, keyCode] = KbWait(-1, 2); % 2 waits for a release then press
                 
-                if keyCode(scr.keyinsert)%% && keyCode(scr.keyenter) && sum(keyCode)==2
-                    error('You cancelled the script by pressing insert.')%% the insert and enter keys simultaneously.')
+                if keyCode(scr.keyinsert) && keyCode(scr.keyenter) && sum(keyCode)==2
+                    error('You cancelled the script by pressing insert.')%% the delete and tilde keys simultaneously.')
                 end
                 
                 if choice_only
@@ -367,7 +367,11 @@ try
                     Screen('Flip',scr.win);
                     WaitSecs(t.feedback/1000);
                 elseif ~choice_only
-                    [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 120); % -50
+                    [~,ny]=center_print(sprintf('You said: Category %i with %s confidence.',Chat,confstr),scr.cy - 50); % -50
+                    if strcmp(type, 'Confidence and Attention Training')
+                        flip_key_flip(scr, 'continue', ny, color, false, 'initial_wait', 0);
+                    end
+                    
                     if test_feedback && strcmp(type, 'Category Training')
                         [~,ny]=center_print(sprintf('\nYour category choice is %s', lower(status)),ny+40,stat_col);
                         flip_key_flip(scr,'continue',ny,color, false, 'initial_wait', 0);
@@ -460,7 +464,7 @@ try
             save top_ten top_ten;
         end
         
-        [nx,ny] = center_print(sprintf('%sYour score for Testing Block %i of %i: %.1f%%\n\n%sTop Ten:\n\n',hitxt,blok,n.blocks,blockscore,task_str),-80);
+        [nx,ny] = center_print(sprintf('%sYour score for Testing Block %i of %i: %.1f%%\n\n%sTop Ten:\n\n',hitxt,blok,n.blocks,blockscore,task_str),-40);
         
         for j = 1:10
             [nx,ny] = center_print(sprintf('%i) %.1f%%    %s\n',j,top_ten.(R.category_type).scores(j),top_ten.(R.category_type).initial{j}),ny,[],scr.cx*.8 - (j==10)*20);
