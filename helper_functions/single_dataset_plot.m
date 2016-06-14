@@ -19,6 +19,8 @@ nRespSquares = 8;
 show_legend = false;
 legend_loc = 'northwest';
 bootstrap = false;
+xy_label_fontsize = 10;
+tick_label_fontsize = 10;
 assignopts(who, varargin);
 
 if ~isempty(colors)
@@ -199,7 +201,13 @@ set(gca, 'box', 'off',...
     'tickdir', 'out', 'ylim', yl.(y_name),...
     'ytick', yt.(y_name),...
     'xlim', [.5 nCols+.5], 'ticklength', [.018 .018],...
-    'yticklabel', '', 'color', 'none');
+    'yticklabel', '', 'color', 'none', 'fontsize', tick_label_fontsize);
+
+l = get(gca, 'xlabel');
+set(l, 'fontsize', xy_label_fontsize);
+
+l = get(gca, 'ylabel');
+set(l, 'fontsize', xy_label_fontsize);
 
 if label_y
     if ~strcmp(y_name, 'resp')

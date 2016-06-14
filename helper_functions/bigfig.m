@@ -8,11 +8,15 @@ symmetrify = false;
 tasks = {'A','B'};
 trial_types = {'all', 'correct', 'incorrect', 'C1', 'C2'};%, 'Chat1', 'Chat2'}
 % linewidth = 2;
-gutter = [.045 .055];
+gutter = [.05 .06];
 margins = [.15 .01 .14 .06]; % L R B T
 % show_legend = false;
 s_labels = [-8 -4 -2 -1 0 1 2 4 8];
-letter_size = 14;
+axes_label_fontsize = 16; % axes labels
+xy_label_fontsize = 14; % xlabel and ylabel
+tick_label_fontsize = 11; % xticklabel and yticklabel
+task_label_fontsize = 19;
+task_text_x = 8.6; % higher is further left
 nPlotSamples = 10;
 nFakeGroupDatasets = 100;
 model = []; % set to 0 for no model fit. otherwise indicate which model you want to do.
@@ -57,7 +61,7 @@ map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
 colors = map.tan_contrast_colors;
 
 figure(1)
-set(gcf,'position', [100 100 250*nCols 200*nRows])
+set(gcf,'position', [100 100 240*nCols 190*nRows])
 clf
 letter = 1;
 %%
@@ -71,63 +75,63 @@ end
 % proportion report cat. 1 vs category and reliability
 if A
 tight_subplot(nRows, nCols, 1,1, gutter, margins);
-crazyplot(real_data, model, 'A', 'all', 'c_C', 'Chat', 'label_x', false, 'label_y', true, 'show_legend', true, 'legend_loc', 'northwest');
-ylabel('prop. report "cat. 1"');
-letter = axeslabel(letter);
+crazyplot(real_data, model, 'A', 'all', 'c_C', 'Chat', true, 'label_x', false, 'label_y', true, 'show_legend', true, 'legend_loc', 'northwest');
+ylabel('prop. report "cat. 1"', 'fontsize', xy_label_fontsize);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 % label Task A
 yl=get(gca,'ylim');
 half=yl(1)+diff(yl)/2;
-text(8.3, half, 'Task A', 'horizontalalignment', 'right', 'fontweight','bold', 'fontsize', letter_size+2);
+text(task_text_x, half, 'Task A', 'horizontalalignment', 'right', 'fontweight','bold', 'fontsize', task_label_fontsize);
 end
 
 if B
 tight_subplot(nRows, nCols, 2,1, gutter, margins);
-crazyplot(real_data, model, 'B', 'all', 'c_C', 'Chat', 'label_x', true, 'label_y', true);
-ylabel('prop. report "cat. 1"');
-letter = axeslabel(letter);
+crazyplot(real_data, model, 'B', 'all', 'c_C', 'Chat', true, 'label_x', true, 'label_y', true);
+ylabel('prop. report "cat. 1"', 'fontsize', xy_label_fontsize);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 % label Task B
 yl=get(gca,'ylim');
 half=yl(1)+diff(yl)/2;
-text(8.3, half, 'Task B', 'horizontalalignment', 'right', 'fontweight','bold', 'fontsize', letter_size+2);
+text(task_text_x, half, 'Task B', 'horizontalalignment', 'right', 'fontweight','bold', 'fontsize', task_label_fontsize);
 end
 
 
 % mean button press vs category and reliability
 if A
 tight_subplot(nRows, nCols, 1,2, gutter, margins);
-crazyplot(real_data, model, 'A', 'all', 'c_C', 'resp', 'label_x', false, 'label_y', true, 'nRespSquares', 4);
-yl=ylabel('mean button press');
+crazyplot(real_data, model, 'A', 'all', 'c_C', 'resp', true, 'label_x', false, 'label_y', true, 'nRespSquares', 4);
+yl=ylabel('mean button press', 'fontsize', xy_label_fontsize);
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos+[.4 0 0]);
-letter = axeslabel(letter);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 if B
 tight_subplot(nRows, nCols, 2,2, gutter, margins);
-crazyplot(real_data, model, 'B', 'all', 'c_C', 'resp', 'label_x', true, 'label_y', true, 'nRespSquares', 4);
-yl=ylabel('mean button press')
+crazyplot(real_data, model, 'B', 'all', 'c_C', 'resp', true, 'label_x', true, 'label_y', true, 'nRespSquares', 4);
+yl=ylabel('mean button press', 'fontsize', xy_label_fontsize)
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos+[.4 0 0]);
-letter = axeslabel(letter);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 if A
 % histogram of confidence ratings by category
 tight_subplot(nRows, nCols, 1,3, gutter, margins);
-crazyplot(real_data, model, 'A', 'C1', 'g', 'proportion', 'label_x', false, 'label_y', true, 'color', map.cat1);
-crazyplot(real_data, model, 'A', 'C2', 'g', 'proportion', 'label_x', false, 'label_y', true, 'color', map.cat2);
 ylim([0 .6])
-letter = axeslabel(letter);
-ylabel('prop. of total')
+crazyplot(real_data, model, 'A', 'C1', 'g', 'proportion', true, 'label_x', false, 'label_y', true, 'color', map.cat1);
+crazyplot(real_data, model, 'A', 'C2', 'g', 'proportion', false, 'label_x', false, 'label_y', true, 'color', map.cat2);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
+ylabel('prop. of total', 'fontsize', xy_label_fontsize)
 end
 
 if B
 tight_subplot(nRows, nCols, 2,3, gutter, margins);
-crazyplot(real_data, model, 'B', 'C1', 'g', 'proportion', 'label_x', true, 'label_y', true, 'color', map.cat1);
-crazyplot(real_data, model, 'B', 'C2', 'g', 'proportion', 'label_x', true, 'label_y', true, 'color', map.cat2);
 ylim([0 .6])
-letter = axeslabel(letter);
-ylabel('prop. of total')
+crazyplot(real_data, model, 'B', 'C1', 'g', 'proportion', true, 'label_x', true, 'label_y', true, 'color', map.cat1);
+crazyplot(real_data, model, 'B', 'C2', 'g', 'proportion', false, 'label_x', true, 'label_y', true, 'color', map.cat2);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
+ylabel('prop. of total', 'fontsize', xy_label_fontsize)
 end
 
 if nTasks > 1
@@ -136,13 +140,13 @@ tight_subplot(nRows, nCols, 1,4, gutter, margins);
 apos = get(gca, 'position');
 delta_y = (apos(4) + gutter(2))/2;
 set(gca, 'position', apos - [0 delta_y 0 0]);
-a=crazyplot(real_data, model, 'A', 'all', 'g', 'tf', 'label_x', true, 'label_y', true, 'color', map.taskA);
-b=crazyplot(real_data, model, 'B', 'all', 'g', 'tf', 'label_x', true, 'label_y', true, 'color', map.taskB);
-ylabel('prop. correct');
 ylim([.45 .93])
+a=crazyplot(real_data, model, 'A', 'all', 'g', 'tf', true, 'label_x', true, 'label_y', true, 'color', map.taskA);
+b=crazyplot(real_data, model, 'B', 'all', 'g', 'tf', false, 'label_x', true, 'label_y', true, 'color', map.taskB);
+ylabel('prop. correct', 'fontsize', xy_label_fontsize);
 l=legend([a{1}(1),b{1}(1)],'Task A','Task B');
 set(l,'box','off','location','northwest');
-letter = axeslabel(letter);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 
@@ -150,90 +154,99 @@ end
 if A
 % mean confidence vs binned orientation conditioned on correctness
 tight_subplot(nRows, nCols, 3,1, gutter, margins);
-correct=crazyplot(real_data, model, 'A', 'correct', 'c', 'g', 'label_x', false, 'label_y', true, 'color', map.correct);
-incorrect=crazyplot(real_data, model, 'A', 'incorrect', 'c', 'g', 'label_x', false, 'label_y', true, 'color', map.incorrect);
+correct=crazyplot(real_data, model, 'A', 'correct', 'c', 'g', true, 'label_x', false, 'label_y', true, 'color', map.correct);
+incorrect=crazyplot(real_data, model, 'A', 'incorrect', 'c', 'g',  false, 'label_x', false, 'label_y', true, 'color', map.incorrect);
 l=legend([correct{1}(1),incorrect{1}(1)],'correct','incorrect');
 set(l,'box','off','location','northwest')
-letter = axeslabel(letter);
-ylabel('mean confidence')
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
+ylabel('mean confidence', 'fontsize', xy_label_fontsize)
 % label Task A
 yl=get(gca,'ylim');
 half=yl(1)+diff(yl)/2;
-text(8.3, half, 'Task A', 'horizontalalignment', 'right', 'fontweight','bold', 'fontsize', letter_size+2);
+text(task_text_x, half, 'Task A', 'horizontalalignment', 'right', 'fontweight','bold', 'fontsize', task_label_fontsize);
 
 end
 
 if B
 tight_subplot(nRows, nCols, 4,1, gutter, margins);
-crazyplot(real_data, model, 'B', 'correct', 'c', 'g', 'label_x', false, 'label_y', true, 'color', map.correct);
-crazyplot(real_data, model, 'B', 'incorrect', 'c', 'g', 'label_x', true, 'label_y', true, 'color', map.incorrect);
-letter = axeslabel(letter);
-ylabel('mean confidence')
+crazyplot(real_data, model, 'B', 'correct', 'c', 'g', true, 'label_x', false, 'label_y', true, 'color', map.correct);
+crazyplot(real_data, model, 'B', 'incorrect', 'c', 'g', false, 'label_x', true, 'label_y', true, 'color', map.incorrect);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
+ylabel('mean confidence', 'fontsize', xy_label_fontsize)
 % label Task B
 yl=get(gca,'ylim');
 half=yl(1)+diff(yl)/2;
-text(8.3, half, 'Task B', 'horizontalalignment', 'right', 'fontweight','bold', 'fontsize', letter_size+2);
+text(task_text_x, half, 'Task B', 'horizontalalignment', 'right', 'fontweight','bold', 'fontsize', task_label_fontsize);
 end
 
 if A
 % mean confidence vs binned orientation conditioned on correctness
 tight_subplot(nRows, nCols, 3,2, gutter, margins);
-correct=crazyplot(real_data, model, 'A', 'correct', 's', 'g', 'label_x', false, 'label_y', true, 'color', map.correct);
-incorrect=crazyplot(real_data, model, 'A', 'incorrect', 's', 'g', 'label_x', false, 'label_y', true, 'color', map.incorrect);
-letter = axeslabel(letter);
+correct=crazyplot(real_data, model, 'A', 'correct', 's', 'g', true, 'label_x', false, 'label_y', true, 'color', map.correct);
+incorrect=crazyplot(real_data, model, 'A', 'incorrect', 's', 'g', false, 'label_x', false, 'label_y', true, 'color', map.incorrect);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 if B
 tight_subplot(nRows, nCols, 4,2, gutter, margins);
-crazyplot(real_data, model, 'B', 'correct', 's', 'g', 'label_x', false, 'label_y', true, 'color', map.correct);
-crazyplot(real_data, model, 'B', 'incorrect', 's', 'g', 'label_x', true, 'label_y', true, 'color', map.incorrect);
-letter = axeslabel(letter);
+crazyplot(real_data, model, 'B', 'correct', 's', 'g', true, 'label_x', false, 'label_y', true, 'color', map.correct);
+crazyplot(real_data, model, 'B', 'incorrect', 's', 'g', false, 'label_x', true, 'label_y', true, 'color', map.incorrect);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 
 if A
 % choice vs orientation for all reliabilities
 tight_subplot(nRows, nCols, 3,3, gutter, margins);
-h=crazyplot(real_data, model, 'A', 'all', 'c_s', 'Chat', 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities, 'show_legend', true, 'legend_loc', 'southwest');
-letter = axeslabel(letter);
-ylabel('prop. report "cat. 1"')
+h=crazyplot(real_data, model, 'A', 'all', 'c_s', 'Chat', true, 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities, 'show_legend', true, 'legend_loc', 'southwest');
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
+ylabel('prop. report "cat. 1"', 'fontsize', xy_label_fontsize)
 end
 
 if B
 tight_subplot(nRows, nCols, 4,3, gutter, margins);
-h=crazyplot(real_data, model, 'B', 'all', 'c_s', 'Chat', 'label_x', true, 'label_y', true,  'plot_reliabilities', plot_reliabilities);
-letter = axeslabel(letter);
-ylabel('prop. report "cat. 1"')
+h=crazyplot(real_data, model, 'B', 'all', 'c_s', 'Chat', true, 'label_x', true, 'label_y', true,  'plot_reliabilities', plot_reliabilities);
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
+ylabel('prop. report "cat. 1"', 'fontsize', xy_label_fontsize)
 end
 
 
 if A
 % resp vs orientation for all reliabilities
 tight_subplot(nRows, nCols, 3,4, gutter, margins);
-crazyplot(real_data, model, 'A', 'all', 'c_s', 'resp', 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities)
-letter = axeslabel(letter);
-yl=ylabel('mean button press');
+crazyplot(real_data, model, 'A', 'all', 'c_s', 'resp', true, 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities)
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
+yl=ylabel('mean button press', 'fontsize', xy_label_fontsize);
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos-[.8 0 0]);
 end
 
 if B
 tight_subplot(nRows, nCols, 4,4, gutter, margins);
-crazyplot(real_data, model, 'B', 'all', 'c_s', 'resp', 'label_x', true, 'label_y', true, 'plot_reliabilities', plot_reliabilities)
-letter = axeslabel(letter);
-yl=ylabel('mean button press');
+crazyplot(real_data, model, 'B', 'all', 'c_s', 'resp', true, 'label_x', true, 'label_y', true, 'plot_reliabilities', plot_reliabilities)
+% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
+yl=ylabel('mean button press', 'fontsize', xy_label_fontsize);
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos-[.8 0 0]);
 end
 
 %%
 
-    function h=crazyplot(real_data, fake_data, task, trial_type, x, y, varargin)
+    function h=crazyplot(real_data, fake_data, task, trial_type, x, y, label_axes, varargin)
+        if ~all(get(gca, 'ylim')==[0 1])
+            % assume custom limits were set
+            custom_ylims = true;
+            ylimit = get(gca, 'ylim');
+        else
+            custom_ylims = false;
+        end
+        
         if ~isempty(fake_data)
             hold on
             h{2}=single_dataset_plot(fake_data.(task).sumstats.(trial_type).(x), y, x, ...
                 'fake_data', true, 'group_plot', true, 's_labels', s_labels,...
-                'task', task,  varargin{:});
+                'task', task, 'tick_label_fontsize', tick_label_fontsize, 'xy_label_fontsize', xy_label_fontsize,...
+                varargin{:});
             line_through_errorbars = false;
         else
             line_through_errorbars = true;
@@ -242,7 +255,14 @@ end
         h{1}=single_dataset_plot(real_data.(task).sumstats.(trial_type).(x), y, x, ...
             'fake_data', false, 'group_plot', true, 's_labels', s_labels,...
             'task', task, 'plot_connecting_line', line_through_errorbars,...
+            'tick_label_fontsize', tick_label_fontsize, 'xy_label_fontsize', xy_label_fontsize,...
             varargin{:});
+        if custom_ylims
+            ylim(ylimit)
+        end
+        if label_axes
+            letter = axeslabel(letter, 'letter_size', axes_label_fontsize', 'prop_left', .11, 'prop_above', .15);
+        end
     end
 
 

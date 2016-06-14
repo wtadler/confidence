@@ -23,7 +23,9 @@ barcolor = [0 0 0];
 mark_best_and_worst = true;
 color_switch_threshold = .5; % point in the MCM range where the text color switches from black to white
 
-fontsize = 10;
+xy_label_fontsize = 10;
+tick_label_fontsize = 10;
+
 
 mark_grate_ellipse = false;
 
@@ -108,7 +110,7 @@ if strcmp(fig_type, 'grid')
             else
                 score_string = num2str(-score(m,d), '%.0f');
             end
-            t=text(d+Lmargin,m+Tmargin, score_string,'fontsize',fontsize,'horizontalalignment','left');
+            t=text(d+Lmargin,m+Tmargin, score_string,'fontsize',xy_label_fontsize,'horizontalalignment','left');
             if score(m,d)>color_threshold, set(t,'color','white'), end
         end
     end
@@ -184,19 +186,21 @@ else
     if strcmp(fig_type, 'bar')
         [group_mean, group_sem] = mybar(MCM_delta, 'barnames', subject_names, 'show_mean', true, ...
             'group_gutter', group_gutter, 'bar_gutter', bar_gutter, ...
-            'mark_grate_ellipse', mark_grate_ellipse, 'bootstrap', true, 'show_mean', true, 'show_errorbox', true);
+            'mark_grate_ellipse', mark_grate_ellipse, 'bootstrap', true, ...
+            'show_mean', true, 'show_errorbox', true,...
+            'fontsize', tick_label_fontsize);
         
         
         set(gca,'ticklength',[0.018 0.018],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
             'xaxislocation','top','fontname', fontname,...%'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
-            'fontsize', fontsize, 'xticklabelrotation', 30, 'ygrid', 'on')
+            'fontsize', tick_label_fontsize, 'xticklabelrotation', 30, 'ygrid', 'on')
         
         if ~show_model_names
             set(gca, 'xticklabel', '')
             set(gca, 'xcolor', 'w')
         end
         
-        ylabel(sprintf('%s - %s_{%s}', MCM_name, MCM_name, model_names{ref_model}))
+        ylabel(sprintf('%s - %s_{%s}', MCM_name, MCM_name, model_names{ref_model}), 'fontsize', xy_label_fontsize)
     else
         if any(strcmp(fig_type, {'mean', 'sum'}))
             quantiles = quantile(bootstrp(1e4, eval(sprintf('@%s', fig_type)), MCM_delta'), [.5 - CI/2, .5, .5 + CI/2]);
@@ -227,7 +231,7 @@ else
         end
         
         view(90,-90);
-        set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), 'xtick', 1:nModels)        
+        set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), 'xtick', 1:nModels, 'xlim', [0 nModels+1], 'yticklabel', get(gca, 'ytick'))        
     end
     
 end

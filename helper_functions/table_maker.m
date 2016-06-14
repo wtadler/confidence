@@ -53,7 +53,7 @@ for m = 1:nModels
         break
     else
         delta = bsxfun(@minus, score(m,:), score);
-        bootstat = bootstrp(bootsamples, @mean, delta'); % 1e4 is sufficient
+        bootstat = bootstrp(bootsamples, @sum, delta'); % 1e4 is sufficient MEAN or SUM
         %         group_mean = mean(bootstat)';
         group_quantiles = fliplr(quantile(bootstat, [.5 - CI/2, .5, .5 + CI/2]));
         group_quantiles = permute(group_quantiles(:, 1:nModels-m), [2 3 1]);

@@ -22,7 +22,7 @@ trial_types = {'all'}; % 'all', 'correct', 'incorrect', etc...
 linewidth = 2;
 meanlinewidth = 4;
 gutter = [.0175 .025];
-margins = 2*[0.06 .01 .06 .04]; % L R B T
+margins = [0.08 .02 .12 .08]; % L R B T
 models = [];
 nPlotSamples = 10;
 nFakeGroupDatasets = 100;
@@ -34,7 +34,15 @@ MCM = ''; % 'dic', 'waic2', whatever. add extra row with MCM scores.
 MCM_size = .38; % percentage of plot height taken up by model comparison.
 ref_model = [];
 matchstring = '';
+xy_label_fontsize = 14; % xlabel and ylabel
+tick_label_fontsize = 11; % xticklabel and yticklabel
+task_label_fontsize = 19;
+task_text_x = 8.3;
 assignopts(who, varargin);
+
+if length(tasks) == 2
+    margins = margins+[.05 0 0 0];
+end
 
 if ~isempty(MCM) && strcmp(axis.col, 'model')
     show_MCM = true;
@@ -201,7 +209,9 @@ for fig = 1:n.fig
                 'task', tasks{task}, 'errorbarwidth', errorbarwidth,...
                 'plot_connecting_line', plot_connecting_line,...
                 'nRespSquares', nRespSquares, 'show_legend', (~fake_data && sdp_legend),...
-                'attention_task', attention_manipulation);
+                'attention_task', attention_manipulation,...
+                'xy_label_fontsize', xy_label_fontsize,...
+                'tick_label_fontsize', tick_label_fontsize);
             
             % clean this section up?
             fake_data = false;
@@ -251,10 +261,13 @@ for fig = 1:n.fig
             % y axis labels for left column
             if col == 1 || strcmp(axis.col, 'depvar')
                 if strcmp(axis.row, 'model')
-                    yl=ylabel({ylabels{depvar}, ['Task ' tasks{task}], rename_models(models(model).name)});
-                    set(yl, 'fontsize', 9)
+                    yl=ylabel({ylabels{depvar}, ['Task ' tasks{task}], rename_models(models(model).name)}, 'fontsize', xy_label_fontsize);
+                    set(yl, 'fontsize', xy_label_fontsize)
                 else
-                    yl=ylabel({ylabels{depvar}, ['Task ' tasks{task}]});
+                    yl=ylabel(ylabels{depvar}, 'fontsize', xy_label_fontsize);
+                    ylimit = get(gca, 'ylim');
+                    half = ylimit(1)+diff(ylimit)/2;
+                    text(task_text_x, half, ['Task ' tasks{task}], 'horizontalalignment', 'right', 'fontweight', 'bold', 'fontsize', task_label_fontsize)
                 end
                 if strcmp(depvars{depvar}, 'resp')
                     ylpos = get(yl, 'position');
@@ -271,11 +284,11 @@ for fig = 1:n.fig
             if row == 1
                 switch axis.col
                     case 'subject'
-                        title(upper(real_data.(tasks{task}).data(subject).name));
+                        title(upper(real_data.(tasks{task}).data(subject).name), 'fontsize', task_label_fontsize);
                     case 'model'
-                        title(rename_models(models(model).name));
+                        title(rename_models(models(model).name), 'fontsize', task_label_fontsize);
                     case 'trial_type'
-                        title(trial_types{trial_type});
+                        title(trial_types{trial_type}, 'fontsize', task_label_fontsize);
                 end
             end
         end
@@ -296,14 +309,14 @@ for fig = 1:n.fig
         
         [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_names', true, 'show_model_names', false,...
             'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model, ...
-            'MCM', MCM);
+            'MCM', MCM, 'xy_label_fontsize', xy_label_fontsize);
         if col == 1
             yl = get(gca, 'ylim');
         else
             ylabel('');
         end
         
-        mybar(MCM_delta(col, :), 'barnames', subject_names, 'bootstrap', true);
+        mybar(MCM_delta(col, :), 'barnames', subject_names, 'bootstrap', true, 'fontsize', tick_label_fontsize);
         ylim(yl);
         
         if col ~= 1
