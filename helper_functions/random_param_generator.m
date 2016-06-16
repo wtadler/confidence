@@ -55,30 +55,30 @@ for i = 1 : sets;
     maxsig = Inf;
     minsig = Inf;
     %x = zeros(nParams,1);
-    while maxsig > sig_lim(1) || minsig > sig_lim(2) || maxsig - minsig < sig_lim(3)% || ~all(A * x <= b)
+%     while maxsig > sig_lim(1) || minsig > sig_lim(2) || maxsig - minsig < sig_lim(3)% || ~all(A * x <= b)
         x = lb + rand(nParams,1) .* (ub - lb);
-        %         if iscell(monotonic_params) % for multiple sets of monotonic params (so far, only lin2 and quad2)
-        %             for m = 1:length(monotonic_params)
-        %                 mp = monotonic_params{m};
-        %                 x(mp) = sort(x(mp));
-        %             end
-        %         else
-        %             x(monotonic_params) = sort(x(monotonic_params));
-        %         end
-
-        if ~model.nFreesigs
-            maxsigP = find_parameter('logsigma_c_low', model);
-            maxsigP = maxsigP(1); % there can be two if model.separate_measurement_and_inference_noise
-            minsigP = find_parameter('logsigma_c_hi',  model);
-            minsigP = minsigP(1); % there can be two if model.separate_measurement_and_inference_noise
-            maxsig = exp(x(maxsigP));
-            minsig = exp(x(minsigP));
-        else
-%             maxsigP = find_parameter('logsigma_c1', model);
-%             minsigP = find_parameter('logsigma_c6',  model);
-            break % skip the sig test
-        end
-    end
+%         %         if iscell(monotonic_params) % for multiple sets of monotonic params (so far, only lin2 and quad2)
+%         %             for m = 1:length(monotonic_params)
+%         %                 mp = monotonic_params{m};
+%         %                 x(mp) = sort(x(mp));
+%         %             end
+%         %         else
+%         %             x(monotonic_params) = sort(x(monotonic_params));
+%         %         end
+% 
+%         if ~model.nFreesigs
+%             maxsigP = find_parameter('logsigma_c_low', model);
+%             maxsigP = maxsigP(1); % there can be two if model.separate_measurement_and_inference_noise
+%             minsigP = find_parameter('logsigma_c_hi',  model);
+%             minsigP = minsigP(1); % there can be two if model.separate_measurement_and_inference_noise
+%             maxsig = exp(x(maxsigP));
+%             minsig = exp(x(minsigP));
+%         else
+% %             maxsigP = find_parameter('logsigma_c1', model);
+% %             minsigP = find_parameter('logsigma_c6',  model);
+%             break % skip the sig test
+%         end
+%     end
     
     p(:,i) = x;
 end

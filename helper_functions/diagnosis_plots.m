@@ -28,16 +28,12 @@ if strcmp(fig_type, 'parameter_recovery')
         nRows = 4;
         nCols = ceil(nParams/nRows);
 
+        % color points from green (fitted NLL lower than true NLL) to red (fitted NLL >> true_nll)
         delta = [m.extracted.min_nll]-[g.data.true_nll];
         worst_delta = max(delta);
-        frac = max(0, delta/worst_delta);
+        frac = max(0, delta/abs(worst_delta));
         color = [frac' 1-frac' zeros(length(m.extracted), 1)];
-        
-        
-%         good_fits = [m.extracted.min_nll]-[g.data.true_nll] < 0;
-%         color = repmat([.7 0 0], length(m.extracted), 1);
-%         color(good_fits, :) = repmat([0 .7 0], sum(good_fits), 1);
-        
+               
         % for each parameter, plot all datasets
         for parameter = 1:length(m.parameter_names)
             row = ceil(parameter/nCols);

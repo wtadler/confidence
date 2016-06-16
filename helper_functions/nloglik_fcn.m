@@ -274,8 +274,10 @@ elseif strcmp(model.family, 'MAP')
             if ~model.diff_mean_same_std
                 mu1 = xVec*cur_sig^-2 * k1sq(i);
                 mu2 = xVec*cur_sig^-2 * k2sq(i);
-                w1 = my_normpdf(xVec,0,sqrt(sig1^2 + cur_sig^2));
-                w2 = my_normpdf(xVec,0,sqrt(sig2^2 + cur_sig^2));
+%                 w1 = my_normpdf(xVec,0,sqrt(sig1^2 + cur_sig^2));
+                w1 = exp(xVec./(sig1^2 + cur_sig^2));
+%                 w2 = my_normpdf(xVec,0,sqrt(sig2^2 + cur_sig^2));
+                w2 = exp(xVec./(sig2^2 + cur_sig^2));
                 shat_lookup_table(i,:) = gmm1max_n2_fast([w1 w2], [mu1 mu2], repmat([k1(i) k2(i)],xSteps,1),niter);
 
             elseif model.diff_mean_same_std
@@ -287,24 +289,31 @@ elseif strcmp(model.family, 'MAP')
             end
         end
     elseif model.ori_dep_noise
-        sVec(1,1,:) = xVec(:);
+        sVec(1,1,:) = xVec(:); % permute into 3rd dimension
         
+        %log p(s)
         if ~model.diff_mean_same_std % task B
             logprior = log(1/(2*sqrt(2*pi)) * (sig1^-1 * exp(-sVec.^2 / (2*sig1^2)) + sig2^-1 * exp(-sVec.^2 / (2*sig2^2))));
         elseif model.diff_mean_same_std % task A
             logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
         
+        % sigma + ODN(s). total noise as a function of contrast and s.
         if model.separate_measurement_and_inference_noise
-            noise = bsxfun(@plus, reshape(p.unique_sigs_inference, nContrasts, 1), ODN(sVec, p.sig_amplitude_inference)); % 2d slice dependent on c and s;
+            noise = bsxfun(@plus, reshape(p.unique_sigs_inference, nContrasts, 1), ODN(sVec, p.sig_amplitude_inference));
         else
-            noise = bsxfun(@plus, reshape(p.unique_sigs, nContrasts, 1), ODN(sVec, p.sig_amplitude)); % 2d slice dependent on c and s;
+            noise = bsxfun(@plus, reshape(p.unique_sigs, nContrasts, 1), ODN(sVec, p.sig_amplitude));
         end
+        
+        % log p(x | s) for different x and s
         loglikelihood = bsxfun_normlogpdf(xVec', sVec, noise);
         
-        logposterior = bsxfun(@plus, loglikelihood, logprior); % 3d
+        % log p(s | x) = log p(x | s) + log p(s)
+        logposterior = bsxfun(@plus, loglikelihood, logprior);
         
+        % shat for different x and contrast is the s that maximizes the posterior
         shat_lookup_table = qargmax1(sVec, logposterior, 3);
+        
     end
 
     x_dec_bound = lininterp1_multiple(shat_lookup_table, xVec, bf(0)*ones(1,nContrasts)); % find the x values corresponding to the MAP criterion, for each contrast level (or, if doing ODN where each trial has a different sigma, for every trial/sigma)
