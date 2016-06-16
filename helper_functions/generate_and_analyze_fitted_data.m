@@ -21,9 +21,16 @@ for m = 1:nModels
             raw.(tasks{task}) = real_data.(tasks{task}).data(dataset).raw;
         end
         
+        if isempty(models(m).extracted(dataset).dic)
+            warning('assuming that MLE was used, rather than MCMC');
+            p = models(m).extracted(dataset).best_params';
+%             nPlotSamples = 1;
+        else
+            p = models(m).extracted(dataset).p;
+        end
         % for each subject and model, generate and analyze nPlotSamples datasets
         models(m).extracted(dataset).fake_datasets = dataset_generator(models(m),...
-            models(m).extracted(dataset).p, nPlotSamples, 'nBins', nBins,...
+            p, nPlotSamples, 'nBins', nBins,...
             'raw', raw, 'tasks', tasks, 'dep_vars', depvars, 'symmetrify', symmetrify,...
             'bin_types', bin_types, 'attention_manipulation', attention_manipulation, 'trial_types', trial_types);
         fprintf('\nGenerating data from model %i/%i for subject %i/%i...', m, nModels, dataset, nSubjects);

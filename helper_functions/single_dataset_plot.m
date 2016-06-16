@@ -13,9 +13,10 @@ label_y = true;
 attention_task = false;
 task = 'A';
 s_labels = -8:2:8;
-resp_square_offset = .05;
+resp_square_offset = .07;
 plot_connecting_line = true;
 nRespSquares = 8;
+respSquareSize = 12;
 show_legend = false;
 legend_loc = 'northwest';
 bootstrap = false;
@@ -223,7 +224,7 @@ if label_y
         end
         
         for r = (5-nRespSquares/2):(4+nRespSquares/2) % 1:8 or 3:6 is typical
-            plot(square_x, r, 'square', 'markerfacecolor', map.button_colors(r,:), 'markersize', 12, 'markeredgecolor','none')
+            plot(square_x, r, 'square', 'markerfacecolor', map.button_colors(r,:), 'markersize', respSquareSize, 'markeredgecolor','none')
         end
     end
 end

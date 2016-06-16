@@ -67,6 +67,7 @@ flip_key_flip(scr,'begin',ny,color, false);
 priors = unique(R.prior{blok});
 multi_prior = length(priors) ~= 1; % true if there are multiple priors
 
+date = datetimefcn;
 %%%Run trials %%%
 try
     for section = 1:n.sections
@@ -405,6 +406,8 @@ try
         end
         
         responses.trial_order{section} = trial_order;
+        
+        save([subject_name '_' date '_block' blok '_section' section '.mat']); % save section-by-section
         
         %if another section in the same block immediately follows
         if section ~= n.sections

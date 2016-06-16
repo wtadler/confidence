@@ -31,12 +31,13 @@ if iscell(param_samples)
     param_samples = vertcat(param_samples{:});
 end
 
-if ~exist('nSamples', 'var') || nSamples > size(param_samples, 1);
+if ~exist('nSamples', 'var') %|| nSamples > size(param_samples, 1);
     nSamples = size(param_samples, 1);
-    sample_ids = 1:nSamples;
-else
-    sample_ids = randsample(size(param_samples,1), nSamples);
+%     sample_ids = 1:nSamples;
+% else
 end
+    sample_ids = randsample(size(param_samples,1), nSamples, true);
+% end
 
 
 fake_datasets = struct;

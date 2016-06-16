@@ -67,28 +67,28 @@ if short
 end
 
 if regexp(name_in, 'd_noise')
-    name_out = [name_out, ', $d$ noise'];
+    name_out = [name_out, ' + {\itd} noise'];
 end
 
 
-if isempty(regexp(name_in, 'joint_task_fit'))
-    if regexp(name_in, 'diff_mean_same_std')
-        name_out = [name_out ', A'];
-    else
-        name_out = [name_out ', B'];
-    end
-end
+% if isempty(regexp(name_in, 'joint_task_fit'))
+%     if regexp(name_in, 'diff_mean_same_std')
+%         name_out = [name_out ', A'];
+%     else
+%         name_out = [name_out ', B'];
+%     end
+% end
 
 if regexp(name_in, 'nFreesigs')
-    name_out = [name_out, ', free sigs'];
+    name_out = [name_out, ' + non-param. \sigma'];
 end
 
-if regexp(name_in, 'choice_only')
-    name_out = [name_out, ', choice only'];
-end
+% if regexp(name_in, 'choice_only')
+%     name_out = [name_out, ', choice only'];
+% end
 
 if regexp(name_in, 'separate_measurement_and_inference_noise')
-    name_out = [name_out, ', sep meas/inf noise'];
+    name_out = [name_out, ' + sep. meas. and inf. noise'];
 end
 if regexp(name_in, 'noise_fixed')
     name_out = [name_out, ', noise fixed'];
@@ -99,7 +99,7 @@ if regexp(name_in, 'measurement_fixed')
 end
 
 if regexp(name_in, 'free_cats')
-    name_out = [name_out, ', free cat. sigs'];
+    name_out = [name_out, ' + free \sigma_{\itC}'];
 end
 
 end

@@ -2,19 +2,42 @@ function [gen, aborted]=optimize_fcn(varargin)
 
 opt_models = struct;
 
-opt_models(1).family = 'fixed';
+% the noise will be fixed for these first three models
+opt_models(1).family = 'opt';
 opt_models(1).multi_lapse = 0;
 opt_models(1).partial_lapse = 0;
 opt_models(1).repeat_lapse = 0;
 opt_models(1).choice_only = 1;
-opt_models(1).diff_mean_same_std = 1;
-opt_models(1).ori_dep_noise = 1;
-opt_models(1).joint_task_fit = 0;
+opt_models(1).ori_dep_noise = 0;
+opt_models(1).symmetric = 1;
+opt_models(1).joint_task_fit = 1;
 opt_models(1).nFreesigs = 0;
-opt_models(1).d_noise = 0;
+opt_models(1).d_noise = 1;
+opt_models(1).joint_d = 1;
+opt_models(1).free_cats = 0;
+opt_models(1).separate_measurement_and_inference_noise = 0;
 
 opt_models(2) = opt_models(1);
-opt_models(2).nFreesigs = 6;
+opt_models(2).joint_d = 0;
+
+opt_models(3) = opt_models(2);
+opt_models(3).symmetric = 0;
+
+opt_models(4) = opt_models(3);
+opt_models(4).family = 'MAP';
+opt_models(4).d_noise = 0;
+
+opt_models(5) = opt_models(4);
+opt_models(5).family = 'neural1';
+
+opt_models(6) = opt_models(5);
+opt_models(6).family = 'lin';
+
+opt_models(7) = opt_models(6);
+opt_models(7).family = 'quad';
+
+opt_models(8) = opt_models(7);
+opt_models(8).family = 'fixed';
 
 opt_models = parameter_constraints(opt_models);
 nModels = length(opt_models);
@@ -297,7 +320,7 @@ for gen_model_id = active_gen_models
         extracted_nll = zeros(1, nOptimizations);
         extracted_hessian=zeros(nParams, nParams, nOptimizations);
         tmp = o;
-%         tmp.extracted(max(datasets)) = struct;
+        tmp.extracted(max(datasets)) = struct;
         gen(gen_model_id).opt(opt_model_id) = tmp;
         
         % OPTIMIZE
@@ -643,7 +666,7 @@ if ~hpc
     % gen.opt=model; % this is for after CCO
     if ~strcmp(optimization_method,'mcmc_slice') && strcmp(data_type,'fake') && length(active_opt_models)==1 && length(active_gen_models) == 1 && strcmp(opt_models(active_opt_models).name, gen_models(active_gen_models).name)
         diagnosis_plots(gen(active_gen_models).opt(active_opt_models),...
-            'gen_struct', gen(active_gen_models), 'fig_type', 'parameter_recovery', 'only_good_fits', true)
+            'gen_struct', gen(active_gen_models), 'fig_type', 'parameter_recovery')
         
     elseif strcmp(optimization_method,'mcmc_slice')
         % DIAGNOSE MCMC

@@ -231,7 +231,12 @@ else
         end
         
         view(90,-90);
-        set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), 'xtick', 1:nModels, 'xlim', [0 nModels+1], 'yticklabel', get(gca, 'ytick'))        
+        if nModels > 15
+            tick_label_fontsize = tick_label_fontsize-1;
+        end
+        set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), ...
+            'xtick', 1:nModels, 'xlim', [0 nModels+1], 'yticklabel', get(gca, 'ytick'), 'fontsize', tick_label_fontsize)
+        set(gcf, 'position', [184 490 466 372])
     end
     
 end

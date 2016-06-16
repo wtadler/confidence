@@ -2,7 +2,6 @@ function diagnosis_plots(model_struct, varargin)
 
 fig_type = 'mcmc_grid'; % 'mcmc_figures' or 'mcmc_grid' or 'parameter_recovery'
     gen_struct = []; % just needs to contain true parameters, and match model_struct in length if doing parameter recovery
-    only_good_fits = false; % in parameter recovery, only show datasets that were fit well
     show_cornerplot = true;
     plot_datasets = [];
     mcm = 'dic';
@@ -29,12 +28,15 @@ if strcmp(fig_type, 'parameter_recovery')
         nRows = 4;
         nCols = ceil(nParams/nRows);
 
+        delta = [m.extracted.min_nll]-[g.data.true_nll];
+        worst_delta = max(delta);
+        frac = max(0, delta/worst_delta);
+        color = [frac' 1-frac' zeros(length(m.extracted), 1)];
         
-        if only_good_fits
-            good_fits = [m.extracted.min_nll]-[g.data.true_nll] < 0;
-        else
-            good_fits = 1:length(m.extracted);
-        end
+        
+%         good_fits = [m.extracted.min_nll]-[g.data.true_nll] < 0;
+%         color = repmat([.7 0 0], length(m.extracted), 1);
+%         color(good_fits, :) = repmat([0 .7 0], sum(good_fits), 1);
         
         % for each parameter, plot all datasets
         for parameter = 1:length(m.parameter_names)
@@ -43,7 +45,7 @@ if strcmp(fig_type, 'parameter_recovery')
             col(col==0) = nCols;
             tight_subplot(nRows, nCols, row, col, [.05 .07], [.1 .02 .1 .1]);
             extracted_params = [m.extracted.best_params];
-            plot(g.p(parameter, good_fits), extracted_params(parameter,good_fits), '.','markersize',12);
+            scatter(g.p(parameter, :), extracted_params(parameter, :), 30, color, 'filled');
             hold on
             xlim([m.lb(parameter) m.ub(parameter)]);
             ylim([m.lb(parameter) m.ub(parameter)]);
