@@ -295,8 +295,8 @@ elseif strcmp(model.family, 'MAP')
                     %                 k2 = sqrt(1/(sig^-2 + p.sig2^-2));
                     mu2 = raw.x(idx)*cur_sig^-2 * k2sq(i);
                     
-                    w1 = normpdf(raw.x(idx),0,sqrt(p.sig1^2 + cur_sig^2));
-                    w2 = normpdf(raw.x(idx),0,sqrt(p.sig2^2 + cur_sig^2));
+                    w1 = exp(raw.x(idx)./(p.sig1^2 + cur_sig^2));
+                    w2 = exp(raw.x(idx)./(p.sig2^2 + cur_sig^2));
                     
                     raw.shat(idx) = gmm1max_n2_fast([w1' w2'], [mu1' mu2'], repmat([k1(i) k2(i)],length(idx),1));
                     
@@ -335,8 +335,7 @@ elseif strcmp(model.family, 'MAP')
             logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
         
-        noise = bsxfun(@plus, raw.sig, ODN(sVec, p.sig_amplitude));
-        loglikelihood = bsxfun_normlogpdf(raw.x, sVec, noise);
+        loglikelihood = bsxfun_normlogpdf(raw.x, sVec, raw.sig);
         
         logposterior = bsxfun(@plus, loglikelihood, logprior);
         

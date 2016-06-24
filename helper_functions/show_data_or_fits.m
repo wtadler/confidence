@@ -248,7 +248,11 @@ for fig = 1:n.fig
                 fake_data = true;
                 if ~isempty(x_name)
                     if ~group_plot
-                        data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_types{trial_type}).(x_name);
+                        if nPlotSamples > 1
+                            data = models(model).extracted(subject).fake_datasets.(tasks{task}).sumstats.(trial_types{trial_type}).(x_name);
+                        else
+                            data = models(model).extracted(subject).fake_datasets.(tasks{task}).dataset(1).stats.(trial_types{trial_type}).(x_name);
+                        end
                     else
                         data = models(model).(tasks{task}).sumstats.(trial_types{trial_type}).(x_name); % fake_group_datasets_and_stats doesn't have support for trial_types. i think that's okay 12/11/15
                     end

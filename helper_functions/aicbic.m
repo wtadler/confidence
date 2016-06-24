@@ -10,7 +10,7 @@ if length(varargin) == 2
 end
 if length(varargin) == 1
     nTrials = varargin{1};
-    bic = -2 * logL + nParams * (log(nTrials) - log(2*pi));
+    bic = -2 * logL + nParams * log(nTrials);
     aicc = aic + 2 * nParams * (nParams + 1) / (nTrials - nParams - 1);
 end
 
