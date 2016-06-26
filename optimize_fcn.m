@@ -75,6 +75,7 @@ matchstring = '';
 fake_data_params =  'random'; % 'arbitrary' or 'random'
 % category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 attention_manipulation = false;
+training_data = false;
 
 category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
 category_params.a = 0; % overlap for sym_uniform
@@ -138,9 +139,9 @@ if strcmp(optimization_method,'fmincon')
 end
 
 if strcmp(data_type, 'real')
-    gen = compile_data('datadir', datadirA, 'crossvalidate', crossvalidate, 'k', k, 'matchstring', matchstring);
+    gen = compile_data('datadir', datadirA, 'crossvalidate', crossvalidate, 'k', k, 'matchstring', matchstring, 'training_data', training_data);
     if ~isempty(datadirB)
-        genB = compile_data('datadir', datadirB, 'crossvalidate', crossvalidate, 'k', k, 'matchstring', matchstring);
+        genB = compile_data('datadir', datadirB, 'crossvalidate', crossvalidate, 'k', k, 'matchstring', matchstring, 'training_data', training_data);
     end
     nDatasets = length(gen.data);
     datasets = 1 : nDatasets;
