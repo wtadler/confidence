@@ -1,4 +1,4 @@
-function [RMSEtrain, data] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigmas_test, varargin)
+function [RMSEtrain, data, perf_train, perf_test] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigmas_test, varargin)
 
 train_on_test_noise = true;
 baseline = 0;
@@ -20,8 +20,8 @@ objective = 'xent';
 % training parameters
 mu         = 0.0;
 lambda_eff = 0.0;
-nepch      = 1;
-bsize      = 1;
+nEpochs      = 1;
+bsize      = 5;
 % eta_0      = 0.05; % optimize this
 % gamma_e    = 0.0001; % and this
 eta        = eta_0 ./ (1 + gamma_e*(0:(nTrainingTrials-1))); % learning rate policy
@@ -42,14 +42,14 @@ for i = 1:nneuron
 end
 
 if ~train_on_test_noise
-    [R, P, ~, C, ~] = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigma_train, baseline, K, sprefs);
+    [R, P, ~, C_train, ~] = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigma_train, baseline, K, sprefs);
 else
-    [R, P, ~, C, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
+    [R, P, ~, C_train, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
 end
 % fprintf('Generated training data\n');
 
 Xdata      = R';
-Ydata      = C';
+Ydata      = C_train';
 
 % initialize network parameters
 W_init = cell(L,1);
@@ -64,8 +64,11 @@ b_init{3} = 0.00*randn(nnode(3),1);
 % Evaluate network at the end of epoch
 nTestTrials = 2160; % should this be 2160 to match the experiment? or need more
 
+perf_test = zeros(1, nEpochs);
+perf_train = perf_test;
+
 %% Train network with SGD
-for e = 1:nepch
+for e = 1:nEpochs
     
     pp = randperm(nTrainingTrials);
     
@@ -92,10 +95,11 @@ for e = 1:nepch
         Yhattrain(1,ti) = a{end};
     end
     RMSEtrain = sqrt(mean((Yhattrain-P').^2)); % use this as objective
-%     mean((Yhattrain > .5) == C')
+    perf_train(e) = mean((Yhattrain > .5) == C_train');
+    fprintf('\nEpoch %i: %.1f%% training performance', e, perf_train(e)*100)
     
     % Evaluate network at the end of epoch
-    [Rinf, Pinf, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
+    [Rinf, Pinf, s, C_test, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
     Xinfloss                   = Rinf';
     Yinfloss                   = Pinf';
     Yhatinf                    = zeros(1,nTestTrials);
@@ -112,11 +116,14 @@ for e = 1:nepch
     
     RMSE = sqrt(mean((Yhatinf-Yinfloss).^2));
     
+    perf_test(e) = mean(C_test'==real(Yhatinf > .5));
+    fprintf('\nEpoch %i: %.1f%% test performance\n', e, perf_test(e)*100)
+    
     %     fprintf('Epoch: %i done, InfLoss on test: %f, RMSE on test: %f, NoAcceptedTrials: %i, RMSE on training data: %f \n', e, InfLoss, RMSE, length(Yinfloss), RMSEtrain);
     
 end
 
-data.C = C';
+data.C = C_test';
 data.C(data.C==1) = -1;
 data.C(data.C==0) = 1;
 
@@ -153,6 +160,7 @@ data.resp = 9-data.resp;
 data.Chat = real(data.resp >= 5);
 data.Chat(data.Chat==0) = -1;
 data.tf = data.C==data.Chat;
+fprintf('\n%.1f%% final test performance\n', perf_test*100)
 
 c1 = data.Chat == -1;
 c2 = data.Chat == 1;

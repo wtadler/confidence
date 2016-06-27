@@ -1,4 +1,4 @@
-function h=bigfig(varargin)
+function h=bigfig_neuralnet(varargin)
 %%% FIX LABELING
 root_datadir = '~/Google Drive/Will - Confidence/Data/v3_all';
 nBins = 11;
@@ -35,7 +35,7 @@ nSubjects = length(real_data.B.data);
 
 map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
 
-figure(1)
+h=figure(1);
 set(gcf,'position', [100 100 200*nCols 200*nRows])
 clf
 % letter = 1;
