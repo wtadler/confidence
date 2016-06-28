@@ -20,7 +20,7 @@ objective = 'xent';
 % training parameters
 mu         = 0.0;
 lambda_eff = 0.0;
-nEpochs      = 1;
+nEpochs      = 80;
 bsize      = 5;
 % eta_0      = 0.05; % optimize this
 % gamma_e    = 0.0001; % and this
@@ -96,7 +96,7 @@ for e = 1:nEpochs
     end
     RMSEtrain = sqrt(mean((Yhattrain-P').^2)); % use this as objective
     perf_train(e) = mean((Yhattrain > .5) == C_train');
-    fprintf('\nEpoch %i: %.1f%% training performance', e, perf_train(e)*100)
+%     fprintf('\nEpoch %i: %.1f%% training performance', e, perf_train(e)*100)
     
     % Evaluate network at the end of epoch
     [Rinf, Pinf, s, C_test, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
@@ -117,7 +117,7 @@ for e = 1:nEpochs
     RMSE = sqrt(mean((Yhatinf-Yinfloss).^2));
     
     perf_test(e) = mean(C_test'==real(Yhatinf > .5));
-    fprintf('\nEpoch %i: %.1f%% test performance\n', e, perf_test(e)*100)
+%     fprintf('\nEpoch %i: %.1f%% test performance\n', e, perf_test(e)*100)
     
     %     fprintf('Epoch: %i done, InfLoss on test: %f, RMSE on test: %f, NoAcceptedTrials: %i, RMSE on training data: %f \n', e, InfLoss, RMSE, length(Yinfloss), RMSEtrain);
     

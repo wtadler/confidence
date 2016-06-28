@@ -20,9 +20,9 @@ plot_reliabilities = [2 4 6];
 assignopts(who,varargin);
 
 bin_types = {'c', 'c_C', 'c_s'};%, 'c_C', 'c_g', 'g', 's', 'c_s'};
-depvars = {'tf', 'Chat'};%'resp', 'g', 'Chat', 'proportion'};
+depvars = {'tf', 'Chat', 'resp', 'g'};%, 'Chat', 'proportion'};
 
-nRows = 3;
+nRows = 5;
 nCols = 11;
 
 [edges, centers] = bin_generator(nBins, 'task', 'B');
@@ -41,9 +41,9 @@ clf
 % letter = 1;
 %%
 
-nn_datadir = '~/Google Drive/neuralnet_data/precision.01_neurons50/gains_from_subjects/learning_rates_from_RMSEtrain';
+nn_datadir = '~/Google Drive/nn_weak';
 % nn_datadir = '~/Google Drive/neuralnet_data/precision.01_neurons50/gains_from_subjects/neuralnets_baseline0.0000';
-trial_str = '25116'; % '1000002'
+trial_str = '2880';%'25116'; % '1000002'
 for subject = 1:nSubjects
     nn_data(subject) = compile_and_analyze_data(nn_datadir,...
         'nBins', nBins,...
@@ -71,18 +71,38 @@ for subject = 1:nSubjects
     end
 
     tight_subplot(nRows, nCols, 2, subject, gutter, margins);
-    crazyplot(real_data, nn_data, 'B', 'all', 'c_C', 'Chat', 'label_x', true, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest');
+    crazyplot(real_data, nn_data, 'B', 'all', 'c_C', 'Chat', 'label_x', false, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest');
     if label_y
         ylabel('prop. report "cat. 1"');
     end
     
+    
     tight_subplot(nRows, nCols, 3, subject, gutter, margins);
         
-    crazyplot(real_data, nn_data, 'B', 'all', 'c_s', 'Chat', 'label_x', true, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest', 'plot_reliabilities', plot_reliabilities);
+    crazyplot(real_data, nn_data, 'B', 'all', 'c', 'g', 'label_x', true, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest', 'plot_reliabilities', plot_reliabilities);
+    %     letter = axeslabel(letter);
+    if label_y
+        ylabel('mean confidence');
+    end
+    
+    tight_subplot(nRows, nCols, 4, subject, gutter, margins);
+        
+    crazyplot(real_data, nn_data, 'B', 'all', 'c_s', 'Chat', 'label_x', false, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest', 'plot_reliabilities', plot_reliabilities);
     %     letter = axeslabel(letter);
     if label_y
         ylabel('prop. report "cat. 1"');
     end
+    
+    tight_subplot(nRows, nCols, 5, subject, gutter, margins);
+        
+    crazyplot(real_data, nn_data, 'B', 'all', 'c_s', 'resp', 'label_x', true, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest', 'plot_reliabilities', plot_reliabilities);
+    %     letter = axeslabel(letter);
+    if label_y
+        ylabel('mean button press');
+    end
+
+    
+
 end
 
 
