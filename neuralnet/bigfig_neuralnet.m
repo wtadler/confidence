@@ -8,8 +8,8 @@ symmetrify = false;
 tasks = {'B'};
 trial_types = {'all'};%, 'correct', 'incorrect', 'C1', 'C2'};%, 'Chat1', 'Chat2'}
 % linewidth = 2;
-gutter = [.013 .055];
-margins = [.03 .01 .14 .12]; % L R B T
+gutter = [.013 .035];
+margins = [.03 .01 .14 .04]; % L R B T
 % show_legend = false;
 s_labels = [-8 -4 -2 -1 0 1 2 4 8];
 letter_size = 14;
@@ -41,7 +41,7 @@ clf
 % letter = 1;
 %%
 
-nn_datadir = '~/Google Drive/nn_weak';
+nn_datadir = '~/Google Drive/nn_ultraweak';
 % nn_datadir = '~/Google Drive/neuralnet_data/precision.01_neurons50/gains_from_subjects/neuralnets_baseline0.0000';
 trial_str = '2880';%'25116'; % '1000002'
 for subject = 1:nSubjects

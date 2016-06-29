@@ -3,6 +3,8 @@ function [RMSEtrain, data, perf_train, perf_test] = nn_dataset(nTrainingTrials, 
 train_on_test_noise = true;
 baseline = 0;
 quantile_type = 'weak';
+nEpochs      = 150;
+alpha = [0 1e-4];
 assignopts(who, varargin);
 
 % if train_on_test_noise
@@ -20,7 +22,6 @@ objective = 'xent';
 % training parameters
 mu         = 0.0;
 lambda_eff = 0.0;
-nEpochs      = 80;
 bsize      = 5;
 % eta_0      = 0.05; % optimize this
 % gamma_e    = 0.0001; % and this
@@ -84,7 +85,7 @@ for e = 1:nEpochs
             b = b_init;
         end
         
-        [W, b] = do_backprop_on_batch(X, Y, W, b, eta(bi), mu, lambda_eff, L, ftype, 0, objective);
+        [W, b] = do_backprop_on_batch(X, Y, W, b, eta(bi), mu, lambda_eff, L, ftype, 0, objective, alpha);
         
     end
     

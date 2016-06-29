@@ -1,4 +1,4 @@
-function [W, b] = do_backprop_on_batch(X, Y, W, b, eta, mu, lambda_eff, L, ftype, plt, objective)
+function [W, b] = do_backprop_on_batch(X, Y, W, b, eta, mu, lambda_eff, L, ftype, plt, objective, alpha)
 
 m     = size(X,2); % batch size
 sum_w = cell(L,1);
@@ -41,7 +41,8 @@ end
 
 for l = 2:L
     VW{l} = mu * VW{l} - (eta/m) * real(sum_w{l});
-    W{l}  = (1-eta*lambda_eff) * W{l} + VW{l}; 
+    
+    W{l}  = (1-eta*lambda_eff) * W{l} + VW{l} - alpha(1)*sign(W{l}) - alpha(2)*W{l}; 
     Vb{l} = mu * Vb{l} - (eta/m) * real(sum_b{l});
     b{l}  = b{l} + Vb{l}; 
 end
