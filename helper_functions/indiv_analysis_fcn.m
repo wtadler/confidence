@@ -131,6 +131,11 @@ end
                         idx = raw.resp == resp;
                         st = compute(st, raw, idx, resp);
                     end
+                case 'prior'
+                    for prior = unique(raw.prior_id)
+                        idx = raw.prior_id == prior;
+                        st = compute(st, raw, idx, prior);
+                    end
             end
             %
         else % bin by contrast, or contrast + something else.

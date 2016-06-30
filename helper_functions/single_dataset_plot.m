@@ -26,7 +26,7 @@ else
     input_colors = [];
 end
 
-if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
+if (any(strcmp(x_name, {'c', 'prior'})) || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
     reliability_x_axis = true;
     set(gca, 'xdir', 'reverse');
     
@@ -56,21 +56,28 @@ end
 
 map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
 set(gca, 'xticklabelmode', 'auto')
-if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
+if (any(strcmp(x_name, {'c', 'prior'})) || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
     xtl = cell(1,nCols);
-    if attention_task
-        xlabel('cue validity')
-        xtl{1} = 'valid';
+    if strcmp(x_name, 'prior')
+        xlabel('prior')
+        xtl{1} = 'cat. 1';
         xtl{2} = 'neutral';
-        xtl{3} = 'invalid';
+        xtl{3} = 'cat. 2';
     else
-        xlabel('reliability')
-        xtl{1} = 'high';
-        xtl{end} = 'low';
+        if attention_task
+            xlabel('cue validity')
+            xtl{1} = 'valid';
+            xtl{2} = 'neutral';
+            xtl{3} = 'invalid';
+        else
+            xlabel('reliability')
+            xtl{1} = 'high';
+            xtl{end} = 'low';
+        end
     end
     
     set(gca, 'xticklabel', xtl);
-    if strcmp(x_name, 'c')
+    if any(strcmp(x_name, {'c', 'prior'}))
         colors = [0 0 0];
         show_legend = false;
     elseif strcmp(x_name, 'c_prior')
@@ -102,10 +109,6 @@ elseif any(strcmp(x_name, {'s', 'c_s'}))
         colors = map.tan_contrast_colors;
         labels = {'high reliability', 'low reliability'};
     end
-    
-    % ADD ATTENTION STUFF IN HERE
-elseif strcmp(x_name, 'c_prior')
-    
 end
 
 if ~isempty(input_colors);
