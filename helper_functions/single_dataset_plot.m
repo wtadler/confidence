@@ -139,9 +139,10 @@ for row = plot_rows
                 errorbarheight = binned_stats.sem.(y_name)(row, :); % sem or edgar_sem2 to take account of within subject variability.
             end
         else % individual data
-            if fake_data
-                errorbarheight = binned_stats.std.(y_name)(row, :);
-            else % real data
+            if any(strcmp(y_name, {'g', 'resp'}))
+                warning(sprintf('using SEM for %s', y_name))
+                errorbarheight = binned_stats.sem.(y_name)(row, :);
+            else
                 errorbarheight = binned_stats.std.(y_name)(row, :);
             end
         end

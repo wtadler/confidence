@@ -3,7 +3,7 @@ function [RMSEtrain, data, perf_train, perf_test] = nn_dataset(nTrainingTrials, 
 train_on_test_noise = true;
 baseline = 0;
 quantile_type = 'weak';
-nEpochs      = 150;
+nEpochs      = 10;
 alpha = [0 1e-4];
 assignopts(who, varargin);
 
@@ -161,7 +161,7 @@ data.resp = 9-data.resp;
 data.Chat = real(data.resp >= 5);
 data.Chat(data.Chat==0) = -1;
 data.tf = data.C==data.Chat;
-fprintf('\n%.1f%% final test performance\n', perf_test*100)
+fprintf('\n%.1f%% final test performance\n', perf_test(e)*100)
 
 c1 = data.Chat == -1;
 c2 = data.Chat == 1;

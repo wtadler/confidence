@@ -188,18 +188,20 @@ end
         for field = 1:length(output_fields)
             dep_var = output_fields{field};
             if strcmp(dep_var, 'proportion'); continue; end
-            [Mean, STD] = mean_and_std(raw, dep_var, idx);
+            [Mean, STD, SEM] = mean_and_std(raw, dep_var, idx);
             if ~exist('j','var')
                 st2.mean.(dep_var)(i) = Mean;
                 st2.std.(dep_var)(i) = STD;
+                st2.sem.(dep_var)(i) = SEM;
             else
                 st2.mean.(dep_var)(i,j) = Mean;
                 st2.std.(dep_var)(i,j) = STD;
+                st2.sem.(dep_var)(i,j) = SEM;
             end
         end
     end
 
-    function [Mean, STD] = mean_and_std(sr, field, idx)
+    function [Mean, STD, SEM] = mean_and_std(sr, field, idx)
         std_beta_dist = @(a,b) sqrt(a*b/((a+b)^2*(a+b+1)));
         
         switch field
@@ -219,7 +221,7 @@ end
             otherwise % should RT's have a different kind of errorbar?
                 Mean = mean(sr.(field)(idx));
                 STD = std(sr.(field)(idx));
-                
         end
+        SEM = STD/sqrt(sum(idx));
     end
 end
