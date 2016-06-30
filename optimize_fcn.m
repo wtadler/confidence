@@ -53,6 +53,7 @@ prev_best_param_sample = [];
 data_type = 'real'; % 'real' or 'fake'
 % 'fake' generates trials and responses, to do parameter/model recovery
 % 'real' takes real trials and real responses, to extract parameters
+matchstring = '';
 
 %% fake data generation parameters
 fake_data_params =  'random'; % 'arbitrary' or 'random'
@@ -74,10 +75,11 @@ gen_models = opt_models;
 
 active_gen_models = 1 : length(gen_models);
 gen_nSamples = 3240;
-fixed_params_gen = []; % can fix parameters here. goes with fixed values in beq, in parameter_constraints.m....
-fixed_params_opt = [];
-fixed_params_gen_values = [];  % ... unless specific parameter values are specified here.
-fixed_params_opt_values = [];
+
+fixed_params_gen = cell(1, length(gen_models)); % can fix parameters here. goes with fixed values in beq, in parameter_constraints.m....
+fixed_params_opt = cell(1, length(opt_models));
+fixed_params_gen_values = fixed_params_gen;  % ... unless specific parameter values are specified here.
+fixed_params_opt_values = fixed_params_opt;
 
 slimdown = true; % throws away information like hessian for every optimization, etc. that takes up a lot of space.
 crossvalidate = false;
@@ -123,9 +125,9 @@ if strcmp(optimization_method,'fmincon')
 end
 
 if strcmp(data_type, 'real')
-    gen = compile_data('datadir', datadirA, 'crossvalidate', crossvalidate, 'k', k);
+    gen = compile_data('datadir', datadirA, 'crossvalidate', crossvalidate, 'k', k, 'matchstring', matchstring);
     if ~isempty(datadirB)
-        genB = compile_data('datadir', datadirB, 'crossvalidate', crossvalidate, 'k', k);
+        genB = compile_data('datadir', datadirB, 'crossvalidate', crossvalidate, 'k', k, 'matchstring', matchstring);
     end
     nDatasets = length(gen.data);
     datasets = 1 : nDatasets;
@@ -168,14 +170,14 @@ if strcmp(data_type, 'fake')
         switch fake_data_params
             case 'random'
                 nParams = length(g.lb);
-                if ~isempty(fixed_params_gen_values)
-                    if numel(fixed_params_gen_values) ~= numel(fixed_params_gen);
+                if ~isempty(fixed_params_gen_values{gen_model_id})
+                    if numel(fixed_params_gen_values{gen_model_id}) ~= numel(fixed_params_gen{gen_model_id});
                         error('fixed_params_gen_values is not the same length as fixed_params_gen')
                     else
-                        g.beq(fixed_params_gen) = fixed_params_gen_values;
+                        g.beq(fixed_params_gen{gen_model_id}) = fixed_params_gen_values{gen_model_id};
                     end
                 end
-                gen(gen_model_id).p = random_param_generator(nDatasets, g, 'fixed_params', fixed_params_gen, 'generating_flag', true);
+                gen(gen_model_id).p = random_param_generator(nDatasets, g, 'fixed_params', fixed_params_gen{gen_model_id}, 'generating_flag', true);
                 gen(gen_model_id).p
 
             case 'arbitrary' % formerly 'extracted'
@@ -209,7 +211,7 @@ if strcmp(data_type, 'fake')
                             good_dataset = true;
                             continue
                         else % if the dataset is the same choice for every trial, generate new parameters and try again
-                            gen(gen_model_id).p(:,dataset) = random_param_generator(1, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
+                            gen(gen_model_id).p(:,dataset) = random_param_generator(1, g, 'fixed_params', fixed_params_gen{gen_model_id}, 'generating_flag', 1);
                             good_dataset = false;
                             break
                         end
@@ -218,7 +220,7 @@ if strcmp(data_type, 'fake')
                             good_dataset = true;
                             continue
                         else
-                            gen(gen_model_id).p(:,dataset) = random_param_generator(1, g, 'fixed_params', fixed_params_gen, 'generating_flag', 1);
+                            gen(gen_model_id).p(:,dataset) = random_param_generator(1, g, 'fixed_params', fixed_params_gen{gen_model_id}, 'generating_flag', 1);
                             good_dataset = false;
                             break
                         end
@@ -287,18 +289,20 @@ for gen_model_id = active_gen_models
             sm=prepare_submodels(o);
         end
         
-        unfixed_params = setdiff(1:nParams, fixed_params_opt);
+        unfixed_params = setdiff(1:nParams, fixed_params_opt{opt_model_id});
         o.Aeq = eye(nParams);
         o.Aeq(unfixed_params, unfixed_params) = 0;
         o.beq(unfixed_params) = 0;
-        if ~isempty(fixed_params_opt)
-            if isempty(fixed_params_opt_values)
-                o.beq(fixed_params_opt) = fake_params{opt_model_id}(fixed_params_opt, 1);
-            elseif ~isempty(fixed_params_opt_values)
-                if numel(fixed_params_opt_values) ~= numel(fixed_params_opt) && min(size(fixed_params_opt_values))==1 % if its not a matrix, and isn't the same size
+        if ~isempty(fixed_params_opt{opt_model_id})
+            if isempty(fixed_params_opt_values{opt_model_id})
+                if ~isempty(fake_params)
+                    o.beq(fixed_params_opt{opt_model_id}) = fake_params{opt_model_id}(fixed_params_opt{opt_model_id}, 1);
+                end
+            elseif ~isempty(fixed_params_opt_values{opt_model_id})
+                if numel(fixed_params_opt_values{opt_model_id}) ~= numel(fixed_params_opt{opt_model_id}) && min(size(fixed_params_opt_values))==1 % if its not a matrix, and isn't the same size
                     error('fixed_params_opt_values is not the same length as fixed_params_opt')
-                elseif min(size(fixed_params_opt_values))==1
-                    o.beq(fixed_params_opt) = fixed_params_opt_values;
+                elseif min(size(fixed_params_opt_values{opt_model_id}))==1
+                    o.beq(fixed_params_opt{opt_model_id}) = fixed_params_opt_values{opt_model_id};
                 end
             end
         end
@@ -314,15 +318,15 @@ for gen_model_id = active_gen_models
         for dataset = datasets;
             my_print(sprintf('\n\n########### DATASET %i ######################\n\n', dataset));
             
-            if min(size(fixed_params_opt_values))>1 % if it's a matrix, assign the different datasets the different values. this is hacky
-                o.beq(fixed_params_opt) = fixed_params_opt_values(:,dataset);
+            if min(size(fixed_params_opt_values{opt_model_id}))>1 % if it's a matrix, assign the different datasets the different values. this is hacky
+                o.beq(fixed_params_opt{opt_model_id}) = fixed_params_opt_values{opt_model_id}(:,dataset);
             end
             
             ex = struct;
             for trainset = 1:k % this is just 1 if not cross-validating
                 %% OPTIMIZE PARAMETERS
                 % random starting points x0 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                x0 = random_param_generator(nOptimizations, o, 'generating_flag', x0_reasonable, 'fixed_params', fixed_params_opt); % try turning on generating_flag.
+                x0 = random_param_generator(nOptimizations, o, 'generating_flag', x0_reasonable, 'fixed_params', fixed_params_opt{opt_model_id}); % try turning on generating_flag.
 
                 if crossvalidate
                     d      = gen(gen_model_id).data(dataset).train(trainset);
@@ -414,7 +418,7 @@ for gen_model_id = active_gen_models
                                 for optimization = 1:nOptimizations
                                     log_fid = fopen([job_id '.txt'],'a'); % reopen log for parfor
                                     [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nRemSamples(optimization), loglik_wrapper, ex_p(end-nRemSamples(optimization),:,optimization), (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
-                                        'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid,'static_dims',fixed_params_opt);
+                                        'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid,'static_dims',fixed_params_opt{opt_model_id});
                                     s_tmp{optimization} = samples';
                                     ll_tmp{optimization} = -loglikes';
                                     lp_tmp{optimization} = logpriors';
@@ -424,7 +428,7 @@ for gen_model_id = active_gen_models
                                 parfor (optimization = 1:nOptimizations, maxWorkers)
                                     log_fid = fopen([job_id '.txt'],'a'); % reopen log for parfor
                                     [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nRemSamples(optimization), loglik_wrapper, ex_p(end-nRemSamples(optimization),:,optimization), (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
-                                        'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid,'static_dims',fixed_params_opt);
+                                        'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid,'static_dims',fixed_params_opt{opt_model_id});
                                     s_tmp{optimization} = samples';
                                     ll_tmp{optimization} = -loglikes';
                                     lp_tmp{optimization} = logpriors';
@@ -447,7 +451,7 @@ for gen_model_id = active_gen_models
                             if maxWorkers==0
                                 for optimization = 1 : nOptimizations
                                     [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nKeptSamples, loglik_wrapper, x0(:,optimization), (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
-                                        'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid,'static_dims',fixed_params_opt);
+                                        'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid,'static_dims',fixed_params_opt{opt_model_id});
                                     ex_p(:,:,optimization) = samples';
                                     ex_nll(:,optimization) = -loglikes';
                                     ex_logprior(:,optimization) = logpriors';
@@ -457,7 +461,7 @@ for gen_model_id = active_gen_models
                                 parfor (optimization = 1 : nOptimizations, maxWorkers)
                                     log_fid = fopen(sprintf('%s.txt',job_id),'a'); % reopen log for parfor
                                     [samples, loglikes, logpriors, aborted_flags(optimization)] = slice_sample(nKeptSamples, loglik_wrapper, x0(:,optimization), (o.ub-o.lb)', 'logpriordist',logprior_wrapper,...
-                                        'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid,'static_dims',fixed_params_opt);
+                                        'burn',burnin,'thin',thin,'progress_report_interval',progress_report_interval,'chain_id',optimization, 'time_lim',.97*time_lim,'log_fid',log_fid,'static_dims',fixed_params_opt{opt_model_id});
                                     ex_p(:,:,optimization) = samples';
                                     ex_nll(:,optimization) = -loglikes';
                                     ex_logprior(:,optimization) = logpriors';
