@@ -6,6 +6,7 @@ function fake_sumstats = fake_group_datasets_and_stats(model, nFakeGroupDatasets
 % use this after having used dataset_generator.
 
 fields = {'tf','resp','g','Chat'};
+bootstrap = true;
 assignopts(who, varargin);
 
 
@@ -38,7 +39,7 @@ for m = 1:length(model)
             end
             
             % summarize those fake datasets across subjects
-            sumstats = sumstats_fcn(hyperplotdata, 'fields', fields);
+            sumstats = sumstats_fcn(hyperplotdata, 'fields', fields, 'bootstrap', bootstrap);
             trial_types = fieldnames(sumstats);
 
             % save means for that summary

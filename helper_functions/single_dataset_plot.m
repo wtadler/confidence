@@ -34,7 +34,9 @@ if (any(strcmp(x_name, {'c', 'prior'})) || ~isempty(strfind(x_name, 'c_'))) & ~s
     fields = fieldnames(binned_stats);
     for f = 1:length(fields)
         try
-            binned_stats.(fields{f}).(y_name) = binned_stats.(fields{f}).(y_name)';
+            if size(binned_stats.(fields{f}).(y_name), 2) < size(binned_stats.(fields{f}).(y_name), 1)
+                binned_stats.(fields{f}).(y_name) = binned_stats.(fields{f}).(y_name)';
+            end
         end
     end
     

@@ -10,6 +10,7 @@ attention_manipulation = false;
 group_plot = false;
 real_data = [];
 trial_types = {'all'};
+bootstrap = true;
 assignopts(who, varargin);
 
 nModels = length(models);
@@ -33,7 +34,7 @@ for m = 1:nModels
         fprintf('\nAnalyzing generated data from model %i/%i...', m, nModels);
         % randomly sample 1 fake dataset from each subject
         % nFakeGroupDatasets times and analyze that grouped dataset
-        fake_sumstats = fake_group_datasets_and_stats(models(m), nFakeGroupDatasets, 'fields', depvars);
+        fake_sumstats = fake_group_datasets_and_stats(models(m), nFakeGroupDatasets, 'fields', depvars, 'bootstrap', bootstrap);
         tasks = fieldnames(fake_sumstats);
         for t = 1:length(tasks);
             models(m).(tasks{t}).sumstats = fake_sumstats.(tasks{t});
