@@ -5,6 +5,7 @@ baseline = 0;
 quantile_type = 'weak';
 nEpochs      = 10;
 alpha = [0 1e-4];
+batch_size      = 5;
 assignopts(who, varargin);
 
 % if train_on_test_noise
@@ -22,7 +23,6 @@ objective = 'xent';
 % training parameters
 mu         = 0.0;
 lambda_eff = 0.0;
-bsize      = 5;
 % eta_0      = 0.05; % optimize this
 % gamma_e    = 0.0001; % and this
 eta        = eta_0 ./ (1 + gamma_e*(0:(nTrainingTrials-1))); % learning rate policy
@@ -73,10 +73,10 @@ for e = 1:nEpochs
     
     pp = randperm(nTrainingTrials);
     
-    for bi = 1:(nTrainingTrials/bsize)
+    for bi = 1:(nTrainingTrials/batch_size)
         
-        bbegin = (bi-1)*bsize+1;
-        bend   = bi*bsize;
+        bbegin = (bi-1)*batch_size+1;
+        bend   = bi*batch_size;
         X      = Xdata(:,pp(bbegin:bend));
         Y      = Ydata(:,pp(bbegin:bend));
         

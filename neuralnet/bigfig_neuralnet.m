@@ -8,8 +8,8 @@ symmetrify = false;
 tasks = {'B'};
 trial_types = {'all'};%, 'correct', 'incorrect', 'C1', 'C2'};%, 'Chat1', 'Chat2'}
 % linewidth = 2;
-gutter = [.013 .035];
-margins = [.03 .01 .14 .04]; % L R B T
+gutter = [.008 .02];
+margins = [.03 .01 .04 .04]; % L R B T
 % show_legend = false;
 s_labels = [-8 -4 -2 -1 0 1 2 4 8];
 letter_size = 14;
@@ -17,12 +17,14 @@ nPlotSamples = 10;
 nFakeGroupDatasets = 100;
 model = []; % set to 0 for no model fit. otherwise indicate which model you want to do.
 plot_reliabilities = [2 4 6];
+nn_datadir = '~/Google Drive/nn_train_on_test_ultraweak_baseline.025';
+% nn_datadir = '~/Google Drive/neuralnet_data/precision.01_neurons50/gains_from_subjects/neuralnets_baseline0.0000';
 assignopts(who,varargin);
 
 bin_types = {'c', 'c_C', 'c_s'};%, 'c_C', 'c_g', 'g', 's', 'c_s'};
 depvars = {'tf', 'Chat', 'resp', 'g'};%, 'Chat', 'proportion'};
 
-nRows = 5;
+nRows = 6;
 nCols = 11;
 
 [edges, centers] = bin_generator(nBins, 'task', 'B');
@@ -41,15 +43,13 @@ clf
 % letter = 1;
 %%
 
-nn_datadir = '~/Google Drive/nn_handpicked_sigma_train_weak';
-% nn_datadir = '~/Google Drive/neuralnet_data/precision.01_neurons50/gains_from_subjects/neuralnets_baseline0.0000';
 trial_str = '2880';%'25116'; % '1000002'
 for subject = 1:nSubjects
     nn_data(subject) = compile_and_analyze_data(nn_datadir,...
         'nBins', nBins,...
         'symmetrify', symmetrify, 'trial_types', trial_types,...
-        'group_stats', true, 'bin_types', bin_types, 'output_fields', depvars,...
-        'matchstring', sprintf('%ss%02i', trial_str, subject));
+        'group_stats', true, 'bin_types', bin_types, 'output_fields', depvars);%,...
+        %'matchstring', sprintf('%ss%02i', trial_str, subject));
     
     
     
@@ -76,8 +76,16 @@ for subject = 1:nSubjects
         ylabel('prop. report "cat. 1"');
     end
     
-    
     tight_subplot(nRows, nCols, 3, subject, gutter, margins);
+    crazyplot(real_data, nn_data, 'B', 'all', 'c_C', 'resp', 'label_x', false, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest');
+    if label_y
+        ylabel('mean button press');
+    end
+    
+
+    
+    
+    tight_subplot(nRows, nCols, 4, subject, gutter, margins);
         
     crazyplot(real_data, nn_data, 'B', 'all', 'c', 'g', 'label_x', true, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest', 'plot_reliabilities', plot_reliabilities);
     %     letter = axeslabel(letter);
@@ -85,7 +93,7 @@ for subject = 1:nSubjects
         ylabel('mean confidence');
     end
     
-    tight_subplot(nRows, nCols, 4, subject, gutter, margins);
+    tight_subplot(nRows, nCols, 5, subject, gutter, margins);
         
     crazyplot(real_data, nn_data, 'B', 'all', 'c_s', 'Chat', 'label_x', false, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest', 'plot_reliabilities', plot_reliabilities);
     %     letter = axeslabel(letter);
@@ -93,7 +101,7 @@ for subject = 1:nSubjects
         ylabel('prop. report "cat. 1"');
     end
     
-    tight_subplot(nRows, nCols, 5, subject, gutter, margins);
+    tight_subplot(nRows, nCols, 6, subject, gutter, margins);
         
     crazyplot(real_data, nn_data, 'B', 'all', 'c_s', 'resp', 'label_x', true, 'label_y', label_y, 'show_legend', show_legend, 'legend_loc', 'northwest', 'plot_reliabilities', plot_reliabilities);
     %     letter = axeslabel(letter);

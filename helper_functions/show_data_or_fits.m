@@ -169,28 +169,15 @@ for fig = 1:n.fig
                 end
             end
             x_name = slices{slice};
+            sdp_legend = false;
             if show_legend
-                if length(slices)==1 || ~any(strcmp('slice', {axis.col, axis.row}))
-                    if row==1 && col==1
-                        sdp_legend = true;
-                    else
-                        sdp_legend = false;
-                    end
-                elseif strcmp('slice', axis.col)
-                    if row==1
-                        sdp_legend = true;
-                    else
-                        sdp_legend = false;
-                    end
-                elseif strcmp('slice', axis.row)
-                    if row==1
-                        sdp_legend = true;
-                    else
-                        sdp_legend = false;
-                    end
+                if strcmp('slice', axis.col) && row==1
+                    sdp_legend = true;
+                elseif strcmp('slice', axis.row) && col==1
+                    sdp_legend = true;
+                elseif length(slices)==1 && row==1 && col==1
+                    sdp_legend = true;
                 end
-            else
-                sdp_legend = false;
             end
             
             ah(row, col, fig) = tight_subplot(n.row, n.col, row, col, gutter, margins);
@@ -201,7 +188,7 @@ for fig = 1:n.fig
                 symmetrify_s = false;
             end
             
-            if row == n.row
+            if row == n.row || strcmp(axis.row, 'slice')
                 label_x = true;
             else
                 label_x = false;
