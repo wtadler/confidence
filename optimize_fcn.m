@@ -43,8 +43,7 @@ opt_models = parameter_constraints(opt_models);
 nModels = length(opt_models);
 
 %%
-computer
-hpc = ~strcmp(computer, 'MACI64')
+hpc = ~strcmp(computer, 'MACI64');
 assignopts(who,varargin);
 
 active_opt_models = 1:length(opt_models);
