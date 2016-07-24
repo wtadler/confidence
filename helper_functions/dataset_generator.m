@@ -45,6 +45,7 @@ for task = 1:length(tasks)
     bins = bin_generator(nBins, 'task', tasks{task});
     
     for s = 1:nSamples
+        fake_datasets.(tasks{task}).dataset(s).joint_p = param_samples(sample_ids(s), :)';
         fake_datasets.(tasks{task}).dataset(s).p = param_samples(sample_ids(s), param_idx(task,:))';
         if ~isempty(raw) % if not providing real trials
             fake_datasets.(tasks{task}).dataset(s).raw = trial_generator(fake_datasets.(tasks{task}).dataset(s).p, modelstruct(task), 'model_fitting_data', raw.(tasks{task}), 'attention_manipulation', attention_manipulation);

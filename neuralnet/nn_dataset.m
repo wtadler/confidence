@@ -8,9 +8,6 @@ alpha = [0 1e-4];
 batch_size      = 5;
 assignopts(who, varargin);
 
-% if train_on_test_noise
-    nTrainingTrials = round(nTrainingTrials/6)*6;
-% end
 
 % network parameters
 nhu       = 200;

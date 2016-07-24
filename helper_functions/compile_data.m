@@ -91,7 +91,13 @@ for subject = 1 : length(names)
             multi_prior = true;
         end
         
-                
+        if isfield(data, 'p')
+            st.data(subject).p = data.p;
+        end
+        if isfield(data, 'joint_p')
+            st.data(subject).joint_p = data.joint_p;
+        end
+        
         for block = 1:length(data.responses)
             for section = 1:size(data.responses{block}.c,1)
                 nTrials = size(data.R.draws{block}, 2);
