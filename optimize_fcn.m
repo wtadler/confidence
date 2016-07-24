@@ -720,6 +720,7 @@ end
 fh = [];
 fclose(log_fid);
 % delete([savedir filename '~'])
+gen.data = [];
 save([savedir filename])
 
 %%
