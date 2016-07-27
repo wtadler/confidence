@@ -16,7 +16,7 @@ end
 end
 
 function name_out = namify(name_in, short, latex)
-if isempty(regexp(name_in, ':')) % if names have already been namified, they won't have any colons
+if isstrprop(name_in(1), 'upper') && ~strcmp(name_in(1:3), 'MAP') % if names have already been namified, the first character will be upper case
     name_out = name_in;
     return
 end

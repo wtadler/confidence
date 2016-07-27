@@ -20,7 +20,7 @@ category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_me
 attention_manipulation = false;
 
 multi_prior = false;
-
+contrasts = [];
 assignopts(who,varargin);
 
 % updating category_type according to the model. not sure why i wasn''t doing this before
@@ -31,12 +31,13 @@ elseif ~model.diff_mean_same_std
 end
 
 if isempty(model_fitting_data)
-    if ~attention_manipulation
-        contrasts = exp(linspace(-5.5,-2,6));
-    else
-        contrasts = .08;
+    if isempty(contrasts)
+        if ~attention_manipulation
+            contrasts = exp(linspace(-5.5,-2,6));
+        else
+            contrasts = .08;
+        end
     end
-
     raw.C         = randsample([-1 1], n_samples, 'true');
     raw.contrast  = randsample(contrasts, n_samples, 'true'); % if no p, contrasts == sig
     raw.s(raw.C == -1) = stimulus_orientations(category_params, 1, sum(raw.C ==-1), category_type);

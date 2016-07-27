@@ -214,7 +214,7 @@ end
 if A
 % resp vs orientation for all reliabilities
 tight_subplot(nRows, nCols, 3,4, gutter, margins);
-crazyplot(real_data, model, 'A', 'all', 'c_s', 'resp', true, 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities)
+crazyplot(real_data, model, 'A', 'all', 'c_s', 'resp', true, 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities, 'nRespSquares', 6)
 % letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 yl=ylabel('mean button press', 'fontsize', xy_label_fontsize);
 ylpos = get(yl, 'position');
@@ -223,7 +223,7 @@ end
 
 if B
 tight_subplot(nRows, nCols, 4,4, gutter, margins);
-crazyplot(real_data, model, 'B', 'all', 'c_s', 'resp', true, 'label_x', true, 'label_y', true, 'plot_reliabilities', plot_reliabilities)
+crazyplot(real_data, model, 'B', 'all', 'c_s', 'resp', true, 'label_x', true, 'label_y', true, 'plot_reliabilities', plot_reliabilities, 'nRespSquares', 6)
 % letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 yl=ylabel('mean button press', 'fontsize', xy_label_fontsize);
 ylpos = get(yl, 'position');
