@@ -1,6 +1,6 @@
 function names_out = rename_models(names_in, varargin)
 % eventually, this would be cleaner if it took in a model struct rather than the strings
-short = true;
+short = false;
 latex = false;
 assignopts(who, varargin);
 

@@ -19,6 +19,7 @@ model = []; % set to 0 for no model fit. otherwise indicate which model you want
 plot_reliabilities = [2 4 6];
 nn_datadir = '~/Google Drive/nn_train_on_test_ultraweak_baseline.025';
 % nn_datadir = '~/Google Drive/neuralnet_data/precision.01_neurons50/gains_from_subjects/neuralnets_baseline0.0000';
+matchstring = '';
 assignopts(who,varargin);
 
 bin_types = {'c', 'c_C', 'c_s'};%, 'c_C', 'c_g', 'g', 's', 'c_s'};
@@ -43,13 +44,12 @@ clf
 % letter = 1;
 %%
 
-trial_str = '2880';%'25116'; % '1000002'
 for subject = 1:nSubjects
     nn_data(subject) = compile_and_analyze_data(nn_datadir,...
         'nBins', nBins,...
         'symmetrify', symmetrify, 'trial_types', trial_types,...
         'group_stats', true, 'bin_types', bin_types, 'output_fields', depvars,...
-        'matchstring', sprintf('s%02i', subject));
+        'matchstring', sprintf('%ss%02i', matchstring, subject));
     
     
     

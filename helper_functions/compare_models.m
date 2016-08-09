@@ -7,7 +7,7 @@ else
 end
 sort_subjects = false;
 
-fig_type = 'bar'; % 'grid' or 'bar' or 'sum' or '
+fig_type = 'bar'; % 'grid' or 'bar' or 'sum' or ''
 
 % BAR OPTIONS
 group_gutter=.02;
@@ -86,7 +86,7 @@ if sort_subjects
     subject_names = subject_names(sort_idx);
 end
 
-model_names = rename_models({models.name});
+model_names = rename_models({models.name}, 'short', true);
 
 if strcmp(MCM, 'waic2') || strcmp(MCM, 'waic1')
     MCM_name = 'WAIC';
@@ -158,7 +158,7 @@ if strcmp(fig_type, 'grid')
         set(checks,  'facecolor', [0 .6 0], 'edgecolor', 'w', 'linewidth', 1)
     end
     
-else
+elseif ~strcmp(fig_type, '')
     switch normalize_by
         case 'best_model'
             [~, ref_model] = min(mean(score, 2));

@@ -3,9 +3,9 @@ function [RMSEtrain, data, perf_train, perf_test] = nn_dataset(nTrainingTrials, 
 train_on_test_noise = true;
 baseline = 0;
 quantile_type = 'weak';
-nEpochs      = 10;
+nEpochs = 10;
 alpha = [0 1e-4];
-batch_size      = 5;
+batch_size = 5;
 assignopts(who, varargin);
 
 
@@ -64,37 +64,41 @@ nTestTrials = 2160; % should this be 2160 to match the experiment? or need more
 
 perf_test = zeros(1, nEpochs);
 perf_train = perf_test;
-
+RMSEtrain = nan;
 %% Train network with SGD
 for e = 1:nEpochs
     
     pp = randperm(nTrainingTrials);
-    
-    for bi = 1:(nTrainingTrials/batch_size)
-        
-        bbegin = (bi-1)*batch_size+1;
-        bend   = bi*batch_size;
-        X      = Xdata(:,pp(bbegin:bend));
-        Y      = Ydata(:,pp(bbegin:bend));
-        
-        if (e == 1) && (bi == 1)
-            W = W_init;
-            b = b_init;
+    if nTrainingTrials==0
+        W = W_init;
+        b = b_init;
+    else
+        for bi = 1:(nTrainingTrials/batch_size)
+            
+            bbegin = (bi-1)*batch_size+1;
+            bend   = bi*batch_size;
+            X      = Xdata(:,pp(bbegin:bend));
+            Y      = Ydata(:,pp(bbegin:bend));
+            
+            if (e == 1) && (bi == 1)
+                W = W_init;
+                b = b_init;
+            end
+            
+            [W, b] = do_backprop_on_batch(X, Y, W, b, eta(bi), mu, lambda_eff, L, ftype, 0, objective, alpha);
+            
         end
         
-        [W, b] = do_backprop_on_batch(X, Y, W, b, eta(bi), mu, lambda_eff, L, ftype, 0, objective, alpha);
-        
+        % Performance over training set
+        Yhattrain           = zeros(1,nTrainingTrials);
+        for ti = 1:nTrainingTrials
+            [a, ~]          = fwd_pass(Xdata(:,ti),W,b,L,ftype);
+            Yhattrain(1,ti) = a{end};
+        end
+        RMSEtrain = sqrt(mean((Yhattrain-P').^2)); % use this as objective
+        perf_train(e) = mean((Yhattrain > .5) == C_train');
+        %     fprintf('\nEpoch %i: %.1f%% training performance', e, perf_train(e)*100)
     end
-    
-    % Performance over training set
-    Yhattrain           = zeros(1,nTrainingTrials);
-    for ti = 1:nTrainingTrials
-        [a, ~]          = fwd_pass(Xdata(:,ti),W,b,L,ftype);
-        Yhattrain(1,ti) = a{end};
-    end
-    RMSEtrain = sqrt(mean((Yhattrain-P').^2)); % use this as objective
-    perf_train(e) = mean((Yhattrain > .5) == C_train');
-%     fprintf('\nEpoch %i: %.1f%% training performance', e, perf_train(e)*100)
     
     % Evaluate network at the end of epoch
     [Rinf, Pinf, s, C_test, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
@@ -115,7 +119,7 @@ for e = 1:nEpochs
     RMSE = sqrt(mean((Yhatinf-Yinfloss).^2));
     
     perf_test(e) = mean(C_test'==real(Yhatinf > .5));
-%     fprintf('\nEpoch %i: %.1f%% test performance\n', e, perf_test(e)*100)
+    %     fprintf('\nEpoch %i: %.1f%% test performance\n', e, perf_test(e)*100)
     
     %     fprintf('Epoch: %i done, InfLoss on test: %f, RMSE on test: %f, NoAcceptedTrials: %i, RMSE on training data: %f \n', e, InfLoss, RMSE, length(Yinfloss), RMSEtrain);
     

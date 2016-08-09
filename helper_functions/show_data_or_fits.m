@@ -302,7 +302,7 @@ for fig = 1:n.fig
                     case 'subject'
                         title(upper(real_data.(tasks{task}).data(subject).name), 'fontsize', task_label_fontsize);
                     case 'model'
-                        t=title(rename_models(models(model).name), 'fontsize', task_label_fontsize, 'verticalalignment', 'baseline');
+                        t=title(rename_models(models(model).name, 'short', true), 'fontsize', task_label_fontsize, 'verticalalignment', 'baseline');
                         tpos = get(t, 'position');
                         
                         if strcmp(depvars{depvar}, 'resp')
