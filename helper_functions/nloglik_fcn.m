@@ -88,7 +88,7 @@ end
 
 xSteps = 201; %200 and 20 take about the same amount of time
 if ~model.diff_mean_same_std
-    xVec = linspace(0,90,xSteps)';
+    xVec = linspace(-20,90,xSteps)';
 else
     xVec = linspace(-45,45,xSteps)';
 end
@@ -274,10 +274,9 @@ elseif strcmp(model.family, 'MAP')
             if ~model.diff_mean_same_std
                 mu1 = xVec*cur_sig^-2 * k1sq(i);
                 mu2 = xVec*cur_sig^-2 * k2sq(i);
-%                 w1 = my_normpdf(xVec,0,sqrt(sig1^2 + cur_sig^2));
-                w1 = exp(xVec./(sig1^2 + cur_sig^2));
-%                 w2 = my_normpdf(xVec,0,sqrt(sig2^2 + cur_sig^2));
-                w2 = exp(xVec./(sig2^2 + cur_sig^2));
+                w1 = my_normpdf(xVec,0,sqrt(sig1^2 + cur_sig^2));
+                w2 = my_normpdf(xVec,0,sqrt(sig2^2 + cur_sig^2));
+                
                 shat_lookup_table(i,:) = gmm1max_n2_fast([w1 w2], [mu1 mu2], repmat([k1(i) k2(i)],xSteps,1),niter);
 
             elseif model.diff_mean_same_std
