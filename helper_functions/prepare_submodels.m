@@ -16,7 +16,7 @@ submodel_struct.model_B.diff_mean_same_std = 0;
 % save pps
 
 if ~m.joint_d
-    submodel_struct.nonbound_param_idx = ~cellfun(@isempty, regexp(m.parameter_names,'^((?!(b_|m_)).)*$'));
+    submodel_struct.nonbound_param_idx = ~cellfun(@isempty, regexp(m.parameter_names,'^((?!(b_|m_)[0-9n]).)*$'));
     submodel_struct.A_bound_param_idx = ~cellfun(@isempty, regexp(m.parameter_names,'^(b_|m_).*TaskA'));
     submodel_struct.B_bound_param_idx = ~cellfun(@isempty, regexp(m.parameter_names,'^(b_|m_)(?!.*TaskA)'));
     

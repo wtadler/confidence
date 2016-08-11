@@ -62,7 +62,7 @@ for m_id = 1 : nModels
     end
     c.name = str; % model name
     %%
-    if isfield(c, 'parameter_names') && ~isempty(c.parameter_names)% && strcmp(c.parameter_names{2}, 'logsigma_c_lowTerm') % already defined, usually if parent function is prepare_submodels()
+    if isfield(c, 'parameter_names') && ~isempty(c.parameter_names) && ~any(strcmp('logsigma_c1', c.parameter_names))% && strcmp(c.parameter_names{2}, 'logsigma_c_lowTerm') % already defined, usually if parent function is prepare_submodels()
         c.parameter_names = c.parameter_names(1:2);
     else
         c.parameter_names = {

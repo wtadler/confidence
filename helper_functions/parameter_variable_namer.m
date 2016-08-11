@@ -15,7 +15,8 @@ end
 
 for t = model.term_params'
     p_in(t)=p_in(t-1)+p_in(t);
-    parameter_names{t} = parameter_names{t}(1:end-4); % chop off the 'term' in the name
+    parameter_names{t} = strrep(parameter_names{t}, 'Term', '');
+%     parameter_names{t} = parameter_names{t}(1:end-4); % chop off the 'term' in the name
 end
 
 % name all the single variables
