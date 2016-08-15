@@ -88,8 +88,9 @@ end
 
 xSteps = 201; %200 and 20 take about the same amount of time
 if ~model.diff_mean_same_std
-    xVec = linspace(-20,90,xSteps)';
+    xVec = linspace(-20,90,xSteps)'; % might be nice to use output from bin_generator(xSteps+1, 'task', 'B', 'internal_sigma', 15)'?
 else
+%     xVec = bin_generator(xSteps+1, 'task', 'A', 'internal_sigma', 15)';
     xVec = linspace(-45,45,xSteps)';
 end
 
@@ -292,8 +293,11 @@ elseif strcmp(model.family, 'MAP')
         
         %log p(s)
         if ~model.diff_mean_same_std % task B
+%             sVec(1,1,:) = bin_generator(xSteps+1, 'task', 'B'); % would
+%             this make sense, with no internal noise?
             logprior = log(1/(2*sqrt(2*pi)) * (sig1^-1 * exp(-sVec.^2 / (2*sig1^2)) + sig2^-1 * exp(-sVec.^2 / (2*sig2^2))));
         elseif model.diff_mean_same_std % task A
+%             sVec(1,1,:) = bin_generator(xSteps+1, 'task', 'A');
             logprior = log(1/(2*category_params.sigma_s*sqrt(2*pi)) * (exp(-(sVec-category_params.mu_1).^2 / (2*category_params.sigma_s^2)) + exp(-(sVec-category_params.mu_2).^2 / (2*category_params.sigma_s^2))));
         end
         
