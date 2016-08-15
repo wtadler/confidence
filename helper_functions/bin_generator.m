@@ -11,15 +11,16 @@ binstyle = 'quantile'; % 'quantile', or some other stuff, or 'rt'
 task = 'B';
 o_boundary = 25;
 o_axis = [-6.16 -5.16 -4.16 4.16 5.16 6.16]; % to look at decision boundary
+internal_sigma = 0;
 assignopts(who,varargin);
 
-cp.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
+cp.sigma_s = sqrt(5^2 + internal_sigma^2); % for 'diff_mean_same_std' and 'half_gaussian'
 cp.a = 0; % overlap for sym_uniform
 cp.mu_1 = -4; % mean for 'diff_mean_same_std'
 cp.mu_2 = 4;
 cp.uniform_range = 1;
-cp.sigma_1 = 3;
-cp.sigma_2 = 12;
+cp.sigma_1 = sqrt(3^2 + internal_sigma^2);
+cp.sigma_2 = sqrt(12^2 + internal_sigma^2);
 
 q = 1 / bins;
 bounds = zeros(1, bins - 1);

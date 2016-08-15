@@ -493,8 +493,8 @@ for gen_model_id = active_gen_models
                                 warning('aborted during slice_sample, and my_print() undefined');
                             end
                             
-                            gen.data.raw = []; % takes up a lot of space
-                            genB.data.raw = [];
+                            gen.data = rmfield(gen.data, 'raw'); % takes up a lot of space
+                            genB.data = rmfield(genB.data, 'raw');
                             save([savedir 'aborted/aborted_' filename])
                             aborted=true;
                             fclose(log_fid);
@@ -722,8 +722,8 @@ end
 fh = [];
 fclose(log_fid);
 % delete([savedir filename '~'])
-gen.data.raw = []; % takes up a lot of space
-genB.data.raw = [];
+gen.data = rmfield(gen.data, 'raw'); % takes up a lot of space
+genB.data = rmfield(genB.data, 'raw');
 save([savedir filename])
 
 %%
