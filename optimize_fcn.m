@@ -403,6 +403,11 @@ for gen_model_id = active_gen_models
                         if exist([savedir 'aborted/aborted_' filename],'file')
                             % RESUME PREVIOUSLY ABORTED SAMPLING
                             load([savedir 'aborted/aborted_' filename], '-regexp', '^(?!time_lim)\w') % load everything except time_lim. keep that from what was set in the pbs script.
+                            
+                            if ~isfield(gen(gen_model_id).data, 'name') % add name back if it's been deleted (this is a temporary fix)
+                                gen(gen_model_id).data(dataset).name = dataset_name;
+                            end
+                            
                             if ~isfield(o, 'separate_measurement_and_inference_noise') % this can hopefully be removed after these 7/2015 jobs finish.
                                 o.separate_measurement_and_inference_noise = 0;
                             end
