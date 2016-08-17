@@ -493,8 +493,13 @@ for gen_model_id = active_gen_models
                                 warning('aborted during slice_sample, and my_print() undefined');
                             end
                             
-                            gen.data = rmfield(gen.data, 'raw'); % takes up a lot of space
-                            genB.data = rmfield(genB.data, 'raw');
+                            try
+                                gen.data = rmfield(gen.data, 'raw'); % takes up a lot of space
+                                genB.data = rmfield(genB.data, 'raw');
+                            catch
+                                warning('failed attempt to clear the data before saving. it might not be present')
+                            end
+                            
                             save([savedir 'aborted/aborted_' filename])
                             aborted=true;
                             fclose(log_fid);
@@ -658,16 +663,30 @@ catch
 end
 
 clear ex_p ex_nll ex_logposterior ex_logprior all_nll all_p d varargin;
+
 if hpc
     for g = active_gen_models
-        for d = datasets
-            gen(g).data(d).raw = [];
+        try
+            gen(g).data = rmfield(gen(g).data, 'raw'); % takes up a lot of space
+        catch
+            warning('failed attempt to clear the data before saving. it might not be present')
+        end
+        try
+            genB(g).data = rmfield(genB(g).data, 'raw');
+        catch
+            warning('failed attempt to clear the data before saving. it might not be present')
         end
     end
     data = [];
 end
 
-%%
+fclose(log_fid);
+% delete([savedir filename '~'])
+save([savedir filename])
+
+
+
+%% plot parameter recovery or mcmc diagnosis
 if ~hpc
     %diagnosis_plots
     % gen.opt=model; % this is for after CCO
@@ -708,7 +727,7 @@ if ~hpc
                         if ~isfield(ex, 'logposterior')
                             ex.logposterior = ex.logprior - ex.nll;
                         end
-                        [fh,ah]=mcmcdiagnosis(ex.p,'logposterior',ex.logposterior,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',ex.dic,'gen_model',g);
+                        mcmcdiagnosis(ex.p,'logposterior',ex.logposterior,'fit_model',o,'true_p',true_p,'true_logposterior',true_logposterior,'dataset',dataset_id,'dic',ex.dic,'gen_model',g);
                         toc
                         pause(.00001); % to plot
                     end
@@ -718,13 +737,6 @@ if ~hpc
     end
 
 end
-%%
-fh = [];
-fclose(log_fid);
-% delete([savedir filename '~'])
-gen.data = rmfield(gen.data, 'raw'); % takes up a lot of space
-genB.data = rmfield(genB.data, 'raw');
-save([savedir filename])
 
 %%
     function lp = log_prior(x)
