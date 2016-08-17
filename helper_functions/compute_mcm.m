@@ -1,7 +1,7 @@
 function model_out = compute_mcm(model_in, varargin)
 
 MCM = 'dic';
-datadir='/Users/will/Google Drive/Will - Confidence/Data/v3_all';
+datadir='~/Google Drive/Will - Confidence/Data/v3_all';
 maxWorkers = 0;
 assignopts(who, varargin);
 
@@ -63,7 +63,8 @@ for m = 1:nModels
                 model_in(m).extracted(d).dbar  = dbar;
                 model_in(m).extracted(d).dtbar = dtbar;
                 
-            case 'waic'
+            case {'waic','psis'}
+%                 nSamples = round(nSamples/100);
                 loglikes = nan(nSamples, nTrials);
                 
                 tenth = floor(nSamples/10);
@@ -73,9 +74,9 @@ for m = 1:nModels
                     loglikes(p, :) = ll_trials;
                     
                     if mod(p, tenth) == 0
-                        prop_complete = p/nSamples;
+                        prop_complete = (nSubjects*(m-1)+d)/nSubjects/nModels;
                         secs_remaining = (toc(t_start)/prop_complete - toc(t_start));
-                        fprintf('model %i/%i, subject %i/%i: %.i%% complete, %.f secs remaining\n', m, nModels, d, nSubjects, round(100*prop_complete), secs_remaining)
+                        fprintf('model %i/%i, subject %i/%i: %.1f%% complete, %.f mins remaining\n', m, nModels, d, nSubjects, 100*prop_complete, secs_remaining/60)
                     end
                 end
                 
@@ -83,6 +84,15 @@ for m = 1:nModels
                 
                 model_in(m).extracted(d).waic1 = waic1;
                 model_in(m).extracted(d).waic2 = waic2;
+                
+                [model_in(m).extracted(d).loopsis, loos, pk] = psisloo(loglikes);
+                if all(pk<0.5)
+                    model_in(m).extracted(d).pareto_tail_indices = 'all under 0.5';
+                else
+                    model_in(m).extracted(d).loos = loos;
+                    model_in(m).extracted(d).pareto_tail_indices = pk;
+                end
+
                 
         end
     end
