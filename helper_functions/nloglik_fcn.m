@@ -88,7 +88,11 @@ end
 
 xSteps = 201; %200 and 20 take about the same amount of time
 if ~model.diff_mean_same_std
-    xVec = linspace(-20,90,xSteps)'; % might be nice to use output from bin_generator(xSteps+1, 'task', 'B', 'internal_sigma', 15)'?
+    if strcmp(model.family, 'MAP')
+        xVec = linspace(-20,90,xSteps)'; % might be nice to use output from bin_generator(xSteps+1, 'task', 'B', 'internal_sigma', 15)'?
+    else
+        xVec = linspace(0,90,xSteps)';
+    end
 else
 %     xVec = bin_generator(xSteps+1, 'task', 'A', 'internal_sigma', 15)';
     xVec = linspace(-45,45,xSteps)';
