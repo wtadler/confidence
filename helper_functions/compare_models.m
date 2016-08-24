@@ -1,10 +1,13 @@
 function [score, group_mean, group_sem, MCM_delta, subject_names] = compare_models(models, varargin)
 
-if isfield(models(1).extracted(1), 'waic2')
-    MCM = 'waic2';
-else
-    MCM = 'dic';
+MCM_priority = {'loopsis', 'waic2', 'dic', 'aic'};
+for m = 1:length(MCM_priority)
+    if isfield(models(1).extracted(1), MCM_priority{m})
+        MCM = MCM_priority{m};
+        break
+    end
 end
+
 sort_subjects = false;
 
 fig_type = 'bar'; % 'grid' or 'bar' or 'sum' or ''
@@ -48,12 +51,21 @@ else
     end
 end
 
-
-if strcmp(MCM, 'laplace')
-    flip_sign = true; % if higher number indicates better fit
-else
-    flip_sign = false; % if lower number indicates better fit (most MCMs)
+switch MCM
+    case {'waic1', 'waic2'}
+        MCM_name = 'WAIC';
+        multiplier = 1;
+    case 'loopsis'
+        MCM_name = '-2*LOO-PSIS';
+        multiplier = -2;
+    case 'laplace'
+        MCM_name = '-Laplace approximation';
+        multiplier = -1;
+    otherwise
+        MCM_name = upper(MCM);
+        multiplier = 1;
 end
+
 
 nModels = length(models);
 nDatasets = length(models(1).extracted);
@@ -67,13 +79,7 @@ for m = 1:nModels
     end
 end
 
-if flip_sign
-    score = -score;
-end
-
-if ~isreal(score)
-    score = real(score);
-end
+score = real(multiplier*score); % real is for laplace approximation, which sometimes fails and has a small imaginary component
 
 range = max(max(score))-min(min(score));
 color_threshold = min(min(score)) + color_switch_threshold * range;
@@ -87,12 +93,6 @@ if sort_subjects
 end
 
 model_names = rename_models({models.name}, 'short', true);
-
-if strcmp(MCM, 'waic2') || strcmp(MCM, 'waic1')
-    MCM_name = 'WAIC';
-else
-    MCM_name = upper(MCM);
-end
 
 if strcmp(fig_type, 'grid')
     
@@ -171,8 +171,6 @@ elseif ~strcmp(fig_type, '')
     
     MCM_delta = -MCM_delta;
     
-    LL = score'/-2;
-    
     if show_names
         if anonymize
             subject_names = strcat('S', strread(num2str(1:nDatasets ), '%s'));
@@ -215,6 +213,7 @@ elseif ~strcmp(fig_type, '')
             ylabel(['\Delta ' MCM_name])
             set(gca, 'xdir', 'reverse')
         else
+            LL = score'/-2;
             [alpha, exp_r, xp, pxp, bor] = spm_BMS(LL);
             
             [bars, sort_idx] = sort(eval(fig_type));

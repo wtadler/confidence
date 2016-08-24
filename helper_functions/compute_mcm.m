@@ -29,7 +29,7 @@ nModels = length(model_in);
 for m = 1:nModels
     nSubjects = length(model_in(m).extracted);
     
-    for d = 1:length(model_in(m).extracted)
+    for d = 1:nSubjects
         if isempty(model_in(m).extracted(d).p)
             continue
         end
