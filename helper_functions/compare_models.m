@@ -37,6 +37,10 @@ ref_value = [];
 
 assignopts(who, varargin)
 
+if strcmp(MCM, 'waic')
+    MCM = 'waic2';
+end
+
 if isempty(ref_model)
     if isempty(ref_value)
         normalize_by = 'best_model';
@@ -53,17 +57,20 @@ end
 
 switch MCM
     case {'waic1', 'waic2'}
-        MCM_name = 'WAIC';
-        multiplier = 1;
+        MCM_name = 'WAIC*';
+        multiplier = -.5;
     case 'loopsis'
-        MCM_name = '-2*LOO-PSIS';
-        multiplier = -2;
+        MCM_name = 'LOO';
+        multiplier = 1;
     case 'laplace'
         MCM_name = '-Laplace approximation';
+        multiplier = 1; % not sure if this is correct, but we're not really using this MCM
+    case 'min_nll'
+        MCM_name = 'LL';
         multiplier = -1;
-    otherwise
-        MCM_name = upper(MCM);
-        multiplier = 1;
+    otherwise % AIC, DIC, etc.
+        MCM_name = [upper(MCM) '*'];
+        multiplier = -.5;
 end
 
 
@@ -105,11 +112,7 @@ if strcmp(fig_type, 'grid')
         for d = 1:nDatasets
             Lmargin = -.45;
             Tmargin = -.3;
-            if ~flip_sign
-                score_string = num2str(score(m,d),'%.0f');
-            else
-                score_string = num2str(-score(m,d), '%.0f');
-            end
+            score_string = num2str(score(m,d),'%.0f');
             t=text(d+Lmargin,m+Tmargin, score_string,'fontsize',xy_label_fontsize,'horizontalalignment','left');
             if score(m,d)>color_threshold, set(t,'color','white'), end
         end
@@ -128,8 +131,8 @@ if strcmp(fig_type, 'grid')
     
     if mark_best_and_worst
         % mark best and worse with checks and crosses
-        [~,best_idx]=min(score);
-        [~,worst_idx]=max(score);
+        [~,best_idx]=max(score);
+        [~,worst_idx]=min(score);
         
         divisor = 60; % set size of crosses/checks
         
@@ -161,15 +164,13 @@ if strcmp(fig_type, 'grid')
 elseif ~strcmp(fig_type, '')
     switch normalize_by
         case 'best_model'
-            [~, ref_model] = min(mean(score, 2));
+            [~, ref_model] = max(mean(score, 2));
             MCM_delta = bsxfun(@minus, score(ref_model,:), score);
         case 'specific_model'
             MCM_delta = bsxfun(@minus, score(ref_model,:), score);
         case 'specific_value'
             MCM_delta = bsxfun(@minus, ref_value, score);
     end
-    
-    MCM_delta = -MCM_delta;
     
     if show_names
         if anonymize
@@ -180,6 +181,8 @@ elseif ~strcmp(fig_type, '')
     else
         subject_names = [];
     end
+    
+    ylabel_str = sprintf('%s_{%s} - %s', MCM_name, model_names{ref_model}, MCM_name);
     
     if strcmp(fig_type, 'bar')
         [group_mean, group_sem] = mybar(MCM_delta, 'barnames', subject_names, 'show_mean', true, ...
@@ -198,11 +201,11 @@ elseif ~strcmp(fig_type, '')
             set(gca, 'xcolor', 'w')
         end
         
-        ylabel(sprintf('%s - %s_{%s}', MCM_name, MCM_name, model_names{ref_model}), 'fontsize', xy_label_fontsize)
+        ylabel(ylabel_str, 'fontsize', xy_label_fontsize)
     else
         if any(strcmp(fig_type, {'mean', 'sum'}))
             quantiles = quantile(bootstrp(1e4, eval(sprintf('@%s', fig_type)), MCM_delta'), [.5 - CI/2, .5, .5 + CI/2]);
-            [~, sort_idx] = sort(quantiles(2,:), 2)
+            [~, sort_idx] = sort(quantiles(2,:), 2);
             quantiles = quantiles(:, sort_idx);
             bar(quantiles(2,:), 'facecolor', barcolor, 'edgecolor', 'none')
             hold on
@@ -210,11 +213,17 @@ elseif ~strcmp(fig_type, '')
             yl = get(gca, 'ylim');
             yl(1) = 0;
             ylim(yl);
-            ylabel(['\Delta ' MCM_name])
+            
+            if strcmp(fig_type, 'sum')
+                ylabel_str = sprintf('\\Sigma(%s)', ylabel_str);
+            elseif strcmp(fig_type,'mean')
+                ylabel_str = sprintf('\\bf{E}\\rm{(%s)}', ylabel_str);
+            end
+            ylabel(ylabel_str, 'fontsize', xy_label_fontsize)
+            
             set(gca, 'xdir', 'reverse')
         else
-            LL = score'/-2;
-            [alpha, exp_r, xp, pxp, bor] = spm_BMS(LL);
+            [alpha, exp_r, xp, pxp, bor] = spm_BMS(score);
             
             [bars, sort_idx] = sort(eval(fig_type));
             
