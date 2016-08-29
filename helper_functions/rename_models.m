@@ -20,7 +20,7 @@ elseif iscell(names_in)
         names_out{n} = namify(names_in{n}, short, abbrev, latex, task, choice);
     end
 elseif isstr(names_in)
-    names_out = namify(names_in, short, abbrev, latex);
+    names_out = namify(names_in, short, abbrev, latex, task, choice);
 end
 
 end
