@@ -12,6 +12,8 @@ sort_subjects = false;
 
 fig_type = 'bar'; % 'grid' or 'bar' or 'sum' or ''
 
+LL_scale = true; % if false, it's on *IC scale
+
 % BAR OPTIONS
 group_gutter=.02;
 bar_gutter= 0.001;
@@ -76,6 +78,15 @@ switch MCM
     otherwise % AIC, DIC, etc.
         MCM_name = [upper(MCM) '*'];
         multiplier = -.5;
+end
+
+if ~LL_scale
+    multiplier = -2*multiplier;
+    if any(strfind(MCM_name, '*')) % remove star if it's there
+        MCM_name = strrep(MCM_name, '*', '');
+    else
+        MCM_name = [MCM_name '*']; % add star if not, to indicate that LL is in IC scale
+    end
 end
 
 
