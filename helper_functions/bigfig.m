@@ -14,6 +14,7 @@ margins = [.15 .01 .14 .06]; % L R B T
 s_labels = [-8 -4 -2 -1 0 1 2 4 8];
 axes_label_fontsize = 16; % axes labels
 xy_label_fontsize = 14; % xlabel and ylabel
+legend_fontsize = 10;
 tick_label_fontsize = 11; % xticklabel and yticklabel
 task_label_fontsize = 19;
 task_text_x = 8.6; % higher is further left
@@ -144,7 +145,7 @@ ylim([.45 .93])
 a=crazyplot(real_data, model, 'A', 'all', 'g', 'tf', true, 'label_x', true, 'label_y', true, 'color', map.taskA);
 b=crazyplot(real_data, model, 'B', 'all', 'g', 'tf', false, 'label_x', true, 'label_y', true, 'color', map.taskB);
 ylabel('prop. correct', 'fontsize', xy_label_fontsize);
-l=legend([a{1}(1),b{1}(1)],'Task A','Task B');
+l=legend([a{1}(1),b{1}(1)],'Task A','Task B', 'fontsize', legend_fontsize);
 set(l,'box','off','location','northwest');
 % letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
@@ -156,7 +157,7 @@ if A
 tight_subplot(nRows, nCols, 3,1, gutter, margins);
 correct=crazyplot(real_data, model, 'A', 'correct', 'c', 'g', true, 'label_x', false, 'label_y', true, 'color', map.correct);
 incorrect=crazyplot(real_data, model, 'A', 'incorrect', 'c', 'g',  false, 'label_x', false, 'label_y', true, 'color', map.incorrect);
-l=legend([correct{1}(1),incorrect{1}(1)],'correct','incorrect');
+l=legend([correct{1}(1),incorrect{1}(1)],'correct','incorrect', 'fontsize', legend_fontsize);
 set(l,'box','off','location','northwest')
 % letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 ylabel('mean confidence', 'fontsize', xy_label_fontsize)
@@ -246,6 +247,7 @@ end
             h{2}=single_dataset_plot(fake_data.(task).sumstats.(trial_type).(x), y, x, ...
                 'fake_data', true, 'group_plot', true, 's_labels', s_labels,...
                 'task', task, 'tick_label_fontsize', tick_label_fontsize, 'xy_label_fontsize', xy_label_fontsize,...
+                'legend_fontsize', legend_fontsize,...
                 varargin{:});
             line_through_errorbars = false;
         else
@@ -256,6 +258,7 @@ end
             'fake_data', false, 'group_plot', true, 's_labels', s_labels,...
             'task', task, 'plot_connecting_line', line_through_errorbars,...
             'tick_label_fontsize', tick_label_fontsize, 'xy_label_fontsize', xy_label_fontsize,...
+            'legend_fontsize', legend_fontsize,...
             varargin{:});
         if custom_ylims
             ylim(ylimit)

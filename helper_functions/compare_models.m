@@ -35,6 +35,11 @@ mark_grate_ellipse = false;
 ref_model = [];
 ref_value = [];
 
+model_name_short = true;
+model_name_abbrev = false;
+model_name_task = true;
+model_name_choice = true;
+
 assignopts(who, varargin)
 
 if strcmp(MCM, 'waic')
@@ -99,7 +104,7 @@ if sort_subjects
     subject_names = subject_names(sort_idx);
 end
 
-model_names = rename_models({models.name}, 'short', true);
+model_names = rename_models(models, 'short', model_name_short, 'abbrev', model_name_abbrev, 'task', model_name_task, 'choice', model_name_choice);
 
 if strcmp(fig_type, 'grid')
     
@@ -240,7 +245,7 @@ elseif ~strcmp(fig_type, '')
         
         view(90,-90);
         if nModels > 15
-            tick_label_fontsize = tick_label_fontsize-1;
+            tick_label_fontsize = tick_label_fontsize-2;
         end
         set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), ...
             'xtick', 1:nModels, 'xlim', [0 nModels+1], 'yticklabel', get(gca, 'ytick'), 'fontsize', tick_label_fontsize)

@@ -21,7 +21,7 @@ axis.fig = 'none'; % 'model', 'task', 'depvar', 'slice'
 trial_types = {'all'}; % 'all', 'correct', 'incorrect', etc...
 linewidth = 2;
 meanlinewidth = 4;
-gutter = [.0175 .025];
+gutter = [.021 .025];
 margins = [0.08 .025 .12 .08]; % L R B T
 models = [];
 nPlotSamples = 10;
@@ -31,14 +31,15 @@ show_legend = true;
 s_labels = -8:2:8;
 errorbarwidth = 1.7;
 MCM = ''; % 'dic', 'waic2', whatever. add extra row with MCM scores.
-MCM_size = .38; % percentage of plot height taken up by model comparison.
-MCM_gutter = .08; % percentage of plot in gutter above model comparison.
+MCM_size = .42; % percentage of plot height taken up by model comparison.
+MCM_gutter = .1; % percentage of plot in gutter above model comparison.
 ref_model = [];
 matchstring = '';
 xy_label_fontsize = 14; % xlabel and ylabel
-tick_label_fontsize = 11; % xticklabel and yticklabel
-task_label_fontsize = 18; % task label and title
-task_text_x = 8.3;
+legend_fontsize = 14;
+tick_label_fontsize = 12; % xticklabel and yticklabel
+task_label_fontsize = 18;
+title_fontsize = 14;
 assignopts(who, varargin);
 
 if any(strcmp({axis.col, axis.fig, axis.row}, 'subject')) % in all non-group plots, subjects are along one axis
@@ -74,8 +75,6 @@ real_data = compile_and_analyze_data(root_datadir, 'nBins', nBins,...
     'matchstring', matchstring);
 
 nSubjects = length(real_data.(tasks{1}).data);
-
-map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
 
 if isfield(real_data.(tasks{1}).data(1).raw, 'cue_validity') && ~isempty(real_data.(tasks{1}).data(1).raw.cue_validity)
     % attention
@@ -131,8 +130,8 @@ ylabels = rename_var_labels(depvars); % translate from variable names to somethi
 
 [depvar, task, model, slice, subject, trial_type] = deal(1); % update these in the for loop switch below.
 
-fig_width = 250*n.col;
-fig_height = 325*n.col;
+fig_width = 205*n.col;
+fig_height = 330*n.row;
 
 if length(tasks) == 2
     margins = margins+[62/fig_width 0 0 0];
@@ -206,7 +205,8 @@ for fig = 1:n.fig
                 'show_legend', (~fake_data && sdp_legend),...
                 'attention_task', attention_manipulation,...
                 'xy_label_fontsize', xy_label_fontsize,...
-                'tick_label_fontsize', tick_label_fontsize);
+                'tick_label_fontsize', tick_label_fontsize,...
+                'legend_fontsize', legend_fontsize);
             
             % clean this section up?
             fake_data = false;
@@ -264,17 +264,17 @@ for fig = 1:n.fig
                 xlimit = get(gca, 'xlim');
                 
                 if strcmp(axis.row, 'model')
-                    yl=ylabel({ylabels{depvar}, ['Task ' tasks{task}], rename_models(models(model).name)}, 'fontsize', xy_label_fontsize);
+                    yl=ylabel({ylabels{depvar}, ['Task ' tasks{task}], rename_models(models(model).name)}, 'fontsize', xy_label_fontsize, 'abbrev', false, 'short', true);
                     set(yl, 'fontsize', xy_label_fontsize)
                 else
                     yl=ylabel(ylabels{depvar}, 'fontsize', xy_label_fontsize);
                     if nTasks > 1
                         half = ylimit(1)+diff(ylimit)/2;
                         
-                        if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
-                            task_text_x = xlimit(2)+diff(xlimit)/4;
+                        if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, 'c_s')
+                            task_text_x = xlimit(2)+diff(xlimit)/3.5;
                         else
-                            task_text_x = xlimit(1)-diff(xlimit)/4;
+                            task_text_x = xlimit(1)-diff(xlimit)/3.5;
                         end
                         
                         text(task_text_x, half, ['Task ' tasks{task}], 'horizontalalignment', 'right', 'fontweight', 'bold', 'fontsize', task_label_fontsize)
@@ -282,16 +282,16 @@ for fig = 1:n.fig
                 end
                 if strcmp(depvars{depvar}, 'resp')
                     ylpos = get(yl, 'position');
-                    if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
-                        ylabel_x = xlimit(2)+diff(xlimit)/8;
+                    if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, 'c_s')
+                        ylabel_x = xlimit(2)+diff(xlimit)/7;
                     else
-                        ylabel_x = xlimit(1)-diff(xlimit)/8;
+                        ylabel_x = xlimit(1)-diff(xlimit)/7;
                     end
-                        
-                        set(yl, 'position', [ylabel_x ylpos(2:3)]);%-[.8 0 0]);
-%                     elseif strcmp(x_name, 'c_C')
-%                         set(yl, 'position', ylpos+[.4 0 0]);
-%                     end
+                    
+                    set(yl, 'position', [ylabel_x ylpos(2:3)]);%-[.8 0 0]);
+                    %                     elseif strcmp(x_name, 'c_C')
+                    %                         set(yl, 'position', ylpos+[.4 0 0]);
+                    %                     end
                 end
             end
             
@@ -300,9 +300,9 @@ for fig = 1:n.fig
             if row == 1
                 switch axis.col
                     case 'subject'
-                        title(upper(real_data.(tasks{task}).data(subject).name), 'fontsize', task_label_fontsize);
+                        title(upper(real_data.(tasks{task}).data(subject).name), 'fontsize', title_fontsize);
                     case 'model'
-                        t=title(rename_models(models(model).name, 'short', true), 'fontsize', task_label_fontsize, 'verticalalignment', 'baseline');
+                        t=title(rename_models(models(model).name, 'short', true, 'abbrev', false), 'fontsize', title_fontsize, 'verticalalignment', 'baseline');
                         tpos = get(t, 'position');
                         
                         if strcmp(depvars{depvar}, 'resp')
@@ -312,43 +312,43 @@ for fig = 1:n.fig
                         end
                         set(t, 'position', [tpos(1) title_y])
                     case 'trial_type'
-                        title(trial_types{trial_type}, 'fontsize', task_label_fontsize);
+                        title(trial_types{trial_type}, 'fontsize', title_fontsize);
                 end
             end
         end
     end
     
     if show_MCM
-    % old way of doing it straight across:
-    %         tight_subplot(1,1,1,1, 0, [margins(1), margins(2), .1, 1-MCM_size+.07])
-    %         [score, group_mean, group_sem] = compare_models(models, 'show_names', true, 'show_model_names', false,...
-    %             'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model,...
-    %             'multiple_axes', true);
+        % old way of doing it straight across:
+        %         tight_subplot(1,1,1,1, 0, [margins(1), margins(2), .1, 1-MCM_size+.07])
+        %         [score, group_mean, group_sem] = compare_models(models, 'show_names', true, 'show_model_names', false,...
+        %             'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model,...
+        %             'multiple_axes', true);
+        
+        for col = 1:n.col
+            tight_subplot(1, n.col, 1, col, gutter, [margins(1), margins(2), .1, 1-MCM_size+MCM_gutter]);
+            
+            % it's dumb to do compare_models each time, but it gets the
+            % axes set correctly.
+            
+            [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_names', true, 'show_model_names', false,...
+                'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model, ...
+                'MCM', MCM, 'xy_label_fontsize', xy_label_fontsize, 'tick_label_fontsize', tick_label_fontsize);
+            if col == 1
+                yl = get(gca, 'ylim');
+            else
+                ylabel('');
+            end
+            
+            mybar(MCM_delta(col, :), 'barnames', subject_names, 'bootstrap', true, 'fontsize', tick_label_fontsize, 'yl', yl);
+            %         ylim(yl);
+            
+            if col ~= 1
+                set(gca, 'yticklabel', '');
+            end
+        end
+    end
     
-    for col = 1:n.col
-        tight_subplot(1, n.col, 1, col, gutter, [margins(1), margins(2), .1, 1-MCM_size+MCM_gutter]);
-        
-        % it's dumb to do compare_models each time, but it gets the
-        % axes set correctly.
-        
-        [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_names', true, 'show_model_names', false,...
-            'group_gutter', gutter(1)/(1-margins(1)-margins(2)), 'bar_gutter', .005, 'ref_model', ref_model, ...
-            'MCM', MCM, 'xy_label_fontsize', xy_label_fontsize);
-        if col == 1
-            yl = get(gca, 'ylim');
-        else
-            ylabel('');
-        end
-        
-        mybar(MCM_delta(col, :), 'barnames', subject_names, 'bootstrap', true, 'fontsize', tick_label_fontsize, 'yl', yl);
-%         ylim(yl);
-        
-        if col ~= 1
-            set(gca, 'yticklabel', '');
-        end
-    end    
-end
-
 end
 
 end

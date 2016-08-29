@@ -13,7 +13,7 @@ label_y = true;
 attention_task = false;
 task = 'A';
 s_labels = -8:2:8;
-resp_square_offset = .07;
+resp_square_offset = .08;
 plot_connecting_line = true;
 nRespSquares = 8;
 respSquareSize = 12;
@@ -21,6 +21,7 @@ show_legend = false;
 legend_loc = 'northwest';
 bootstrap = false;
 xy_label_fontsize = 10;
+legend_fontsize = 10;
 tick_label_fontsize = 10;
 assignopts(who, varargin);
 
@@ -30,7 +31,7 @@ else
     input_colors = [];
 end
 
-if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
+if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, 'c_s')
     reliability_x_axis = true;
     set(gca, 'xdir', 'reverse');
     
@@ -58,7 +59,7 @@ end
 
 map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
 set(gca, 'xticklabelmode', 'auto')
-if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) & ~strcmp(x_name, 'c_s')
+if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, 'c_s')
     xtl = cell(1,nCols);
     if attention_task
         xlabel('cue validity')
@@ -183,7 +184,7 @@ for row = plot_rows
 end
 
 yl.tf = [.3 1];
-yt.tf = [0:.1:1];
+yt.tf = 0:.1:1;
 yl.g  = [1 4];
 yt.g = 1:4;
 yl.Chat = [0 1];
@@ -205,7 +206,7 @@ yt.proportion = 0:.1:.5;
 set(gca, 'box', 'off',...
     'tickdir', 'out', 'ylim', yl.(y_name),...
     'ytick', yt.(y_name),...
-    'xlim', [.5 nCols+.5], 'ticklength', [.018 .018],...
+    'xlim', [.5 nCols+.5], 'ticklength', [.022 .022],...
     'yticklabel', '', 'color', 'none', 'fontsize', tick_label_fontsize);
 
 l = get(gca, 'xlabel');
@@ -262,9 +263,9 @@ if show_legend
         [l, lobj]=legend(handle, labels);
     else
         try
-            [l, lobj]=legend(handle([1 end]), labels);
+            [l, lobj]=legend(handle([1 end]), labels, 'fontsize', legend_fontsize);
         catch
-            [l, lobj]=legend(handle([2 end]), labels);
+            [l, lobj]=legend(handle([2 end]), labels, 'fontsize', legend_fontsize);
         end
     end
     % do stuff with lobj odd-numbered line objects, with xdata, to shorten line.

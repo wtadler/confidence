@@ -2,7 +2,6 @@ function table_maker(models, filename, varargin)
 %%
 bootstrap = true;
 latex = true;
-short_names = true;
 flipsign = false;
 report_significance = false;
     p_correction = 'hb'; % 'hb' (holm-bonferroni) or 'b' (bonferroni). bonferroni is slightly more conservative
@@ -36,8 +35,8 @@ for d = 1:length(models(1).extracted);
     name_str1 = [name_str1 models(1).extracted(d).name];
 end
 
+model_names = rename_models(models, 'latex', true, 'short', false, 'abbrev', true);
 for m = 1:nModels
-    model_names{m} = rename_models(models(m).name, 'latex', latex, 'short', short_names);
     name_str = '';
     for d = 1:length(models(m).extracted);
         name_str = [name_str models(m).extracted(d).name];
