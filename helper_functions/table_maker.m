@@ -2,7 +2,6 @@ function table_maker(models, filename, varargin)
 %%
 bootstrap = true;
 latex = true;
-flipsign = false;
 report_significance = false;
     p_correction = 'hb'; % 'hb' (holm-bonferroni) or 'b' (bonferroni). bonferroni is slightly more conservative
 assignopts(who, varargin);
@@ -10,10 +9,7 @@ assignopts(who, varargin);
 fid = fopen(filename,'w+');
 
 % table to csv
-score = compare_models(models);
-if flipsign
-    score = -score;
-end
+score = compare_models(models, 'MCM', 'loopsis', 'fig_type', '');
 
 nModels = size(score, 1);
 nSubjects = size(score, 2);

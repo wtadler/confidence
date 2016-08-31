@@ -89,7 +89,6 @@ if ~LL_scale
     end
 end
 
-
 nModels = length(models);
 nDatasets = length(models(1).extracted);
 
@@ -98,6 +97,8 @@ for m = 1:nModels
     for d = 1:nDatasets
         try
             score(m,d) = models(m).extracted(d).(MCM);
+        catch
+            error(sprintf('MCM %s not found in models struct', MCM));
         end
     end
 end
@@ -259,7 +260,7 @@ elseif ~strcmp(fig_type, '')
             tick_label_fontsize = tick_label_fontsize-2;
         end
         set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), ...
-            'xtick', 1:nModels, 'xlim', [0 nModels+1], 'yticklabel', get(gca, 'ytick'), 'fontsize', tick_label_fontsize)
+            'xtick', 1:nModels, 'xlim', [0 nModels+1], 'fontsize', tick_label_fontsize)
         set(gcf, 'position', [184 490 466 372])
     end
     
