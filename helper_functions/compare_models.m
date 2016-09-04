@@ -2,7 +2,7 @@ function [score, group_mean, group_sem, MCM_delta, subject_names] = compare_mode
 
 MCM_priority = {'loopsis', 'waic2', 'dic', 'aic'};
 for m = 1:length(MCM_priority)
-    if isfield(models(1).extracted(1), MCM_priority{m})
+    if isfield(models(1).extracted(1), MCM_priority{m}) && ~isempty(models(1).extracted(1).(MCM_priority{m}))
         MCM = MCM_priority{m};
         break
     end
