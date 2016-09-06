@@ -181,12 +181,19 @@ if strcmp(fig_type, 'grid')
 elseif ~strcmp(fig_type, '')
     switch normalize_by
         case 'best_model'
-            [~, ref_model] = max(mean(score, 2));
+            if LL_scale
+                [~, ref_model] = max(mean(score, 2));
+            else
+                [~, ref_model] = min(mean(score, 2));
+            end
             MCM_delta = bsxfun(@minus, score(ref_model,:), score);
         case 'specific_model'
             MCM_delta = bsxfun(@minus, score(ref_model,:), score);
         case 'specific_value'
             MCM_delta = bsxfun(@minus, ref_value, score);
+    end
+    if ~LL_scale
+        MCM_delta = -MCM_delta;
     end
     
     if show_names
@@ -199,7 +206,11 @@ elseif ~strcmp(fig_type, '')
         subject_names = [];
     end
     
-    ylabel_str = sprintf('%s_{%s} - %s', MCM_name, model_names{ref_model}, MCM_name);
+    if LL_scale
+        ylabel_str = sprintf('%s_{%s} - %s', MCM_name, model_names{ref_model}, MCM_name);
+    else
+        ylabel_str = sprintf('%s - %s_{%s}', MCM_name, MCM_name, model_names{ref_model});
+    end
     
     if strcmp(fig_type, 'bar')
         [group_mean, group_sem] = mybar(MCM_delta, 'barnames', subject_names, 'show_mean', true, ...
