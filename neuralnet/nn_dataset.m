@@ -6,6 +6,7 @@ quantile_type = 'weak';
 nEpochs = 10;
 alpha = [0 1e-4];
 batch_size = 5;
+W_init_multiplier = 0.05; % 0.05
 assignopts(who, varargin);
 
 
@@ -30,14 +31,10 @@ sig1_sq     = 3^2;
 sig2_sq     = 12^2;
 tc_precision    = .01; % aka tau_t. formerly .01
 
-% sum activity for unit gain. i'm sure this is a dumb way to do it. also,
-% have a check to ensure that the space is uniformly covered with neural
-% response
-K = 0;
+% sum activity for unit gain. also, should have a check to ensure that the
+% space is uniformly covered with neural response
 sprefs = linspace(-40, 40, nneuron);
-for i = 1:nneuron
-    K = K + exp(-(0-sprefs(i)).^2 * tc_precision / 2);
-end
+K = sum(exp(-sprefs.^2*tc_precision/2));
 
 if ~train_on_test_noise
     [R, P, ~, C_train, ~] = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigma_train, baseline, K, sprefs);
@@ -53,10 +50,10 @@ Ydata      = C_train';
 W_init = cell(L,1);
 b_init = cell(L,1);
 
-W_init{2} = 0.05*randn(nnode(2),nnode(1));
+W_init{2} = W_init_multiplier*randn(nnode(2),nnode(1));
 b_init{2} = 0.00*randn(nnode(2),1);
 
-W_init{3} = 0.05*randn(nnode(3),nnode(2));
+W_init{3} = W_init_multiplier*randn(nnode(3),nnode(2));
 b_init{3} = 0.00*randn(nnode(3),1);
 
 % Evaluate network at the end of epoch

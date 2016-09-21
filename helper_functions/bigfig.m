@@ -78,7 +78,6 @@ if A
 tight_subplot(nRows, nCols, 1,1, gutter, margins);
 crazyplot(real_data, model, 'A', 'all', 'c_C', 'Chat', true, 'label_x', false, 'label_y', true, 'show_legend', true, 'legend_loc', 'northwest');
 ylabel('prop. report "cat. 1"', 'fontsize', xy_label_fontsize);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 % label Task A
 yl=get(gca,'ylim');
 half=yl(1)+diff(yl)/2;
@@ -89,7 +88,6 @@ if B
 tight_subplot(nRows, nCols, 2,1, gutter, margins);
 crazyplot(real_data, model, 'B', 'all', 'c_C', 'Chat', true, 'label_x', true, 'label_y', true);
 ylabel('prop. report "cat. 1"', 'fontsize', xy_label_fontsize);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 % label Task B
 yl=get(gca,'ylim');
 half=yl(1)+diff(yl)/2;
@@ -104,16 +102,14 @@ crazyplot(real_data, model, 'A', 'all', 'c_C', 'resp', true, 'label_x', false, '
 yl=ylabel('mean button press', 'fontsize', xy_label_fontsize);
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos+[.4 0 0]);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 if B
 tight_subplot(nRows, nCols, 2,2, gutter, margins);
 crazyplot(real_data, model, 'B', 'all', 'c_C', 'resp', true, 'label_x', true, 'label_y', true, 'nRespSquares', 4);
-yl=ylabel('mean button press', 'fontsize', xy_label_fontsize)
+yl=ylabel('mean button press', 'fontsize', xy_label_fontsize);
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos+[.4 0 0]);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 if A
@@ -122,7 +118,6 @@ tight_subplot(nRows, nCols, 1,3, gutter, margins);
 ylim([0 .6])
 crazyplot(real_data, model, 'A', 'C1', 'g', 'proportion', true, 'label_x', false, 'label_y', true, 'color', map.cat1);
 crazyplot(real_data, model, 'A', 'C2', 'g', 'proportion', false, 'label_x', false, 'label_y', true, 'color', map.cat2);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 ylabel('prop. of total', 'fontsize', xy_label_fontsize)
 end
 
@@ -131,7 +126,6 @@ tight_subplot(nRows, nCols, 2,3, gutter, margins);
 ylim([0 .6])
 crazyplot(real_data, model, 'B', 'C1', 'g', 'proportion', true, 'label_x', true, 'label_y', true, 'color', map.cat1);
 crazyplot(real_data, model, 'B', 'C2', 'g', 'proportion', false, 'label_x', true, 'label_y', true, 'color', map.cat2);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 ylabel('prop. of total', 'fontsize', xy_label_fontsize)
 end
 
@@ -147,7 +141,6 @@ b=crazyplot(real_data, model, 'B', 'all', 'g', 'tf', false, 'label_x', true, 'la
 ylabel('prop. correct', 'fontsize', xy_label_fontsize);
 l=legend([a{1}(1),b{1}(1)],'Task A','Task B', 'fontsize', legend_fontsize);
 set(l,'box','off','location','northwest');
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 
@@ -159,7 +152,6 @@ correct=crazyplot(real_data, model, 'A', 'correct', 'c', 'g', true, 'label_x', f
 incorrect=crazyplot(real_data, model, 'A', 'incorrect', 'c', 'g',  false, 'label_x', false, 'label_y', true, 'color', map.incorrect);
 l=legend([correct{1}(1),incorrect{1}(1)],'correct','incorrect', 'fontsize', legend_fontsize);
 set(l,'box','off','location','northwest')
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 ylabel('mean confidence', 'fontsize', xy_label_fontsize)
 % label Task A
 yl=get(gca,'ylim');
@@ -172,7 +164,6 @@ if B
 tight_subplot(nRows, nCols, 4,1, gutter, margins);
 crazyplot(real_data, model, 'B', 'correct', 'c', 'g', true, 'label_x', false, 'label_y', true, 'color', map.correct);
 crazyplot(real_data, model, 'B', 'incorrect', 'c', 'g', false, 'label_x', true, 'label_y', true, 'color', map.incorrect);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 ylabel('mean confidence', 'fontsize', xy_label_fontsize)
 % label Task B
 yl=get(gca,'ylim');
@@ -185,14 +176,12 @@ if A
 tight_subplot(nRows, nCols, 3,2, gutter, margins);
 correct=crazyplot(real_data, model, 'A', 'correct', 's', 'g', true, 'label_x', false, 'label_y', true, 'color', map.correct);
 incorrect=crazyplot(real_data, model, 'A', 'incorrect', 's', 'g', false, 'label_x', false, 'label_y', true, 'color', map.incorrect);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 if B
 tight_subplot(nRows, nCols, 4,2, gutter, margins);
 crazyplot(real_data, model, 'B', 'correct', 's', 'g', true, 'label_x', false, 'label_y', true, 'color', map.correct);
 crazyplot(real_data, model, 'B', 'incorrect', 's', 'g', false, 'label_x', true, 'label_y', true, 'color', map.incorrect);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 end
 
 
@@ -200,14 +189,12 @@ if A
 % choice vs orientation for all reliabilities
 tight_subplot(nRows, nCols, 3,3, gutter, margins);
 h=crazyplot(real_data, model, 'A', 'all', 'c_s', 'Chat', true, 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities, 'show_legend', true, 'legend_loc', 'southwest');
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 ylabel('prop. report "cat. 1"', 'fontsize', xy_label_fontsize)
 end
 
 if B
 tight_subplot(nRows, nCols, 4,3, gutter, margins);
 h=crazyplot(real_data, model, 'B', 'all', 'c_s', 'Chat', true, 'label_x', true, 'label_y', true,  'plot_reliabilities', plot_reliabilities);
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 ylabel('prop. report "cat. 1"', 'fontsize', xy_label_fontsize)
 end
 
@@ -216,7 +203,6 @@ if A
 % resp vs orientation for all reliabilities
 tight_subplot(nRows, nCols, 3,4, gutter, margins);
 crazyplot(real_data, model, 'A', 'all', 'c_s', 'resp', true, 'label_x', false, 'label_y', true, 'plot_reliabilities', plot_reliabilities, 'nRespSquares', 6)
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 yl=ylabel('mean button press', 'fontsize', xy_label_fontsize);
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos-[.8 0 0]);
@@ -225,7 +211,6 @@ end
 if B
 tight_subplot(nRows, nCols, 4,4, gutter, margins);
 crazyplot(real_data, model, 'B', 'all', 'c_s', 'resp', true, 'label_x', true, 'label_y', true, 'plot_reliabilities', plot_reliabilities, 'nRespSquares', 6)
-% letter = axeslabel(letter, 'letter_size', axes_label_fontsize);
 yl=ylabel('mean button press', 'fontsize', xy_label_fontsize);
 ylpos = get(yl, 'position');
 set(yl,'position',ylpos-[.8 0 0]);
