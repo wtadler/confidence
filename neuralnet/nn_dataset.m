@@ -26,24 +26,35 @@ eta        = eta_0 ./ (1 + gamma_e*(0:(nTrainingTrials-1))); % learning rate pol
 % lambda     = 0.0705; % lapse
 
 % generate data
-sig1_sq     = 3^2;
-sig2_sq     = 12^2;
+category_params.sigma_1 = 3;
+category_params.sigma_2 = 12;
 tc_precision    = .01; % aka tau_t. formerly .01
 
-% sum activity for unit gain. i'm sure this is a dumb way to do it. also,
-% have a check to ensure that the space is uniformly covered with neural
-% response
-K = 0;
 sprefs = linspace(-40, 40, nneuron);
-for i = 1:nneuron
-    K = K + exp(-(0-sprefs(i)).^2 * tc_precision / 2);
-end
+% sum activity for unit gain
+K = sum(exp(-sprefs.^2 * tc_precision / 2));
+
+C_train = [ones(nTrainingTrials/2, 1); zeros(nTrainingTrials/2, 1)];
+s = [];
+s(C_train == 1) = stimulus_orientations(category_params, 1, sum(C_train == 1), 'same_mean_diff_std');
+s(C_train == 0) = stimulus_orientations(category_params, 2, sum(C_train == 0), 'same_mean_diff_std');
 
 if ~train_on_test_noise
-    [R, P, ~, C_train, ~] = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigma_train, baseline, K, sprefs);
+    sigmas = sigma_train * ones(nTrainingTrials, 1);
 else
-    [R, P, ~, C_train, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
+    sigmas = randsample(sigmas_test, nTrainingTrials, true)';
 end
+
+[R, P, D, gains] = generate_popcode(C_train, s, sigmas,...
+    'nneuron', nneuron, 'sig1_sq', category_params.sigma_1^2, ...
+    'sig2_sq', category_params.sigma_2^2, ...
+    'tc_precision', tc_precision, 'baseline', baseline, ...
+    'sprefs', sprefs);
+
+%     [R, P, ~, C_train, ~] = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigma_train, baseline, K, sprefs);
+% else
+%     [R, P, ~, C_train, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
+% end
 % fprintf('Generated training data\n');
 
 Xdata      = R';

@@ -21,6 +21,8 @@ attention_manipulation = false;
 
 multi_prior = false;
 contrasts = [];
+
+nn_d = false; % generate d from spikes
 assignopts(who,varargin);
 
 % updating category_type according to the model. not sure why i wasn''t doing this before
@@ -214,6 +216,9 @@ if strcmp(model.family,'opt')
                 end
             elseif model.ori_dep_noise
                 raw.d = log(likelihood(p.sig1, 0) ./ likelihood(p.sig2, 0));
+            elseif nn_d
+                [R, P, s, C, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas, baseline, K, sprefs);
+                raw.d = -log(1./P - 1);
             else
                 raw.k1 = .5 * log( (assumed_sig.^2 + p.sig2^2) ./ (assumed_sig.^2 + p.sig1^2));% + p.b_i(5);
                 raw.k2 = (p.sig2^2 - p.sig1^2) ./ (2 .* (assumed_sig.^2 + p.sig1^2) .* (assumed_sig.^2 + p.sig2^2));
