@@ -1,4 +1,4 @@
-function [RMSEtrain, data, perf_train, perf_test] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigmas_test, varargin)
+function [RMSEtrain, data, perf_train, perf_test] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigma_test, varargin)
 
 train_on_test_noise = true;
 baseline = 0;
@@ -8,57 +8,47 @@ alpha = [0 1e-4];
 batch_size = 5;
 assignopts(who, varargin);
 
+sigma_test = reshape(sigma_test, 1, length(sigma_test));
 
 % network parameters
-nhu       = 200;
-L         = 3;
-nneuron   = 50;
-nnode     = [nneuron nhu 1];
-ftype     = 'relu';
+nhu = 200;
+L = 3;
+nneuron = 50;
+nnode = [nneuron nhu 1];
+ftype = 'relu';
 objective = 'xent';
 
 % training parameters
-mu         = 0.0;
+mu = 0.0;
 lambda_eff = 0.0;
 % eta_0      = 0.05; % optimize this
 % gamma_e    = 0.0001; % and this
-eta        = eta_0 ./ (1 + gamma_e*(0:(nTrainingTrials-1))); % learning rate policy
+eta = eta_0 ./ (1 + gamma_e*(0:(nTrainingTrials-1)))'; % learning rate policy
 % lambda     = 0.0705; % lapse
+
+tc_precision = .01; % aka tau_t. formerly .01
+
+sprefs = linspace(-40, 40, nneuron);
 
 % generate data
 category_params.sigma_1 = 3;
 category_params.sigma_2 = 12;
-tc_precision    = .01; % aka tau_t. formerly .01
 
-sprefs = linspace(-40, 40, nneuron);
-% sum activity for unit gain
-K = sum(exp(-sprefs.^2 * tc_precision / 2));
-
-C_train = [ones(nTrainingTrials/2, 1); zeros(nTrainingTrials/2, 1)];
-s = [];
-s(C_train == 1) = stimulus_orientations(category_params, 1, sum(C_train == 1), 'same_mean_diff_std');
-s(C_train == 0) = stimulus_orientations(category_params, 2, sum(C_train == 0), 'same_mean_diff_std');
+[C_train, s_train] = generate_stimuli(nTrainingTrials, category_params);
 
 if ~train_on_test_noise
-    sigmas = sigma_train * ones(nTrainingTrials, 1);
+    sigmas_train = sigma_train * ones(nTrainingTrials, 1);
 else
-    sigmas = randsample(sigmas_test, nTrainingTrials, true)';
+    sigmas_train = randsample(sigma_test, nTrainingTrials, true)';
 end
 
-[R, P, D, gains] = generate_popcode(C_train, s, sigmas,...
-    'nneuron', nneuron, 'sig1_sq', category_params.sigma_1^2, ...
+[R_train, optimal_P_train, optimal_D_train, gains_train] = generate_popcode(C_train, s_train, sigmas_train,...
+    'sig1_sq', category_params.sigma_1^2, ...
     'sig2_sq', category_params.sigma_2^2, ...
     'tc_precision', tc_precision, 'baseline', baseline, ...
     'sprefs', sprefs);
 
-%     [R, P, ~, C_train, ~] = generate_popcode_simple_training(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigma_train, baseline, K, sprefs);
-% else
-%     [R, P, ~, C_train, ~] = generate_popcode_noisy_data_allgains_6(nTrainingTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
-% end
 % fprintf('Generated training data\n');
-
-Xdata      = R';
-Ydata      = C_train';
 
 % initialize network parameters
 W_init = cell(L,1);
@@ -79,7 +69,7 @@ RMSEtrain = nan;
 %% Train network with SGD
 for e = 1:nEpochs
     
-    pp = randperm(nTrainingTrials);
+    pp = randperm(nTrainingTrials)';
     if nTrainingTrials==0
         W = W_init;
         b = b_init;
@@ -87,9 +77,9 @@ for e = 1:nEpochs
         for bi = 1:(nTrainingTrials/batch_size)
             
             bbegin = (bi-1)*batch_size+1;
-            bend   = bi*batch_size;
-            X      = Xdata(:,pp(bbegin:bend));
-            Y      = Ydata(:,pp(bbegin:bend));
+            bend = bi*batch_size;
+            X = R_train(pp(bbegin:bend),:)';
+            Y = C_train(pp(bbegin:bend),:)';
             
             if (e == 1) && (bi == 1)
                 W = W_init;
@@ -101,35 +91,42 @@ for e = 1:nEpochs
         end
         
         % Performance over training set
-        Yhattrain           = zeros(1,nTrainingTrials);
+        Yhattrain = zeros(nTrainingTrials,1);
         for ti = 1:nTrainingTrials
-            [a, ~]          = fwd_pass(Xdata(:,ti),W,b,L,ftype);
-            Yhattrain(1,ti) = a{end};
+            [a, ~] = fwd_pass(R_train(ti,:)',W,b,L,ftype);
+            Yhattrain(ti) = a{end};
         end
-        RMSEtrain = sqrt(mean((Yhattrain-P').^2)); % use this as objective
-        perf_train(e) = mean((Yhattrain > .5) == C_train');
+        RMSEtrain = sqrt(mean((Yhattrain-optimal_P_train).^2)); % use this as objective
+        perf_train(e) = mean((Yhattrain > .5) == C_train);
         %     fprintf('\nEpoch %i: %.1f%% training performance', e, perf_train(e)*100)
     end
     
     % Evaluate network at the end of epoch
-    [Rinf, Pinf, s, C_test, gains, sigmas] = generate_popcode_noisy_data_allgains_6(nTestTrials, nneuron, sig1_sq, sig2_sq, tc_precision, sigmas_test, baseline, K, sprefs);
-    Xinfloss                   = Rinf';
-    Yinfloss                   = Pinf';
-    Yhatinf                    = zeros(1,nTestTrials);
+    [C_test, s_test] = generate_stimuli(nTestTrials, category_params);
+    sigmas_test = randsample(sigma_test, nTestTrials, true)';
+    [R_test, optimal_P_test, optimal_D_test, gains_test] = generate_popcode(C_test, s_test, sigmas_test,...
+        'nneuron', nneuron, 'sig1_sq', category_params.sigma_1^2, ...
+        'sig2_sq', category_params.sigma_2^2, ...
+        'tc_precision', tc_precision, 'baseline', baseline, ...
+        'sprefs', sprefs);
+    
+    Yhatinf = zeros(nTestTrials,1);
     for ti = 1:nTestTrials
-        [a, ~]        = fwd_pass(Xinfloss(:,ti),W,b,L,ftype);
-        Yhatinf(1,ti) = a{end};
+        [a, ~] = fwd_pass(R_test(ti,:)',W,b,L,ftype);
+        Yhatinf(ti) = a{end}; % output unit
     end
     
-    Yinfloss(Yhatinf==0) = .5;
+    % set 0 spike trials to .5 prob. do we need this? not justified with
+    % quantiles?
+    optimal_P_test(Yhatinf==0) = .5; 
     Yhatinf(Yhatinf==0)  = .5;
     
-    InfLoss = nanmean(Yinfloss.*(log(Yinfloss./Yhatinf)) + (1-Yinfloss).*(log((1-Yinfloss)./(1-Yhatinf)))) ...
-        / nanmean(Yinfloss.*log(2*Yinfloss) + (1-Yinfloss).*log(2*(1-Yinfloss)));
+    InfLoss = nanmean(optimal_P_test.*(log(optimal_P_test./Yhatinf)) + (1-optimal_P_test).*(log((1-optimal_P_test)./(1-Yhatinf)))) ...
+        / nanmean(optimal_P_test.*log(2*optimal_P_test) + (1-optimal_P_test).*log(2*(1-optimal_P_test)));
     
-    RMSE = sqrt(mean((Yhatinf-Yinfloss).^2));
+    RMSE = sqrt(mean((Yhatinf-optimal_P_test).^2));
     
-    perf_test(e) = mean(C_test'==real(Yhatinf > .5));
+    perf_test(e) = mean(C_test==real(Yhatinf > .5));
     %     fprintf('\nEpoch %i: %.1f%% test performance\n', e, perf_test(e)*100)
     
     %     fprintf('Epoch: %i done, InfLoss on test: %f, RMSE on test: %f, NoAcceptedTrials: %i, RMSE on training data: %f \n', e, InfLoss, RMSE, length(Yinfloss), RMSEtrain);
@@ -140,14 +137,14 @@ data.C = C_test';
 data.C(data.C==1) = -1;
 data.C(data.C==0) = 1;
 
-data.gains = gains';
-data.sigmas = sigmas';
+data.gains = gains_test';
+data.sigmas = sigmas_test';
 
-data.s = s';
+data.s = s_test';
 
 data.nTrainingTrials = nTrainingTrials;
 
-data.prob = Yhatinf;
+data.prob = Yhatinf';
 
 switch quantile_type
     case 'ultraweak'
@@ -169,8 +166,8 @@ end
 
 
 
-data.resp = 9-data.resp;
-data.Chat = real(data.resp >= 5);
+data.resp = 9-data.resp';
+data.Chat = real(data.resp >= 5)';
 data.Chat(data.Chat==0) = -1;
 data.tf = data.C==data.Chat;
 fprintf('\n%.1f%% final test performance\n', perf_test(e)*100)
@@ -180,5 +177,14 @@ c2 = data.Chat == 1;
 data.g = [];
 data.g(c1) = 5 - data.resp(c1);
 data.g(c2) = -4 + data.resp(c2);
+
+    function [C,s] = generate_stimuli(N, category_params)
+        % generate data
+        C = [ones(N/2, 1); zeros(N/2, 1)];
+        s = [];
+        s(C == 1) = stimulus_orientations(category_params, 1, sum(C == 1), 'same_mean_diff_std');
+        s(C == 0) = stimulus_orientations(category_params, 2, sum(C == 0), 'same_mean_diff_std');
+        s = s'; 
+    end
 
 end

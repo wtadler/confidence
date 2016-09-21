@@ -1,14 +1,13 @@
 function [R, P, D, gains, sigmas] = generate_popcode(C, s, sigmas, varargin);
 
-nneuron = 50;
 sig1_sq = 3^2;
 sig2_sq = 12^2;
 tc_precision = .01;
 baseline = 0;
+sprefs = linspace(-40, 40, 50);
 assignopts(who, varargin);
 
-sprefs = linspace(-40, 40, nneuron);
-assignopts(who, varargin);
+nneuron = length(sprefs);
 
 K = sum(exp(-sprefs.^2 * tc_precision / 2));
 
@@ -29,11 +28,3 @@ BR1 = sum(R.*repmat(sprefs,nTrials,1),2) * tc_precision;
 P  = 1 ./ (1 + sqrt((1+sig1_sq*AR1)./(1+sig2_sq*AR1)) .* exp(-0.5 * ((sig1_sq - sig2_sq) .* BR1.^2) ./ ((1+sig1_sq*AR1).*(1+sig2_sq*AR1))));
 
 D = -log(1./P - 1);
-
-%% test
-
-load('~/Google Drive/Will - Confidence/Analysis/neuralnet/test_sigmas.mat')
-
-nn_dataset(1e4, .001, .01, 1, test_sigmas(:, end));
-
-
