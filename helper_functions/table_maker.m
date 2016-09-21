@@ -24,7 +24,7 @@ means = p;
 sems = p;
 quantiles = zeros(nModels-1, nModels-1, 3);
 
-model_names = cell(1, nModels);
+rng(0);
 
 name_str1 = '';
 for d = 1:length(models(1).extracted);

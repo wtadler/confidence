@@ -35,23 +35,23 @@ end
 if regexp(name_in, '^opt')
     if regexp(name_in, 'joint_d')
         if latex
-            name_out = '$\\text{Bayes}_\\text{S}$';
+            name_out = '$\\text{Bayes}_\\text{U}$';
         else
-            name_out = 'Bayes_{Strong}';
+            name_out = 'Bayes_{Ultrastrong}';
         end
     elseif any(regexp(name_in, 'choice_only')) || (any(regexp(name_in, 'diff_mean_same_std')) && ~any(regexp(name_in, 'joint_task_fit')))
         name_out = 'Bayes';
     elseif regexp(name_in, 'symmetric')
         if latex
-            name_out = '$\\text{Bayes}_\\text{W}$';
+            name_out = '$\\text{Bayes}_\\text{S}$';
         else
-            name_out = 'Bayes_{Weak}';
+            name_out = 'Bayes_{Strong}';
         end
     else
         if latex
-            name_out = '$\\text{Bayes}_\\text{U}$';
+            name_out = '$\\text{Bayes}_\\text{W}$';
         else
-            name_out = 'Bayes_{Ultraweak}';
+            name_out = 'Bayes_{Weak}';
         end
     end
 elseif regexp(name_in, '^lin')
