@@ -117,6 +117,7 @@ data.C(data.C==0) = 1;
 data.gains = gains_test';
 data.sigmas = sigmas_test';
 data.s = s_test';
+data.R = R_test;
 
 data.C_train = C_train';
 data.C_train(data.C_train==1) = -1;

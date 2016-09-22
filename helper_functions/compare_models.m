@@ -108,12 +108,16 @@ score = real(multiplier*score); % real is for laplace approximation, which somet
 range = max(max(score))-min(min(score));
 color_threshold = min(min(score)) + color_switch_threshold * range;
 
-subject_names = {models(1).extracted.name};
+if show_names
+    subject_names = {models(1).extracted.name};
+end
 
 if sort_subjects
     [~, sort_idx] = sort(mean(score,1));
     score = score(1:nModels, sort_idx);
-    subject_names = subject_names(sort_idx);
+    if show_names
+        subject_names = subject_names(sort_idx);
+    end
 end
 
 model_names = rename_models(models, 'short', model_name_short, 'abbrev', model_name_abbrev, 'task', model_name_task, 'choice', model_name_choice);

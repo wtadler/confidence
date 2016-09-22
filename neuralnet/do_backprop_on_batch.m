@@ -1,49 +1,48 @@
-function [W, b] = do_backprop_on_batch(X, Y, W, b, eta, mu, lambda_eff, L, ftype, plt, objective, alpha)
+function [W, b] = do_backprop_on_batch(spikes, C, W, b, eta, mu, lambda_eff, nLayers, hidden_unit_type, plt, objective, alpha)
 
-m     = size(X,2); % batch size
-sum_w = cell(L,1);
-sum_b = cell(L,1);
-VW    = cell(L,1);
-Vb    = cell(L,1);
-delta = cell(L,1);
+batch_size     = size(spikes,2);
+sum_w = cell(nLayers,1);
+sum_b = cell(nLayers,1);
+VW    = cell(nLayers,1);
+Vb    = cell(nLayers,1);
+delta = cell(nLayers,1);
 
 % initialize update matrices
-for i = 2:L
+for i = 2:nLayers
     sum_w{i} = zeros(size(W{i}));
     sum_b{i} = zeros(size(b{i}));
     VW{i}    = zeros(size(W{i}));
     Vb{i}    = zeros(size(b{i}));
 end
 
-for mm = 1:m
+for idx = 1:batch_size
 
-    y        = Y(:,mm);
-    h        = X(:,mm);
-    [a, z]   = fwd_pass(h, W, b, L, ftype);
+    y        = C(:,idx);
+    [a, z]   = fwd_pass(spikes(:,idx), W, b, nLayers, hidden_unit_type);
     
     if strcmp(objective,'se')
-        delta{L} = (a{L} - y) .* sigma_deriv(z{L}, 'sigm'); % sigmoid at the top node
+        delta{nLayers} = (a{nLayers} - y) .* sigma_deriv(z{nLayers}, 'sigm'); % sigmoid at the top node
     elseif strcmp(objective,'xent')
         % note this only works for sigmoid at the top
-        delta{L} = (a{L} - y); % -(y / a{L} - (1-y)/(1-a{L})) .* sigma_deriv(z{L}, 'sigm'); % sigmoid at the top node
+        delta{nLayers} = (a{nLayers} - y); % -(y / a{L} - (1-y)/(1-a{L})) .* sigma_deriv(z{L}, 'sigm'); % sigmoid at the top node
     end
     
-    sum_w{L} = sum_w{L} + delta{L} * a{L-1}';
-    sum_b{L} = sum_b{L} + delta{L};
+    sum_w{nLayers} = sum_w{nLayers} + delta{nLayers} * a{nLayers-1}';
+    sum_b{nLayers} = sum_b{nLayers} + delta{nLayers};
 
-    for l = (L-1):-1:2
-        delta{l} = (W{l+1}' * delta{l+1}) .* sigma_deriv(z{l}, ftype);
+    for l = (nLayers-1):-1:2
+        delta{l} = (W{l+1}' * delta{l+1}) .* sigma_deriv(z{l}, hidden_unit_type);
         sum_w{l} = sum_w{l} + delta{l} * a{l-1}';
         sum_b{l} = sum_b{l} + delta{l};
     end
 
 end
 
-for l = 2:L
-    VW{l} = mu * VW{l} - (eta/m) * real(sum_w{l});
+for l = 2:nLayers
+    VW{l} = mu * VW{l} - (eta/batch_size) * real(sum_w{l});
     
     W{l}  = (1-eta*lambda_eff) * W{l} + VW{l} - alpha(1)*sign(W{l}) - alpha(2)*W{l}; 
-    Vb{l} = mu * Vb{l} - (eta/m) * real(sum_b{l});
+    Vb{l} = mu * Vb{l} - (eta/batch_size) * real(sum_b{l});
     b{l}  = b{l} + Vb{l}; 
 end
 
