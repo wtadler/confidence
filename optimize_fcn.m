@@ -76,6 +76,7 @@ fake_data_params =  'random'; % 'arbitrary' or 'random'
 % category_type = 'same_mean_diff_std'; % 'same_mean_diff_std' (Qamar) or 'diff_mean_same_std' or 'sym_uniform' or 'half_gaussian' (Kepecs)
 attention_manipulation = false;
 training_data = false;
+nn_d = false; % generate d from spikes rather than from x
 
 category_params.sigma_s = 5; % for 'diff_mean_same_std' and 'half_gaussian'
 category_params.a = 0; % overlap for sym_uniform
@@ -212,7 +213,7 @@ if strcmp(data_type, 'fake')
             my_print(sprintf('generating dataset %i\n', dataset))
             good_dataset = false;
             while ~good_dataset
-                d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'attention_manipulation', attention_manipulation, 'category_type', category_type);
+                d = trial_generator(gen(gen_model_id).p(:,dataset), g, 'n_samples', gen_nSamples, 'category_params', category_params, 'attention_manipulation', attention_manipulation, 'category_type', category_type, 'nn_d', nn_d);
                 gen(gen_model_id).data(dataset).raw = d;
                 gen(gen_model_id).data(dataset).true_nll = nloglik_fcn(gen(gen_model_id).p(:,dataset), d, g, nDNoiseSets, category_params);
                 gen(gen_model_id).data(dataset).true_logposterior = -gen(gen_model_id).data(dataset).true_nll + log_prior(gen(gen_model_id).p(:,dataset)');

@@ -21,6 +21,8 @@ attention_manipulation = false;
 
 multi_prior = false;
 contrasts = [];
+
+nn_d = false; % generate d from spikes instead of from x
 assignopts(who,varargin);
 
 % updating category_type according to the model. not sure why i wasn''t doing this before
@@ -168,6 +170,8 @@ if strcmp(model.family, 'neural1')
     neural_sig = sqrt(g .* (p.sigma_tc^2 + raw.s.^2) * sqrt(2*pi*p.sigma_tc^2));
     raw.x = neural_mu + neural_sig .* randn(size(raw.sig));
     %     plot(raw.s, raw.x, '.') %%%%%
+elseif nn_d
+    raw.x = nan(size(raw.sig));
 else
     raw.x = raw.s + randn(size(raw.sig)) .* raw.sig; % add noise to s. this line is the same in both tasks
 end
@@ -214,6 +218,12 @@ if strcmp(model.family,'opt')
                 end
             elseif model.ori_dep_noise
                 raw.d = log(likelihood(p.sig1, 0) ./ likelihood(p.sig2, 0));
+            elseif nn_d
+                [~, ~, raw.d] = generate_popcode(raw.C', raw.s', raw.sig',...
+                    'sig1_sq', category_params.sigma_1^2, ...
+                    'sig2_sq', category_params.sigma_2^2, ...
+                    'baseline', .025);
+                raw.d = raw.d';
             else
                 raw.k1 = .5 * log( (assumed_sig.^2 + p.sig2^2) ./ (assumed_sig.^2 + p.sig1^2));% + p.b_i(5);
                 raw.k2 = (p.sig2^2 - p.sig1^2) ./ (2 .* (assumed_sig.^2 + p.sig1^2) .* (assumed_sig.^2 + p.sig2^2));
