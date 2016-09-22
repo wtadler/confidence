@@ -1,4 +1,4 @@
-function [RMSEtrain, data, perf_train, perf_test] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigma_test, varargin)
+function [data, perf_train, perf_test] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigma_test, varargin)
 
 train_on_test_noise = true;
 baseline = 0;
@@ -12,10 +12,10 @@ sigma_test = reshape(sigma_test, 1, length(sigma_test));
 
 % network parameters
 nhu = 200;
-L = 3;
+nLayers = 3;
 nneuron = 50;
 nnode = [nneuron nhu 1];
-ftype = 'relu';
+hidden_unit_type = 'relu';
 objective = 'xent';
 
 % training parameters
@@ -42,7 +42,7 @@ else
     sigmas_train = randsample(sigma_test, nTrainingTrials, true)';
 end
 
-[R_train, optimal_P_train, optimal_D_train, gains_train] = generate_popcode(C_train, s_train, sigmas_train,...
+[R_train, optimal_p_train, ~, gains_train] = generate_popcode(C_train, s_train, sigmas_train,...
     'sig1_sq', category_params.sigma_1^2, ...
     'sig2_sq', category_params.sigma_2^2, ...
     'tc_precision', tc_precision, 'baseline', baseline, ...
@@ -51,8 +51,8 @@ end
 % fprintf('Generated training data\n');
 
 % initialize network parameters
-W_init = cell(L,1);
-b_init = cell(L,1);
+W_init = cell(nLayers,1);
+b_init = cell(nLayers,1);
 
 W_init{2} = 0.05*randn(nnode(2),nnode(1));
 b_init{2} = 0.00*randn(nnode(2),1);
@@ -65,68 +65,46 @@ nTestTrials = 2160; % should this be 2160 to match the experiment? or need more
 
 perf_test = zeros(1, nEpochs);
 perf_train = perf_test;
-RMSEtrain = nan;
+
 %% Train network with SGD
-for e = 1:nEpochs
+        
+for epoch = 1:nEpochs
     
-    pp = randperm(nTrainingTrials)';
+    trial_idx = randperm(nTrainingTrials)';
     if nTrainingTrials==0
         W = W_init;
         b = b_init;
     else
-        for bi = 1:(nTrainingTrials/batch_size)
+        for batch = 1:(nTrainingTrials/batch_size)
+            batch_begin = (batch-1)*batch_size+1;
+            batch_end = batch*batch_size;
+            spikes = R_train(trial_idx(batch_begin:batch_end),:)';
+            C = C_train(trial_idx(batch_begin:batch_end),:)';
             
-            bbegin = (bi-1)*batch_size+1;
-            bend = bi*batch_size;
-            X = R_train(pp(bbegin:bend),:)';
-            Y = C_train(pp(bbegin:bend),:)';
-            
-            if (e == 1) && (bi == 1)
+            if (epoch == 1) && (batch == 1)
                 W = W_init;
                 b = b_init;
             end
             
-            [W, b] = do_backprop_on_batch(X, Y, W, b, eta(bi), mu, lambda_eff, L, ftype, 0, objective, alpha);
+            [W, b] = do_backprop_on_batch(spikes, C, W, b, eta(batch), mu, lambda_eff, nLayers, hidden_unit_type, 0, objective, alpha);
             
         end
         
         % Performance over training set
-        Yhattrain = zeros(nTrainingTrials,1);
-        for ti = 1:nTrainingTrials
-            [a, ~] = fwd_pass(R_train(ti,:)',W,b,L,ftype);
-            Yhattrain(ti) = a{end};
-        end
-        RMSEtrain = sqrt(mean((Yhattrain-optimal_P_train).^2)); % use this as objective
-        perf_train(e) = mean((Yhattrain > .5) == C_train);
-        %     fprintf('\nEpoch %i: %.1f%% training performance', e, perf_train(e)*100)
+        [output_p_train, optimal_p_train, RMSE_train, info_loss_train, perf_train(epoch)] = fwd_pass_all(R_train, W, b, nLayers, hidden_unit_type, optimal_p_train, C_train);
     end
     
     % Evaluate network at the end of epoch
     [C_test, s_test] = generate_stimuli(nTestTrials, category_params);
     sigmas_test = randsample(sigma_test, nTestTrials, true)';
-    [R_test, optimal_P_test, optimal_D_test, gains_test] = generate_popcode(C_test, s_test, sigmas_test,...
+    [R_test, optimal_p_test, ~, gains_test] = generate_popcode(C_test, s_test, sigmas_test,...
         'nneuron', nneuron, 'sig1_sq', category_params.sigma_1^2, ...
         'sig2_sq', category_params.sigma_2^2, ...
         'tc_precision', tc_precision, 'baseline', baseline, ...
         'sprefs', sprefs);
     
-    Yhatinf = zeros(nTestTrials,1);
-    for ti = 1:nTestTrials
-        [a, ~] = fwd_pass(R_test(ti,:)',W,b,L,ftype);
-        Yhatinf(ti) = a{end}; % output unit
-    end
-    
-    % set 0 spike trials to .5 prob. do we need this? not justified with
-    % quantiles?
-    optimal_P_test(Yhatinf==0) = .5; 
-    Yhatinf(Yhatinf==0)  = .5;
-    
-    InfLoss = nanmean(optimal_P_test.*(log(optimal_P_test./Yhatinf)) + (1-optimal_P_test).*(log((1-optimal_P_test)./(1-Yhatinf)))) ...
-        / nanmean(optimal_P_test.*log(2*optimal_P_test) + (1-optimal_P_test).*log(2*(1-optimal_P_test)));
-    
-    RMSE = sqrt(mean((Yhatinf-optimal_P_test).^2));
-    
-    perf_test(e) = mean(C_test==real(Yhatinf > .5));
+    [output_p_test, optimal_p_test, RMSE_test, info_loss_test, perf_test(epoch)] = fwd_pass_all(R_test, W, b, nLayers, hidden_unit_type, optimal_p_test, C_test);
+
     %     fprintf('\nEpoch %i: %.1f%% test performance\n', e, perf_test(e)*100)
     
     %     fprintf('Epoch: %i done, InfLoss on test: %f, RMSE on test: %f, NoAcceptedTrials: %i, RMSE on training data: %f \n', e, InfLoss, RMSE, length(Yinfloss), RMSEtrain);
@@ -136,23 +114,38 @@ end
 data.C = C_test';
 data.C(data.C==1) = -1;
 data.C(data.C==0) = 1;
-
 data.gains = gains_test';
 data.sigmas = sigmas_test';
-
 data.s = s_test';
+
+data.C_train = C_train';
+data.C_train(data.C_train==1) = -1;
+data.C_train(data.C_train==0) = 1;
+data.gains_train = gains_train';
+data.sigmas_train = sigmas_train';
+data.s_train = s_train';
 
 data.nTrainingTrials = nTrainingTrials;
 
-data.prob = Yhatinf';
+data.output_prob_test = output_p_test';
+data.opt_prob_test = optimal_p_test';
+data.info_loss_test = info_loss_test;
+data.RMSE_test = RMSE_test;
+data.perf_test = perf_test(end);
+
+data.output_prob_train = output_p_train';
+data.opt_prob_train = optimal_p_train';
+data.info_loss_train = info_loss_train;
+data.RMSE_train = RMSE_train;
+data.perf_train = perf_train(end);
 
 switch quantile_type
     case 'ultraweak'
         % quantile for confidence and choice (analogous to Bayes_Weak)
-        edges = [0 quantile(data.prob, linspace(1/8, 7/8, 7)) 1];
+        edges = [0 quantile(data.output_prob_test, linspace(1/8, 7/8, 7)) 1];
     case 'weak'
         % quantile confidences but fix choice boundary at .5
-        edges = [0, quantile(data.prob(data.prob<=.5), linspace(1/4, 3/4, 3)), 1/2, quantile(data.prob(data.prob>.5), linspace(1/4, 3/4, 3)), 1];
+        edges = [0, quantile(data.output_prob_test(data.output_prob_test<=.5), linspace(1/4, 3/4, 3)), 1/2, quantile(data.output_prob_test(data.output_prob_test>.5), linspace(1/4, 3/4, 3)), 1];
     case 'lowconfonly'
         edges = [zeros(1,4) 1/2 ones(1,4)];
 end
@@ -162,7 +155,7 @@ for i = 2:length(edges)
         edges(i) = edges(i-1);
     end
 end
-[~, data.resp] = histc(data.prob, edges);
+[~, data.resp] = histc(data.output_prob_test, edges);
 
 
 
@@ -170,7 +163,7 @@ data.resp = 9-data.resp';
 data.Chat = real(data.resp >= 5)';
 data.Chat(data.Chat==0) = -1;
 data.tf = data.C==data.Chat;
-fprintf('\n%.1f%% final test performance\n', perf_test(e)*100)
+fprintf('\n%.1f%% final test performance\n', data.perf_test*100)
 
 c1 = data.Chat == -1;
 c2 = data.Chat == 1;

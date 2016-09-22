@@ -1,19 +1,19 @@
-function [a, z] = fwd_pass(h,W,b,L,ftype)
+function [a, z] = fwd_pass(R,W,b,nLayers,ftype)
 bias_output = true;
-a        = cell(L,1);
-z        = cell(L,1);
-a{1}     = h;
+a        = cell(nLayers,1);
+z        = cell(nLayers,1);
+a{1}     = R;
 %%
-for i = 2:L
-
-    z{i} = W{i} * a{i-1} + b{i};
-    if i == L % output layer
+for layer = 2:nLayers
+    
+    z{layer} = W{layer} * a{layer-1} + b{layer};
+    if layer == nLayers % output layer
         if bias_output
-            a{i} = sigma_func(W{i} * a{i-1} + b{i},'sigm');
+            a{layer} = sigma_func(W{layer} * a{layer-1} + b{layer},'sigm');
         else
-            a{i} = sigma_func(W{i} * a{i-1},'sigm');
+            a{layer} = sigma_func(W{layer} * a{layer-1},'sigm');
         end
     else % hidden layer(s)
-        a{i} = sigma_func(W{i} * a{i-1} + b{i},ftype);
+        a{layer} = sigma_func(W{layer} * a{layer-1} + b{layer},ftype);
     end
 end
