@@ -164,7 +164,7 @@ data.resp = 9-data.resp';
 data.Chat = real(data.resp >= 5)';
 data.Chat(data.Chat==0) = -1;
 data.tf = data.C==data.Chat;
-fprintf('\n%.1f%% final test performance\n', data.perf_test*100)
+% fprintf('\n%.1f%% final test performance\n', data.perf_test*100)
 
 c1 = data.Chat == -1;
 c2 = data.Chat == 1;

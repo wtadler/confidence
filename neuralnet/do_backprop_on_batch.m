@@ -20,18 +20,18 @@ for idx = 1:batch_size
     y        = C(:,idx);
     [a, z]   = fwd_pass(spikes(:,idx), W, b, nLayers, hidden_unit_type);
     
-    if strcmp(objective,'se')
-        delta{nLayers} = (a{nLayers} - y) .* sigma_deriv(z{nLayers}, 'sigm'); % sigmoid at the top node
-    elseif strcmp(objective,'xent')
-        % note this only works for sigmoid at the top
-        delta{nLayers} = (a{nLayers} - y); % -(y / a{L} - (1-y)/(1-a{L})) .* sigma_deriv(z{L}, 'sigm'); % sigmoid at the top node
-    end
     
-    sum_w{nLayers} = sum_w{nLayers} + delta{nLayers} * a{nLayers-1}';
-    sum_b{nLayers} = sum_b{nLayers} + delta{nLayers};
-
-    for l = (nLayers-1):-1:2
-        delta{l} = (W{l+1}' * delta{l+1}) .* sigma_deriv(z{l}, hidden_unit_type);
+    for l = nLayers:-1:2
+        if l == nLayers
+            if strcmp(objective,'se')
+                delta{l} = (a{l} - y) .* sigma_deriv(z{l}, 'sigm'); % sigmoid at the top node
+            elseif strcmp(objective,'xent')
+                % note this only works for sigmoid at the top
+                delta{l} = (a{l} - y); % -(y / a{L} - (1-y)/(1-a{L})) .* sigma_deriv(z{L}, 'sigm'); % sigmoid at the top node
+            end
+        else
+            delta{l} = W{l+1}' * delta{l+1} .* sigma_deriv(z{l}, hidden_unit_type);
+        end
         sum_w{l} = sum_w{l} + delta{l} * a{l-1}';
         sum_b{l} = sum_b{l} + delta{l};
     end
