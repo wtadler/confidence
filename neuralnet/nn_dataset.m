@@ -42,7 +42,7 @@ else
     sigmas_train = randsample(sigma_test, nTrainingTrials, true)';
 end
 
-[R_train, optimal_p_train, ~, gains_train] = generate_popcode(C_train, s_train, sigmas_train,...
+R_train = generate_popcode(C_train, s_train, sigmas_train,...
     'sig1_sq', category_params.sigma_1^2, ...
     'sig2_sq', category_params.sigma_2^2, ...
     'tc_precision', tc_precision, 'baseline', baseline, ...
@@ -91,7 +91,7 @@ for epoch = 1:nEpochs
         end
         
         % Performance over training set
-        [output_p_train, optimal_p_train, RMSE_train, info_loss_train, perf_train(epoch)] = fwd_pass_all(R_train, W, b, nLayers, hidden_unit_type, optimal_p_train, C_train);
+%         [output_p_train, optimal_p_train, RMSE_train, info_loss_train, perf_train(epoch)] = fwd_pass_all(R_train, W, b, nLayers, hidden_unit_type, optimal_p_train, C_train);
     end
     
     % Evaluate network at the end of epoch
@@ -122,7 +122,7 @@ data.R = R_test;
 data.C_train = C_train';
 data.C_train(data.C_train==1) = -1;
 data.C_train(data.C_train==0) = 1;
-data.gains_train = gains_train';
+% data.gains_train = gains_train';
 data.sigmas_train = sigmas_train';
 data.s_train = s_train';
 
@@ -134,10 +134,10 @@ data.info_loss_test = info_loss_test;
 data.RMSE_test = RMSE_test;
 data.perf_test = perf_test(end);
 
-data.output_prob_train = output_p_train';
-data.opt_prob_train = optimal_p_train';
-data.info_loss_train = info_loss_train;
-data.RMSE_train = RMSE_train;
+% data.output_prob_train = output_p_train';
+% data.opt_prob_train = optimal_p_train';
+% data.info_loss_train = info_loss_train;
+% data.RMSE_train = RMSE_train;
 data.perf_train = perf_train(end);
 
 switch quantile_type
