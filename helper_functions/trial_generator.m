@@ -23,6 +23,7 @@ multi_prior = false;
 contrasts = [];
 
 nn_d = false; % generate d from spikes instead of from x
+nn_baseline = 0;
 assignopts(who,varargin);
 
 % updating category_type according to the model. not sure why i wasn''t doing this before
@@ -222,7 +223,7 @@ if strcmp(model.family,'opt')
                 [raw.spikes, ~, raw.d] = generate_popcode(raw.C', raw.s', raw.sig',...
                     'sig1_sq', category_params.sigma_1^2, ...
                     'sig2_sq', category_params.sigma_2^2, ...
-                    'baseline', 0);
+                    'baseline', nn_baseline);
                 raw.spikes = raw.spikes';
                 raw.d = raw.d';
             else

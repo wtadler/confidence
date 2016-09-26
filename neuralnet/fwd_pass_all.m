@@ -1,4 +1,4 @@
-function [output_p, optimal_p, RMSE, info_loss, perf] = fwd_pass_all(R, W, b, nLayers, ftype, optimal_p, C)
+function [output_p, RMSE, info_loss, perf] = fwd_pass_all(R, W, b, nLayers, ftype, optimal_p, C)
 
 nTrials = size(R, 1);
 output_p = zeros(nTrials, 1);
