@@ -3,9 +3,9 @@ function [data, perf_train, perf_test] = nn_dataset(nTrainingTrials, eta_0, gamm
 train_on_test_noise = true;
 baseline = 0;
 quantile_type = 'weak';
-nEpochs = 10;
+nEpochs = 1;
 alpha = [0 1e-4];
-batch_size = 5;
+batch_size = 10;
 
 C_test = [];
 s_test = [];
