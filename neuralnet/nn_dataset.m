@@ -1,6 +1,6 @@
 function [data, perf_train, perf_test] = nn_dataset(nTrainingTrials, eta_0, gamma_e, sigma_train, sigma_test, varargin)
 
-train_on_test_noise = true;
+train_on_test_noise = false;
 baseline = 0;
 quantile_type = 'weak';
 nEpochs = 1;
@@ -44,13 +44,13 @@ category_params.sigma_2 = 12;
 
 [C_train, s_train] = generate_stimuli(nTrainingTrials, category_params);
 
-if ~train_on_test_noise
+if ~train_on_test_noise && ~all(sigma_train(:)==sigma_test(:))
     sigmas_train = sigma_train * ones(nTrainingTrials, 1);
 else
     sigmas_train = randsample(sigma_test, nTrainingTrials, true)';
 end
 
-R_train = generate_popcode(C_train, s_train, sigmas_train,...
+[R_train, optimal_p_train] = generate_popcode(C_train, s_train, sigmas_train,...
     'sig1_sq', category_params.sigma_1^2, ...
     'sig2_sq', category_params.sigma_2^2, ...
     'tc_precision', tc_precision, 'baseline', baseline, ...
@@ -99,7 +99,7 @@ for epoch = 1:nEpochs
         end
         
         % Performance over training set
-%         [output_p_train, RMSE_train, info_loss_train, perf_train(epoch)] = fwd_pass_all(R_train, W, b, nLayers, hidden_unit_type, optimal_p_train, C_train);
+        [output_p_train, RMSE_train, info_loss_train, perf_train(epoch)] = fwd_pass_all(R_train, W, b, nLayers, hidden_unit_type, optimal_p_train, C_train);
     end
     
     % Evaluate network at the end of epoch
@@ -150,10 +150,10 @@ data.info_loss_test = info_loss_test;
 data.RMSE_test = RMSE_test;
 data.perf_test = perf_test(end);
 
-% data.output_prob_train = output_p_train';
-% data.opt_prob_train = optimal_p_train';
-% data.info_loss_train = info_loss_train;
-% data.RMSE_train = RMSE_train;
+data.output_prob_train = output_p_train';
+data.opt_prob_train = optimal_p_train';
+data.info_loss_train = info_loss_train;
+data.RMSE_train = RMSE_train;
 data.perf_train = perf_train(end);
 
 switch quantile_type
