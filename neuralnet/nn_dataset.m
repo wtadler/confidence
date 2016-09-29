@@ -135,12 +135,12 @@ data.sigmas = sigmas_test';
 data.s = s_test';
 data.R = R_test';
 
-data.C_train = C_train';
-data.C_train(data.C_train==1) = -1;
-data.C_train(data.C_train==0) = 1;
+% data.C_train = C_train';
+% data.C_train(data.C_train==1) = -1;
+% data.C_train(data.C_train==0) = 1;
 % data.gains_train = gains_train';
-data.sigmas_train = sigmas_train';
-data.s_train = s_train';
+% data.sigmas_train = sigmas_train';
+% data.s_train = s_train';
 
 data.nTrainingTrials = nTrainingTrials;
 
