@@ -23,6 +23,7 @@ bootstrap = false;
 xy_label_fontsize = 10;
 legend_fontsize = 10;
 tick_label_fontsize = 10;
+ticklength = .02;
 assignopts(who, varargin);
 
 if ~isempty(colors)
@@ -206,7 +207,7 @@ yt.proportion = 0:.1:.5;
 set(gca, 'box', 'off',...
     'tickdir', 'out', 'ylim', yl.(y_name),...
     'ytick', yt.(y_name),...
-    'xlim', [.5 nCols+.5], 'ticklength', [.022 .022],...
+    'xlim', [.5 nCols+.5], 'ticklength', [ticklength ticklength],...
     'yticklabel', '', 'color', 'none', 'fontsize', tick_label_fontsize);
 
 l = get(gca, 'xlabel');
