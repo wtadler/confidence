@@ -14,6 +14,10 @@ fig_type = 'bar'; % 'grid' or 'bar' or 'sum' or ''
 
 LL_scale = true; % if false, it's on *IC scale
 
+% BAR/MEAN/SUM OPTIONS
+region_color = 'b';
+region_alpha = .4;
+
 % BAR OPTIONS
 group_gutter=.02;
 bar_gutter= 0.001;
@@ -28,6 +32,10 @@ sort_idx = [];
 % GRID OPTIONS
 mark_best_and_worst = true;
 color_switch_threshold = .5; % point in the MCM range where the text color switches from black to white
+
+% MEAN/SUM OPTIONS
+bar_type = 'bar'; % 'bar' or 'fill'
+fig_orientation = 'horz'; %'vert' or 'horz'
 
 xy_label_fontsize = 10;
 tick_label_fontsize = 10;
@@ -91,7 +99,14 @@ if ~LL_scale
 end
 
 nModels = length(models);
+
+if nModels > 15
+    tick_label_fontsize = tick_label_fontsize-2;
+end
+
 nDatasets = length(models(1).extracted);
+
+
 
 score = nan(nModels, nDatasets);
 for m = 1:nModels
@@ -222,7 +237,8 @@ elseif ~strcmp(fig_type, '')
             'group_gutter', group_gutter, 'bar_gutter', bar_gutter, ...
             'mark_grate_ellipse', mark_grate_ellipse, 'bootstrap', true, ...
             'show_mean', true, 'show_errorbox', true,...
-            'fontsize', tick_label_fontsize);
+            'fontsize', tick_label_fontsize, 'region_color', region_color,...
+            'region_alpha', region_alpha);
         
         
         set(gca,'ticklength',[0.018 0.018],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
@@ -238,19 +254,14 @@ elseif ~strcmp(fig_type, '')
     else
         if any(strcmp(fig_type, {'mean', 'sum'}))
             quantiles = quantile(bootstrp(1e4, eval(sprintf('@%s', fig_type)), MCM_delta'), [.5 - CI/2, .5, .5 + CI/2]);
+            
             if isempty(sort_idx)
                 [~, sort_idx] = sort(quantiles(2,:), 2);
             end
-            quantiles = quantiles(:, sort_idx);
-            bar(quantiles(2,:), 'facecolor', barcolor, 'edgecolor', 'none')
-            hold on
+            
             plotbars = setdiff(1:nModels, find(sort_idx==ref_model));
-            errorbar(plotbars, quantiles(2,plotbars), diff(quantiles(1:2,plotbars)), diff(quantiles(2:3,plotbars)), 'linestyle', 'none', 'linewidth', 2, 'color', [.75 .75 .75])
-            if strcmp(normalize_by, 'best_model')
-                yl = get(gca, 'ylim');
-                yl(1) = 0;
-                ylim(yl);
-            end
+            quantiles = quantiles(:, sort_idx);
+            hold on
             
             if strcmp(fig_type, 'sum')
                 ylabel_str = sprintf('\\Sigma(%s)', ylabel_str);
@@ -258,14 +269,15 @@ elseif ~strcmp(fig_type, '')
                 ylabel_str = sprintf('\\bf{E}\\rm{(%s)}', ylabel_str);
             end
             ylabel(ylabel_str, 'fontsize', xy_label_fontsize)
-            
-            set(gca, 'xdir', 'reverse')
+
+            medians = quantiles(2,:);
+
         else
             [alpha, exp_r, xp, pxp, bor] = spm_BMS(score);
             
-            [bars, sort_idx] = sort(eval(fig_type));
+            [medians, sort_idx] = sort(eval(fig_type), [], 'descend');
             
-            bar(bars, 'facecolor', barcolor, 'edgecolor', 'none')
+            
             
             if strcmp(fig_type, 'exp_r')
                 ylabel('model probability for random subject')
@@ -276,12 +288,45 @@ elseif ~strcmp(fig_type, '')
             set(gca, 'ytick', 0:.25:1);
         end
         
-        view(90,-90);
-        if nModels > 15
-            tick_label_fontsize = tick_label_fontsize-2;
+        
+        if strcmp(bar_type, 'bar')
+            bar(medians, 'facecolor', barcolor, 'edgecolor', 'none')
+            if any(strcmp(fig_type, {'mean', 'sum'}))
+                errorbar(plotbars, quantiles(2,plotbars), diff(quantiles(1:2,plotbars)), diff(quantiles(2:3,plotbars)), 'linestyle', 'none', 'linewidth', 2, 'color', [.75 .75 .75])
+            end
+        elseif strcmp(bar_type, 'fill')
+            gutter = .2;
+            for m = 1:nModels
+                startpt = m-.5+gutter/2;
+                endpt = startpt+1-gutter;
+                
+                plot([startpt endpt], [medians(m) medians(m)], '-', 'color', region_color, 'linewidth', 2);
+                
+                error_box = [quantiles(1, m), quantiles(1, m), quantiles(3, m), quantiles(3, m)];
+                f = fill([startpt endpt endpt startpt], error_box, region_color,...
+                    'edgecolor', 'none', 'facealpha', region_alpha);
+            end
+                
+            
+            
         end
+            
+        yl = get(gca, 'ylim');
+        if mean(yl)>0
+            yl(1) = 0;
+        else
+            yl(2) = 0;
+        end
+        ylim(yl);
+        
         set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), ...
-            'xtick', 1:nModels, 'xlim', [0 nModels+1], 'fontsize', tick_label_fontsize)
+            'xtick', 1:nModels, 'xlim', [0 nModels+1], 'fontsize', tick_label_fontsize,...
+            'xdir','reverse')
+        if strcmp(fig_orientation, 'horz')
+            set(gca, 'view', [90 -90])            
+        elseif strcmp(fig_orientation, 'vert')
+            set(gca, 'ydir','normal','xaxislocation','top','xticklabelrotation',25)
+        end
         set(gcf, 'position', [184 490 466 372])
     end
     
