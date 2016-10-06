@@ -23,6 +23,7 @@ fontname = 'Helvetica';
 show_model_names = true;
 CI = .95;
 barcolor = [0 0 0];
+sort_idx = [];
 
 % GRID OPTIONS
 mark_best_and_worst = true;
@@ -237,14 +238,19 @@ elseif ~strcmp(fig_type, '')
     else
         if any(strcmp(fig_type, {'mean', 'sum'}))
             quantiles = quantile(bootstrp(1e4, eval(sprintf('@%s', fig_type)), MCM_delta'), [.5 - CI/2, .5, .5 + CI/2]);
-            [~, sort_idx] = sort(quantiles(2,:), 2);
+            if isempty(sort_idx)
+                [~, sort_idx] = sort(quantiles(2,:), 2);
+            end
             quantiles = quantiles(:, sort_idx);
             bar(quantiles(2,:), 'facecolor', barcolor, 'edgecolor', 'none')
             hold on
-            errorbar(2:nModels, quantiles(2,2:end), diff(quantiles(1:2,2:end)), diff(quantiles(2:3,2:end)), 'linestyle', 'none', 'linewidth', 2, 'color', [.75 .75 .75])
-            yl = get(gca, 'ylim');
-            yl(1) = 0;
-            ylim(yl);
+            plotbars = setdiff(1:nModels, find(sort_idx==ref_model));
+            errorbar(plotbars, quantiles(2,plotbars), diff(quantiles(1:2,plotbars)), diff(quantiles(2:3,plotbars)), 'linestyle', 'none', 'linewidth', 2, 'color', [.75 .75 .75])
+            if strcmp(normalize_by, 'best_model')
+                yl = get(gca, 'ylim');
+                yl(1) = 0;
+                ylim(yl);
+            end
             
             if strcmp(fig_type, 'sum')
                 ylabel_str = sprintf('\\Sigma(%s)', ylabel_str);
