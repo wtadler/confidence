@@ -17,6 +17,7 @@ LL_scale = true; % if false, it's on *IC scale
 % BAR/MEAN/SUM OPTIONS
 region_color = 'b';
 region_alpha = .4;
+xticklabelrotation = 30;
 
 % BAR OPTIONS
 group_gutter=.02;
@@ -48,7 +49,7 @@ ref_value = [];
 normalize_by = [];
 
 model_name_short = true;
-model_name_abbrev = false;
+model_name_abbrev = true;
 model_name_task = true;
 model_name_choice = true;
 
@@ -335,7 +336,7 @@ elseif ~strcmp(fig_type, '')
         if strcmp(fig_orientation, 'horz')
             set(gca, 'view', [90 -90])
         elseif strcmp(fig_orientation, 'vert')
-            set(gca, 'ydir','normal','xaxislocation','top','xticklabelrotation',35)
+            set(gca, 'ydir','normal','xaxislocation','top','xticklabelrotation',xticklabelrotation)
         end
         set(gcf, 'position', [184 490 466 372])
     end
