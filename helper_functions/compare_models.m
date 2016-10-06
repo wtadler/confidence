@@ -45,6 +45,7 @@ mark_grate_ellipse = false;
 
 ref_model = [];
 ref_value = [];
+normalize_by = [];
 
 model_name_short = true;
 model_name_abbrev = false;
@@ -57,17 +58,19 @@ if strcmp(MCM, 'waic')
     MCM = 'waic2';
 end
 
-if isempty(ref_model)
-    if isempty(ref_value)
-        normalize_by = 'best_model';
+if isempty(normalize_by)
+    if isempty(ref_model)
+        if isempty(ref_value)
+            normalize_by = 'best_model';
+        else
+            normalize_by = 'specific_value';
+        end
     else
-        normalize_by = 'specific_value';
-    end
-else
-    if isempty(ref_value)
-        normalize_by = 'specific_model';
-    else
-        error('ref_model and ref_value are both set. Pick one!')
+        if isempty(ref_value)
+            normalize_by = 'specific_model';
+        else
+            error('ref_model and ref_value are both set. Pick one!')
+        end
     end
 end
 
@@ -207,6 +210,13 @@ elseif ~strcmp(fig_type, '')
                 [~, ref_model] = min(mean(score, 2));
             end
             MCM_delta = bsxfun(@minus, score(ref_model,:), score);
+        case 'worst_model'
+            if LL_scale
+                [~, ref_model] = min(mean(score, 2));
+            else
+                [~, ref_model] = max(mean(score, 2));
+            end
+            MCM_delta = bsxfun(@minus, score(ref_model,:), score);
         case 'specific_model'
             MCM_delta = bsxfun(@minus, score(ref_model,:), score);
         case 'specific_value'
@@ -269,9 +279,9 @@ elseif ~strcmp(fig_type, '')
                 ylabel_str = sprintf('\\bf{E}\\rm{(%s)}', ylabel_str);
             end
             ylabel(ylabel_str, 'fontsize', xy_label_fontsize)
-
+            
             medians = quantiles(2,:);
-
+            
         else
             [alpha, exp_r, xp, pxp, bor] = spm_BMS(score);
             
@@ -306,11 +316,11 @@ elseif ~strcmp(fig_type, '')
                 f = fill([startpt endpt endpt startpt], error_box, region_color,...
                     'edgecolor', 'none', 'facealpha', region_alpha);
             end
-                
+            
             
             
         end
-            
+        
         yl = get(gca, 'ylim');
         if mean(yl)>0
             yl(1) = 0;
@@ -323,9 +333,9 @@ elseif ~strcmp(fig_type, '')
             'xtick', 1:nModels, 'xlim', [0 nModels+1], 'fontsize', tick_label_fontsize,...
             'xdir','reverse')
         if strcmp(fig_orientation, 'horz')
-            set(gca, 'view', [90 -90])            
+            set(gca, 'view', [90 -90])
         elseif strcmp(fig_orientation, 'vert')
-            set(gca, 'ydir','normal','xaxislocation','top','xticklabelrotation',25)
+            set(gca, 'ydir','normal','xaxislocation','top','xticklabelrotation',35)
         end
         set(gcf, 'position', [184 490 466 372])
     end
