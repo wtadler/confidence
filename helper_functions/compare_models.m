@@ -37,6 +37,7 @@ color_switch_threshold = .5; % point in the MCM range where the text color switc
 % MEAN/SUM OPTIONS
 bar_type = 'bar'; % 'bar' or 'fill'
 fig_orientation = 'horz'; %'vert' or 'horz'
+fill_gutter = .3;
 
 xy_label_fontsize = 10;
 tick_label_fontsize = 10;
@@ -306,10 +307,9 @@ elseif ~strcmp(fig_type, '')
                 errorbar(plotbars, quantiles(2,plotbars), diff(quantiles(1:2,plotbars)), diff(quantiles(2:3,plotbars)), 'linestyle', 'none', 'linewidth', 2, 'color', [.75 .75 .75])
             end
         elseif strcmp(bar_type, 'fill')
-            gutter = .2;
             for m = 1:nModels
-                startpt = m-.5+gutter/2;
-                endpt = startpt+1-gutter;
+                startpt = m-.5+fill_gutter/2;
+                endpt = startpt+1-fill_gutter;
                 
                 plot([startpt endpt], [medians(m) medians(m)], '-', 'color', region_color, 'linewidth', 2);
                 
@@ -338,7 +338,7 @@ elseif ~strcmp(fig_type, '')
         elseif strcmp(fig_orientation, 'vert')
             set(gca, 'ydir','normal','xaxislocation','top','xticklabelrotation',xticklabelrotation)
         end
-        set(gcf, 'position', [184 490 466 372])
+        set(gcf, 'position', [184 660 261 202])%[184 490 466 372])
     end
     
 end

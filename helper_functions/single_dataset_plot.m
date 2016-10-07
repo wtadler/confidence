@@ -270,5 +270,5 @@ if show_legend
         end
     end
     % do stuff with lobj odd-numbered line objects, with xdata, to shorten line.
-    set(l, 'edgecolor', [1 1 1], 'location', legend_loc)
+    set(l, 'edgecolor', [1 1 1], 'location', legend_loc, 'box', 'off')
 end
