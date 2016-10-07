@@ -5,5 +5,6 @@ if strcmp(ftype,'tanh')
 elseif strcmp(ftype,'relu')
     s = max(0,h);
 elseif strcmp(ftype,'sigm')
-    s = 0.5*tanh(h/2)+0.5;    
+%     s = 0.5*tanh(h/2)+0.5;   
+    s = 1./(1+exp(-h)); % 1.33x faster
 end

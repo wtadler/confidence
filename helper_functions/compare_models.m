@@ -1,4 +1,5 @@
-function [score, group_mean, group_sem, MCM_delta, subject_names] = compare_models(models, varargin)
+function [score, group_mean, group_sem, MCM_delta, subject_names, quantiles] = compare_models(models, varargin)
+[score,group_mean,group_sem,MCM_delta,subject_names,quantiles]=deal([]);
 
 MCM_priority = {'loopsis', 'waic2', 'dic', 'aic'};
 for m = 1:length(MCM_priority)
@@ -14,10 +15,17 @@ fig_type = 'bar'; % 'grid' or 'bar' or 'sum' or ''
 
 LL_scale = true; % if false, it's on *IC scale
 
+ticklength = .02;
+
+% GRID OPTIONS
+mark_best_and_worst = true;
+color_switch_threshold = .5; % point in the MCM range where the text color switches from black to white
+
 % BAR/MEAN/SUM OPTIONS
 region_color = 'b';
 region_alpha = .4;
 xticklabelrotation = 30;
+fig_orientation = 'horz'; %'vert' or 'horz'
 
 % BAR OPTIONS
 group_gutter=.02;
@@ -30,13 +38,8 @@ CI = .95;
 barcolor = [0 0 0];
 sort_idx = [];
 
-% GRID OPTIONS
-mark_best_and_worst = true;
-color_switch_threshold = .5; % point in the MCM range where the text color switches from black to white
-
 % MEAN/SUM OPTIONS
 bar_type = 'bar'; % 'bar' or 'fill'
-fig_orientation = 'horz'; %'vert' or 'horz'
 fill_gutter = .3;
 
 xy_label_fontsize = 10;
@@ -105,9 +108,9 @@ end
 
 nModels = length(models);
 
-if nModels > 15
-    tick_label_fontsize = tick_label_fontsize-2;
-end
+% if nModels > 15
+%     tick_label_fontsize = tick_label_fontsize-2;
+% end
 
 nDatasets = length(models(1).extracted);
 
@@ -250,12 +253,12 @@ elseif ~strcmp(fig_type, '')
             'mark_grate_ellipse', mark_grate_ellipse, 'bootstrap', true, ...
             'show_mean', true, 'show_errorbox', true,...
             'fontsize', tick_label_fontsize, 'region_color', region_color,...
-            'region_alpha', region_alpha);
+            'region_alpha', region_alpha, 'fig_orientation', fig_orientation);
         
         
-        set(gca,'ticklength',[0.018 0.018],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
+        set(gca,'ticklength', [ticklength, ticklength],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
             'xaxislocation','top','fontname', fontname,...%'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
-            'fontsize', tick_label_fontsize, 'xticklabelrotation', 30, 'ygrid', 'on')
+            'fontsize', tick_label_fontsize, 'xticklabelrotation', 30, 'ygrid', 'on','linewidth',1)
         
         if ~show_model_names
             set(gca, 'xticklabel', '')
@@ -311,33 +314,33 @@ elseif ~strcmp(fig_type, '')
                 startpt = m-.5+fill_gutter/2;
                 endpt = startpt+1-fill_gutter;
                 
-                plot([startpt endpt], [medians(m) medians(m)], '-', 'color', region_color, 'linewidth', 2);
+                plot([startpt endpt], [medians(m) medians(m)], '-', 'color', region_color, 'linewidth', 3);
                 
                 error_box = [quantiles(1, m), quantiles(1, m), quantiles(3, m), quantiles(3, m)];
                 f = fill([startpt endpt endpt startpt], error_box, region_color,...
                     'edgecolor', 'none', 'facealpha', region_alpha);
             end
-            
-            
-            
         end
         
-        yl = get(gca, 'ylim');
-        if mean(yl)>0
-            yl(1) = 0;
-        else
-            yl(2) = 0;
-        end
-        ylim(yl);
+        % plot connecting line
+%         yl = get(gca, 'ylim');
+%         for m = 1:nModels
+%             plot([m m], [yl(1) medians(m)], 'k-', 'linewidth', 2)
+%         end
+        
+        hline=plot_horizontal_line(0,'k-', 'linewidth', 1);
+        uistack(hline,'bottom')
         
         set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), ...
             'xtick', 1:nModels, 'xlim', [0 nModels+1], 'fontsize', tick_label_fontsize,...
-            'xdir','reverse')
+            'xdir','reverse', 'ticklength', [ticklength, ticklength], 'ygrid', 'on',...
+            'xlim', .5+[0 nModels],'linewidth',1)
         if strcmp(fig_orientation, 'horz')
             set(gca, 'view', [90 -90])
         elseif strcmp(fig_orientation, 'vert')
             set(gca, 'ydir','normal','xaxislocation','top','xticklabelrotation',xticklabelrotation)
         end
+        
         set(gcf, 'position', [184 660 261 202])%[184 490 466 372])
     end
     
