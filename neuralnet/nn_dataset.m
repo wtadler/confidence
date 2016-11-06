@@ -32,6 +32,7 @@ lambda_eff = 0.0;
 % eta_0      = 0.05; % optimize this
 % gamma_e    = 0.0001; % and this
 eta = eta_0 ./ (1 + gamma_e*(0:(nTrainingTrials-1)))'; % learning rate policy
+warning('change eta calculation to be by batch, not trial')
 % lambda     = 0.0705; % lapse
 
 tc_precision = .01; % aka tau_t. formerly .01
