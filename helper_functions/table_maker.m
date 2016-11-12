@@ -4,6 +4,7 @@ bootstrap = true;
 latex = true;
 report_significance = false;
     p_correction = 'hb'; % 'hb' (holm-bonferroni) or 'b' (bonferroni). bonferroni is slightly more conservative
+halftable = true;
 assignopts(who, varargin);
 
 fid = fopen(filename,'w+');
@@ -71,6 +72,12 @@ for m = 1:nModels
             end
         end
     end
+end
+
+if ~halftable
+    full_table(:,:,1)=[[zeros(nModels-1,1),fliplr(quantiles(:,:,1))];zeros(1,nModels)]+[[zeros(1,nModels-1);flipud(-quantiles(:,:,3)')],zeros(nModels,1)];
+    full_table(:,:,2)=[[zeros(nModels-1,1),fliplr(quantiles(:,:,2))];zeros(1,nModels)]+[[zeros(1,nModels-1);flipud(-quantiles(:,:,2)')],zeros(nModels,1)];
+    full_table(:,:,3)=[[zeros(nModels-1,1),fliplr(quantiles(:,:,3))];zeros(1,nModels)]+[[zeros(1,nModels-1);flipud(-quantiles(:,:,1)')],zeros(nModels,1)];
 end
 
 if strcmp(p_correction, 'hb')
