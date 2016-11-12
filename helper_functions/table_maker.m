@@ -32,7 +32,7 @@ for d = 1:length(models(1).extracted);
     name_str1 = [name_str1 models(1).extracted(d).name];
 end
 
-model_names = rename_models(models, 'latex', true, 'short', false, 'abbrev', true);
+model_names = rename_models(models, 'latex', latex, 'short', false, 'abbrev', true);
 for m = 1:nModels
     name_str = '';
     for d = 1:length(models(m).extracted);
@@ -112,9 +112,15 @@ if latex
         sprintf('%s\\\\cr ', model_names{1:end-2})... % header col
         model_names{end-1}, '} &\n']);
 else
-    fprintf(fid, '%i subjects,', nSubjects);
-    fprintf(fid, '"%s",', model_names{1:end-2});
-    fprintf(fid, '"%s"\n', model_names{end-1});
+%     fprintf(fid, '%i subjects,', nSubjects);
+    fprintf(fid,',,,');
+    fprintf(fid, '%i pars.,', nParams_rev(1:end-2));
+    fprintf(fid, '%i pars.\n', nParams_rev(end-1));
+    fprintf(fid,',,,');
+    fprintf(fid, '"%s",', model_names_rev{1:end-2});
+    fprintf(fid, '"%s"\n', model_names_rev{end-1});
+%     fprintf(fid, '"%s",', model_names{1:end-2});
+%     fprintf(fid, '"%s"\n', model_names{end-1});
 end
 
 
@@ -124,24 +130,25 @@ for m = 1:nModels-1
                 '\\alignCenterstack{']);
     end
     
-    if bootstrap        
+    if bootstrap
         if ~latex % print row
-            error('fix this')
-            fprintf(fid, '"%s",', model_names{end-m+1});
-            for comparison = fliplr(1+m:nModels)
-                if comparison == 2
-                    line_end = '\n';
-                else
-                    line_end = ',';
-                end
-                if ttest(score(m,:), score(comparison,:), 'alpha', alpha) == 1
-                    significance = '*';
-                else
-                    significance = '';
-                end
-                
-                fprintf(fid, '"%.0f [%.0f, %.0f]%s"%s', group_quantiles([2 1 3], comparison), significance, line_end);
+            fprintf(fid, ',%i pars.,"%s",', nParams(m), model_names{m});
+%             fprintf(fid, '"%s",', model_names{end-m+1});
+            for comparison = 1:nModels-m-1
+%                 if comparison == nModels-1
+%                     line_end = '\n';
+%                 else
+%                     line_end = ',';
+%                 end
+%                 if ttest(score(m,:), score(comparison,:), 'alpha', alpha) == 1
+%                     significance = '*';
+%                 else
+%                     significance = '';
+%                 end
+                fprintf(fid, '"%.0f [%.0f, %.0f]",', quantiles(m,comparison,[2 1 3]));
+%                 fprintf(fid, '"%.0f [%.0f, %.0f]%s"%s', group_quantiles([2 1 3], comparison), significance, line_end);
             end
+            fprintf(fid, '"%.0f [%.0f, %.0f]"\n', quantiles(m,nModels-m,[2 1 3]));
         else % print col
             for comparison = fliplr(1+m:nModels)
                 %                 fprintf(fid, '%.0f\\ [%.0f, %.0f]%s', quantiles(nModels+1-comparison, m, 2), quantiles(nModels+1-comparison, m, 1), quantiles(nModels+1-comparison, m, 3), significance{nModels+1-comparison, m});
