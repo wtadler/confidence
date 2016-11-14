@@ -295,9 +295,9 @@ for fig = 1:n.fig
                 if strcmp(depvars{depvar}, 'resp')
                     ylpos = get(yl, 'position');
                     if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, 'c_s')
-                        ylabel_x = xlimit(2)+diff(xlimit)/7;
+                        ylabel_x = xlimit(2)+diff(xlimit)/5.5;
                     else
-                        ylabel_x = xlimit(1)-diff(xlimit)/7;
+                        ylabel_x = xlimit(1)-diff(xlimit)/5.5;
                     end
                     
                     set(yl, 'position', [ylabel_x ylpos(2:3)]);%-[.8 0 0]);

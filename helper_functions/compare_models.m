@@ -165,13 +165,13 @@ if strcmp(fig_type, 'grid')
     
     
     pbaspect([nDatasets nModels 1])
-    set(gca,'box','on','xaxislocation','top','ytick',1:length(models),'ticklength',[0 0],'linewidth',1,'xtick',1:nDatasets, 'xticklabels', upper(subject_names),'fontweight','bold')
+    set(gca,'box','on','xaxislocation','top','ytick',1:length(models),'ticklength',[0 0],'xtick',1:nDatasets, 'xticklabels', upper(subject_names),'fontweight','bold')
     set(gca,'yticklabels', model_names)
     xlabel('Subject','interpreter','none')
     
     % c=colorbar;
     % ticks=11000:2000:15000;
-    % set(c,'ydir','reverse','box','on','ticklength',.035,'linewidth',1,'ticks',ticks,'ticklabels',{'11000','13000','15000'});
+    % set(c,'ydir','reverse','box','on','ticklength',.035,'ticks',ticks,'ticklabels',{'11000','13000','15000'});
     
     
     if mark_best_and_worst
@@ -258,7 +258,7 @@ elseif ~strcmp(fig_type, '')
         
         set(gca,'ticklength', [ticklength, ticklength],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
             'xaxislocation','top','fontname', fontname,...%'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
-            'fontsize', tick_label_fontsize, 'xticklabelrotation', 30, 'ygrid', 'on','linewidth',1)
+            'fontsize', tick_label_fontsize, 'xticklabelrotation', 30, 'ygrid', 'on')
         
         if ~show_model_names
             set(gca, 'xticklabel', '')
@@ -334,7 +334,7 @@ elseif ~strcmp(fig_type, '')
         set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), ...
             'xtick', 1:nModels, 'xlim', [0 nModels+1], 'fontsize', tick_label_fontsize,...
             'xdir','reverse', 'ticklength', [ticklength, ticklength], 'ygrid', 'on',...
-            'xlim', .5+[0 nModels],'linewidth',1)
+            'xlim', .5+[0 nModels])
         if strcmp(fig_orientation, 'horz')
             set(gca, 'view', [90 -90])
         elseif strcmp(fig_orientation, 'vert')
