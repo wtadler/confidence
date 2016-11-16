@@ -78,7 +78,9 @@ if ~halftable
     full_table(:,:,1)=[[zeros(nModels-1,1),fliplr(quantiles(:,:,1))];zeros(1,nModels)]+[[zeros(1,nModels-1);flipud(-quantiles(:,:,3)')],zeros(nModels,1)];
     full_table(:,:,2)=[[zeros(nModels-1,1),fliplr(quantiles(:,:,2))];zeros(1,nModels)]+[[zeros(1,nModels-1);flipud(-quantiles(:,:,2)')],zeros(nModels,1)];
     full_table(:,:,3)=[[zeros(nModels-1,1),fliplr(quantiles(:,:,3))];zeros(1,nModels)]+[[zeros(1,nModels-1);flipud(-quantiles(:,:,1)')],zeros(nModels,1)];
+    full_table = flipud(fliplr(full_table));
 end
+
 
 if strcmp(p_correction, 'hb')
     nZeroCells = sum(1:nModels-2);
@@ -112,19 +114,30 @@ if latex
         sprintf('%s\\\\cr ', model_names{1:end-2})... % header col
         model_names{end-1}, '} &\n']);
 else
-%     fprintf(fid, '%i subjects,', nSubjects);
-    fprintf(fid,',,,');
-    fprintf(fid, '%i pars.,', nParams_rev(1:end-2));
-    fprintf(fid, '%i pars.\n', nParams_rev(end-1));
-    fprintf(fid,',,,');
-    fprintf(fid, '"%s",', model_names_rev{1:end-2});
-    fprintf(fid, '"%s"\n', model_names_rev{end-1});
-%     fprintf(fid, '"%s",', model_names{1:end-2});
-%     fprintf(fid, '"%s"\n', model_names{end-1});
+    if halftable
+        fprintf(fid,',,,');
+        fprintf(fid, '%i pars.,', nParams_rev(1:end-2));
+        fprintf(fid, '%i pars.\n', nParams_rev(end-1));
+        fprintf(fid,',,,');
+        fprintf(fid, '"%s",', model_names_rev{1:end-2});
+        fprintf(fid, '"%s"\n', model_names_rev{end-1});
+    else
+        fprintf(fid,',,,');
+        fprintf(fid, '%i pars.,', nParams_rev(1:end-1));
+        fprintf(fid, '%i pars.\n', nParams_rev(end));
+        fprintf(fid,',,,');
+        fprintf(fid, '"%s",', model_names_rev{1:end-1});
+        fprintf(fid, '"%s"\n', model_names_rev{end});        
+    end
 end
 
+if halftable
+    total_models = 1:nModels-1;
+else
+    total_models = 1:nModels;
+end
 
-for m = 1:nModels-1
+for m = total_models
     if latex
         fprintf(fid, ['{\\ensurestackMath{\n'...
                 '\\alignCenterstack{']);
@@ -132,23 +145,19 @@ for m = 1:nModels-1
     
     if bootstrap
         if ~latex % print row
-            fprintf(fid, ',%i pars.,"%s",', nParams(m), model_names{m});
-%             fprintf(fid, '"%s",', model_names{end-m+1});
-            for comparison = 1:nModels-m-1
-%                 if comparison == nModels-1
-%                     line_end = '\n';
-%                 else
-%                     line_end = ',';
-%                 end
-%                 if ttest(score(m,:), score(comparison,:), 'alpha', alpha) == 1
-%                     significance = '*';
-%                 else
-%                     significance = '';
-%                 end
-                fprintf(fid, '"%.0f [%.0f, %.0f]",', quantiles(m,comparison,[2 1 3]));
-%                 fprintf(fid, '"%.0f [%.0f, %.0f]%s"%s', group_quantiles([2 1 3], comparison), significance, line_end);
+            if halftable
+                fprintf(fid, ',%i pars.,"%s",', nParams(m), model_names{m});
+                for comparison = 1:nModels-m-1
+                    fprintf(fid, '"%.0f [%.0f, %.0f]",', quantiles(m,comparison,[2 1 3]));
+                end
+                fprintf(fid, '"%.0f [%.0f, %.0f]"\n', quantiles(m,nModels-m,[2 1 3]));
+            else
+                fprintf(fid, ',%i pars.,"%s",', nParams_rev(m), model_names_rev{m});
+                for comparison = 1:nModels-1
+                    fprintf(fid, '"%.0f [%.0f, %.0f]",', full_table(m, comparison, [2 1 3]));
+                end
+                fprintf(fid, '"%.0f [%.0f, %.0f]"\n', full_table(m,nModels,[2 1 3]));
             end
-            fprintf(fid, '"%.0f [%.0f, %.0f]"\n', quantiles(m,nModels-m,[2 1 3]));
         else % print col
             for comparison = fliplr(1+m:nModels)
                 %                 fprintf(fid, '%.0f\\ [%.0f, %.0f]%s', quantiles(nModels+1-comparison, m, 2), quantiles(nModels+1-comparison, m, 1), quantiles(nModels+1-comparison, m, 3), significance{nModels+1-comparison, m});
