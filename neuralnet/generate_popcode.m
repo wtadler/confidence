@@ -28,7 +28,8 @@ if nargout > 1
         AR1 = sum(R,2) * tc_precision;
         BR1 = sum(R.*repmat(sprefs,nTrials,1),2) * tc_precision;
         
-        P  = 1 ./ (1 + sqrt((1+sig1_sq*AR1)./(1+sig2_sq*AR1)) .* exp(-0.5 * ((sig1_sq - sig2_sq) .* BR1.^2) ./ ((1+sig1_sq*AR1).*(1+sig2_sq*AR1))));
+        P  = 1 ./...
+            (1 + sqrt((1+sig1_sq*AR1)./(1+sig2_sq*AR1)) .* exp(-0.5 * ((sig1_sq - sig2_sq) .* BR1.^2) ./ ((1+sig1_sq*AR1).*(1+sig2_sq*AR1))));
         D = -log(1./P - 1);
     else
         s = (-40:ds:40)';

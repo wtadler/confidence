@@ -1,4 +1,4 @@
-function [score, group_mean, group_sem, MCM_delta, subject_names, quantiles] = compare_models(models, varargin)
+function [score, group_mean, group_sem, MCM_delta, subject_names, quantiles, sort_idx] = compare_models(models, varargin)
 [score,group_mean,group_sem,MCM_delta,subject_names,quantiles]=deal([]);
 
 MCM_priority = {'loopsis', 'waic2', 'dic', 'aic'};
@@ -288,19 +288,15 @@ elseif ~strcmp(fig_type, '')
             medians = quantiles(2,:);
             
         else
-            [alpha, exp_r, xp, pxp, bor] = spm_BMS(score);
+            [alpha, exp_r, xp, pxp, bor] = spm_BMS(score');
             
-            [medians, sort_idx] = sort(eval(fig_type), [], 'descend');
-            
-            
-            
-            if strcmp(fig_type, 'exp_r')
-                ylabel('model probability for random subject')
-            else
-                ylabel('probability that model is better than all others')
+            if isempty(sort_idx)
+                [~, sort_idx] = sort(eval(fig_type), 2, 'descend');
             end
-            ylim([0 1])
-            set(gca, 'ytick', 0:.25:1);
+            
+            medians = eval(fig_type);
+            medians = medians(:, sort_idx);
+            
         end
         
         
@@ -322,6 +318,15 @@ elseif ~strcmp(fig_type, '')
             end
         end
         
+        if ~any(strcmp(fig_type, {'mean', 'sum'}))
+            if strcmp(fig_type, 'exp_r')
+                ylabel('expected posterior probability of model')
+            else
+                ylabel('probability that model is better than all others')
+            end
+            ylim([0 1])
+            set(gca, 'ytick', 0:.25:1);
+        end
         % plot connecting line
 %         yl = get(gca, 'ylim');
 %         for m = 1:nModels
