@@ -58,7 +58,11 @@ else
     end
 end
 
-map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
+try
+    map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
+catch
+    map = load('MyColorMaps.mat');
+end
 set(gca, 'xticklabelmode', 'auto')
 if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, 'c_s')
     xtl = cell(1,nCols);
@@ -222,7 +226,11 @@ if label_y
     else
         set(gca, 'clipping', 'off')
         % blue to red colormap
-        map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
+        try
+            map = load('~/Google Drive/MATLAB/utilities/MyColorMaps.mat');
+        catch
+            map = load('MyColorMaps.mat');
+        end
         if reliability_x_axis
             square_x = nCols + .5+ resp_square_offset*nCols;
         else
