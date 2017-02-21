@@ -1,4 +1,4 @@
-function [score, group_mean, group_sem, MCM_delta, subject_names, quantiles] = compare_models(models, varargin)
+function [score, group_mean, group_sem, MCM_delta, subject_names, quantiles, sort_idx] = compare_models(models, varargin)
 [score,group_mean,group_sem,MCM_delta,subject_names,quantiles]=deal([]);
 
 MCM_priority = {'loopsis', 'waic2', 'dic', 'aic'};
@@ -165,13 +165,13 @@ if strcmp(fig_type, 'grid')
     
     
     pbaspect([nDatasets nModels 1])
-    set(gca,'box','on','xaxislocation','top','ytick',1:length(models),'ticklength',[0 0],'linewidth',1,'xtick',1:nDatasets, 'xticklabels', upper(subject_names),'fontweight','bold')
+    set(gca,'box','on','xaxislocation','top','ytick',1:length(models),'ticklength',[0 0],'xtick',1:nDatasets, 'xticklabels', upper(subject_names),'fontweight','bold')
     set(gca,'yticklabels', model_names)
     xlabel('Subject','interpreter','none')
     
     % c=colorbar;
     % ticks=11000:2000:15000;
-    % set(c,'ydir','reverse','box','on','ticklength',.035,'linewidth',1,'ticks',ticks,'ticklabels',{'11000','13000','15000'});
+    % set(c,'ydir','reverse','box','on','ticklength',.035,'ticks',ticks,'ticklabels',{'11000','13000','15000'});
     
     
     if mark_best_and_worst
@@ -253,12 +253,13 @@ elseif ~strcmp(fig_type, '')
             'mark_grate_ellipse', mark_grate_ellipse, 'bootstrap', true, ...
             'show_mean', true, 'show_errorbox', true,...
             'fontsize', tick_label_fontsize, 'region_color', region_color,...
-            'region_alpha', region_alpha, 'fig_orientation', fig_orientation);
+            'region_alpha', region_alpha, 'fig_orientation', fig_orientation,...
+            'CI', CI);
         
         
         set(gca,'ticklength', [ticklength, ticklength],'box','off','xtick',(1/nModels/2):(1/nModels):1,'xticklabel',model_names,...
             'xaxislocation','top','fontname', fontname,...%'ytick', round(yl(1),-2):500:round(yl(2),-2), ...
-            'fontsize', tick_label_fontsize, 'xticklabelrotation', 30, 'ygrid', 'on','linewidth',1)
+            'fontsize', tick_label_fontsize, 'xticklabelrotation', 30, 'ygrid', 'on')
         
         if ~show_model_names
             set(gca, 'xticklabel', '')
@@ -288,19 +289,15 @@ elseif ~strcmp(fig_type, '')
             medians = quantiles(2,:);
             
         else
-            [alpha, exp_r, xp, pxp, bor] = spm_BMS(score);
+            [alpha, exp_r, xp, pxp, bor] = spm_BMS(score');
             
-            [medians, sort_idx] = sort(eval(fig_type), [], 'descend');
-            
-            
-            
-            if strcmp(fig_type, 'exp_r')
-                ylabel('model probability for random subject')
-            else
-                ylabel('probability that model is better than all others')
+            if isempty(sort_idx)
+                [~, sort_idx] = sort(eval(fig_type), 2, 'descend');
             end
-            ylim([0 1])
-            set(gca, 'ytick', 0:.25:1);
+            
+            medians = eval(fig_type);
+            medians = medians(:, sort_idx);
+            
         end
         
         
@@ -322,6 +319,15 @@ elseif ~strcmp(fig_type, '')
             end
         end
         
+        if ~any(strcmp(fig_type, {'mean', 'sum'}))
+            if strcmp(fig_type, 'exp_r')
+                ylabel('expected posterior probability of model')
+            else
+                ylabel('probability that model is better than all others')
+            end
+            ylim([0 1])
+            set(gca, 'ytick', 0:.25:1);
+        end
         % plot connecting line
 %         yl = get(gca, 'ylim');
 %         for m = 1:nModels
@@ -334,7 +340,7 @@ elseif ~strcmp(fig_type, '')
         set(gca, 'box', 'off', 'tickdir', 'out', 'xticklabel', model_names(sort_idx), ...
             'xtick', 1:nModels, 'xlim', [0 nModels+1], 'fontsize', tick_label_fontsize,...
             'xdir','reverse', 'ticklength', [ticklength, ticklength], 'ygrid', 'on',...
-            'xlim', .5+[0 nModels],'linewidth',1)
+            'xlim', .5+[0 nModels])
         if strcmp(fig_orientation, 'horz')
             set(gca, 'view', [90 -90])
         elseif strcmp(fig_orientation, 'vert')

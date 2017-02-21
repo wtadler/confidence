@@ -13,7 +13,7 @@ label_y = true;
 attention_task = false;
 task = 'A';
 s_labels = -8:2:8;
-resp_square_offset = .08;
+resp_square_offset = .1;
 plot_connecting_line = true;
 nRespSquares = 8;
 respSquareSize = 12;
@@ -24,6 +24,7 @@ xy_label_fontsize = 10;
 legend_fontsize = 10;
 tick_label_fontsize = 10;
 ticklength = .02;
+label_s_bin_centers = false;
 assignopts(who, varargin);
 
 if ~isempty(colors)
@@ -246,7 +247,12 @@ end
 if any(strcmp(x_name, {'s', 'c_s'}))
     [~, centers] = bin_generator(nCols, 'task', task);
     
-    set(gca, 'xtick', interp1(centers, 1:nCols, s_labels));
+    if label_s_bin_centers
+        set(gca, 'xtick', 1:nCols);
+        set(gca, 'xticklabel', round(centers));
+    else
+        set(gca, 'xtick', interp1(centers, 1:nCols, s_labels));
+    end
 else
     set(gca, 'xtick', 1:nCols)
 end

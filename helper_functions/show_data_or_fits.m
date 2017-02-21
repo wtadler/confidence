@@ -41,6 +41,8 @@ tick_label_fontsize = 11; % xticklabel and yticklabel
 row_label_fontsize = 14;
 title_fontsize = 14;
 ticklength = .02;
+label_s_bin_centers = false;
+CI = .95;
 assignopts(who, varargin);
 
 if any(strcmp({axis.col, axis.fig, axis.row}, 'subject')) % in all non-group plots, subjects are along one axis
@@ -218,7 +220,8 @@ for fig = 1:n.fig
                 'xy_label_fontsize', xy_label_fontsize,...
                 'tick_label_fontsize', tick_label_fontsize,...
                 'legend_fontsize', legend_fontsize,...
-                'ticklength', ticklength);
+                'ticklength', ticklength,...
+                'label_s_bin_centers', label_s_bin_centers);
             
             % clean this section up?
             fake_data = false;
@@ -295,9 +298,9 @@ for fig = 1:n.fig
                 if strcmp(depvars{depvar}, 'resp')
                     ylpos = get(yl, 'position');
                     if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, 'c_s')
-                        ylabel_x = xlimit(2)+diff(xlimit)/7;
+                        ylabel_x = xlimit(2)+diff(xlimit)/5.5;
                     else
-                        ylabel_x = xlimit(1)-diff(xlimit)/7;
+                        ylabel_x = xlimit(1)-diff(xlimit)/5.5;
                     end
                     
                     set(yl, 'position', [ylabel_x ylpos(2:3)]);%-[.8 0 0]);
@@ -343,12 +346,12 @@ for fig = 1:n.fig
             end
             [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_model_names', false, ...
                  'ref_model', ref_model, 'MCM', MCM, 'xy_label_fontsize', xy_label_fontsize,...
-                 'tick_label_fontsize', tick_label_fontsize, 'ticklength', ticklength)
+                 'tick_label_fontsize', tick_label_fontsize, 'ticklength', ticklength, 'CI', CI);
             
             yl = get(gca, 'ylim');
             
             mybar(MCM_delta(m, :), 'barnames', subject_names, 'bootstrap', true, 'fontsize', tick_label_fontsize, ...
-                'yl', yl, 'fig_orientation', bar_orientation);
+                'yl', yl, 'fig_orientation', bar_orientation, 'CI', CI);
             xlim([-.03 1.03])
             
             if (strcmp(axis.col, 'model') && m ~= 1) || (strcmp(axis.row, 'model') && m ~= nModels)
