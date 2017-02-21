@@ -41,6 +41,7 @@ tick_label_fontsize = 11; % xticklabel and yticklabel
 row_label_fontsize = 14;
 title_fontsize = 14;
 ticklength = .02;
+label_s_bin_centers = false;
 assignopts(who, varargin);
 
 if any(strcmp({axis.col, axis.fig, axis.row}, 'subject')) % in all non-group plots, subjects are along one axis
@@ -218,7 +219,8 @@ for fig = 1:n.fig
                 'xy_label_fontsize', xy_label_fontsize,...
                 'tick_label_fontsize', tick_label_fontsize,...
                 'legend_fontsize', legend_fontsize,...
-                'ticklength', ticklength);
+                'ticklength', ticklength,...
+                'label_s_bin_centers', label_s_bin_centers);
             
             % clean this section up?
             fake_data = false;
