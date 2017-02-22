@@ -136,18 +136,18 @@ if show_names
     subject_names = {models(1).extracted.name};
 end
 
-if sort_subjects
-    [~, sort_idx] = sort(mean(score,1));
-    score = score(1:nModels, sort_idx);
-    if show_names
-        subject_names = subject_names(sort_idx);
-    end
-end
 
 model_names = rename_models(models, 'short', model_name_short, 'abbrev', model_name_abbrev, 'task', model_name_task, 'choice', model_name_choice);
 
 if strcmp(fig_type, 'grid')
-    
+    if sort_subjects
+        [~, sort_idx] = sort(mean(score,1));
+        score = score(1:nModels, sort_idx);
+        if show_names
+            subject_names = subject_names(sort_idx);
+        end
+    end
+
     imagesc(score);
     set(gca,'looseinset',get(gca,'tightinset')) % get rid of white space
     colorsteps = 256;
@@ -248,6 +248,16 @@ elseif ~strcmp(fig_type, '')
     end
     
     if strcmp(fig_type, 'bar')
+        if sort_subjects
+            if length(models)~=2
+                error('cannot sort subjects for more than 2 models in this kind of plot. what would you sort on?')
+            end
+            [MCM_delta(MCM_delta~=0), sort_idx]=sort(MCM_delta(MCM_delta~=0), 'descend')
+            if show_names
+                subject_names = subject_names(sort_idx);
+            end
+        end
+        
         [group_mean, group_sem] = mybar(MCM_delta, 'barnames', subject_names, 'show_mean', true, ...
             'group_gutter', group_gutter, 'bar_gutter', bar_gutter, ...
             'mark_grate_ellipse', mark_grate_ellipse, 'bootstrap', true, ...
