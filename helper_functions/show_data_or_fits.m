@@ -31,8 +31,9 @@ show_legend = true;
 s_labels = -8:2:8;
 errorbarwidth = 1.7;
 MCM = ''; % 'dic', 'waic2', whatever. add extra row with MCM scores.
-MCM_size = .42; % percentage of plot height taken up by model comparison.
-MCM_gutter = .1; % percentage of plot in gutter above model comparison.
+    MCM_size = .42; % percentage of plot height taken up by model comparison.
+    MCM_gutter = .1; % percentage of plot in gutter above model comparison.
+    show_subject_names = true;
 ref_model = [];
 matchstring = '';
 xy_label_fontsize = 14; % xlabel and ylabel
@@ -43,6 +44,7 @@ title_fontsize = 14;
 ticklength = .02;
 label_s_bin_centers = false;
 CI = .95;
+
 assignopts(who, varargin);
 
 if any(strcmp({axis.col, axis.fig, axis.row}, 'subject')) % in all non-group plots, subjects are along one axis
@@ -349,7 +351,9 @@ for fig = 1:n.fig
                  'tick_label_fontsize', tick_label_fontsize, 'ticklength', ticklength, 'CI', CI);
             
             yl = get(gca, 'ylim');
-            
+            if ~show_subject_names
+                subject_names = [];
+            end
             mybar(MCM_delta(m, :), 'barnames', subject_names, 'bootstrap', true, 'fontsize', tick_label_fontsize, ...
                 'yl', yl, 'fig_orientation', bar_orientation, 'CI', CI);
             xlim([-.03 1.03])
