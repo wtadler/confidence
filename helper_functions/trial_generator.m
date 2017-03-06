@@ -269,21 +269,29 @@ if strcmp(model.family,'opt') % for all opt family models
     if ~model.fisher_info
         raw.Chat(raw.d >= p.b_i(5)) = -1;
         raw.Chat(raw.d < p.b_i(5)) = 1;
+        
+        if ~model.choice_only
+            for g = 1 : conf_levels * 2
+                raw.g( p.b_i(g) <= raw.d ...
+                    & raw.d    <= p.b_i(g+1)) = confidences(g);
+            end
+        end
+
     else
-        k = 0;
-        raw.Chat(raw.d >= k) = -1;
-        raw.Chat(raw.d < k) = 1;
+        raw.Chat(raw.d >= 0) = -1;
+        raw.Chat(raw.d < 0) = 1;
         
         raw.d = 1./(1+exp(raw.Chat.*raw.d)) + p.fisher_weight.*assumed_sig.^-2;
+        
+        if ~model.choice_only
+            for g = 1 : conf_levels
+                raw.g( p.b_i(g) <= raw.d ...
+                    & raw.d    <= p.b_i(g+1)) = g;
+            end
+        end
     end
     
         
-    if ~model.choice_only
-        for g = 1 : conf_levels * 2;
-            raw.g( p.b_i(g) <= raw.d ...
-                & raw.d    <= p.b_i(g+1)) = confidences(g);
-        end
-    end
     
 elseif strcmp(model.family, 'MAP')
     if isfield(model, 'separate_measurement_and_inference_noise') && model.separate_measurement_and_inference_noise

@@ -241,13 +241,13 @@ if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian
         k2 = (sig2^2 - sig1^2) ./ (2 .* (sig.^2 + sig1^2) .* (sig.^2 + sig2^2));
         
         if ~model.fisher_info
-            x_dec_bound  = real(sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - bf(0)) ./ repmat(k2, nDNoiseSets, 1)));
-            % equivalently, but slower: x_dec_bound = sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'),bf(0)),k2));
+            d_bound = bf(0);
         else
-            % FIX
-%             x_dec_bound = real(sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - ...
-%                 log((1-bf(0)+p.fisher_weight*sig.^-2)/(bf(0)-p.fisher_weight*sig.^-2))) ./ repmat(k2, nDNoiseSets, 1)));
+            d_bound = 0; % fix decision boundary at d=0. ultrastrong!
         end
+        
+        x_dec_bound  = real(sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - d_bound) ./ repmat(k2, nDNoiseSets, 1)));
+        % equivalently, but slower: x_dec_bound = sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'), d_bound),k2));
         
     end
 elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
@@ -255,8 +255,14 @@ elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
     if model.ori_dep_noise
         [d_lookup_table, x_dec_bound] = d_table_and_choice_bound(category_params.sigma_s, category_params.sigma_s, category_params.mu_1, category_params.mu_2);        
     else
-        x_dec_bound = (2*(bf(0)+d_noise).*(repmat(sig, nDNoiseSets, 1).^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
-            / (2*(category_params.mu_1 - category_params.mu_2)); % ADAPT FOR D NOISE? does this d noise work?
+        if ~model.fisher_info
+            d_bound = bf(0);
+        else
+            d_bound = 0; % fix decision boundary at d=0. ultrastrong!
+        end
+
+        x_dec_bound = (2*(d_bound+d_noise).*(repmat(sig, nDNoiseSets, 1).^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
+            / (2*(category_params.mu_1 - category_params.mu_2));
     end
 elseif strcmp(model.family, 'lin') && ~model.diff_mean_same_std
     x_dec_bound = max(bf(0) + mf(0) * sig, 0);
@@ -439,11 +445,27 @@ if ~model.choice_only
         if model.ori_dep_noise
             [x_lb, x_ub] = x_bounds_by_trial();
         else
-            d_lb = p.b_i(2*conf_levels+1-raw.resp);
-            d_ub = p.b_i(2*conf_levels+2-raw.resp); % this is the same as doing fliplr on p.b_i first
-                        
-            x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
-            x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+            if ~model.fisher_info
+                d_lb = p.b_i(2*conf_levels+1-raw.resp);
+                d_ub = p.b_i(2*conf_levels+2-raw.resp); % this is the same as doing fliplr on p.b_i first
+                
+                x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+                x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+            else
+                p.b_i = [Inf 1.2 .9 .6 p.b_i];
+                
+                d_lb = p.b_i(2*conf_levels+2-raw.resp); % 2 or 1?
+                d_ub = p.b_i(2*conf_levels+1-raw.resp);
+
+%                 d_lb = p.b_i(raw.g);
+%                 d_ub = p.b_i(raw.g+1);
+                
+                x_lb = log((1-d_lb+p.fisher_weight*sig.^-2)./(d_lb-p.fisher_weight*sig.^-2)).*(sig.^2+category_params.sigma_s^2)./(2*category_params.mu_1*raw.Chat);
+                x_ub = log((1-d_ub+p.fisher_weight*sig.^-2)./(d_ub-p.fisher_weight*sig.^-2)).*(sig.^2+category_params.sigma_s^2)./(2*category_params.mu_1*raw.Chat);
+                x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+                x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+
+            end
         end
         
     elseif strcmp(model.family, 'lin')

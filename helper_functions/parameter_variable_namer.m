@@ -78,7 +78,7 @@ else
                 p.b_i = [-Inf p.b_n3_d p.b_n2_d p.b_n1_d p.b_0_d p.b_1_d p.b_2_d p.b_3_d Inf];
             end
         else
-            p.b_i = [0 p.b_0_d p.b_1_d p.b_2_d p.b_3_d Inf];
+            p.b_i = [0 p.b_0_d p.b_1_d p.b_2_d Inf];
         end
     elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'MAP')
         if model.symmetric % only applies for task A. no symmetry in these models for task B.
