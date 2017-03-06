@@ -10,6 +10,8 @@ for m = 1:length(MCM_priority)
 end
 
 sort_subjects = false;
+sort_model = 1;
+keep_subjects_sorted = true;
 
 fig_type = 'bar'; % 'grid' or 'bar' or 'sum' or ''
 
@@ -249,13 +251,17 @@ elseif ~strcmp(fig_type, '')
     
     if strcmp(fig_type, 'bar')
         if sort_subjects
-            if length(models)~=2
-                error('cannot sort subjects for more than 2 models in this kind of plot. what would you sort on?')
+            if keep_subjects_sorted
+                [~, sort_idx]=sort(MCM_delta(sort_model, :), 'descend')
+                MCM_delta = MCM_delta(:, sort_idx);
+                if show_names
+                    subject_names = subject_names(sort_idx);
+                end
+            else
+                MCM_delta = sort(MCM_delta, 2,'descend');
+                subject_names = [];
             end
-            [MCM_delta(MCM_delta~=0), sort_idx]=sort(MCM_delta(MCM_delta~=0), 'descend')
-            if show_names
-                subject_names = subject_names(sort_idx);
-            end
+            
         end
         
         [group_mean, group_sem] = mybar(MCM_delta, 'barnames', subject_names, 'show_mean', true, ...
