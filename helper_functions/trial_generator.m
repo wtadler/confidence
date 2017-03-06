@@ -253,6 +253,7 @@ if strcmp(model.family,'opt')
         otherwise
             error('DIST_TYPE is not valid.')
     end
+    
 end
 
 
@@ -265,9 +266,18 @@ if strcmp(model.family,'opt') % for all opt family models
     raw.d(raw.d==Inf)  =  1e6;
     raw.d(raw.d==-Inf) = -1e6;
     
-    raw.Chat(raw.d >= p.b_i(5)) = -1;
-    raw.Chat(raw.d < p.b_i(5)) = 1;
+    if ~model.fisher_info
+        raw.Chat(raw.d >= p.b_i(5)) = -1;
+        raw.Chat(raw.d < p.b_i(5)) = 1;
+    else
+        k = 0;
+        raw.Chat(raw.d >= k) = -1;
+        raw.Chat(raw.d < k) = 1;
+        
+        raw.d = 1./(1+exp(raw.Chat.*raw.d)) + p.fisher_weight.*assumed_sig.^-2;
+    end
     
+        
     if ~model.choice_only
         for g = 1 : conf_levels * 2;
             raw.g( p.b_i(g) <= raw.d ...

@@ -7,7 +7,8 @@ for m_id = 1 : nModels
     options = {'multi_lapse','partial_lapse','repeat_lapse','choice_only',...
         'symmetric','d_noise','free_cats','non_overlap','ori_dep_noise',...
         'diff_mean_same_std','joint_task_fit','joint_d', 'nFreesigs',...
-        'separate_measurement_and_inference_noise', 'biased_lapse'};
+        'separate_measurement_and_inference_noise', 'biased_lapse',...
+        'fisher_info'};
     for o = 1:length(options)
         if ~isfield(c,options{o}) || isempty(c.(options{o}))
             c.(options{o}) = 0;
@@ -26,6 +27,7 @@ for m_id = 1 : nModels
         % these options are only for bayesian models
         c.d_noise = 0;
         c.joint_d = 0;
+        c.fisher_info = 0;
     end
     
     if ~strcmp(c.family, 'opt') && ~strcmp(c.family, 'MAP')
@@ -46,6 +48,11 @@ for m_id = 1 : nModels
         c.symmetric = 0; % opt is the only model that can be symmetric in task B
     elseif c.diff_mean_same_std || c.joint_d
         c.symmetric = 1; % bounds are symmetric for all Task A models.
+    end
+    
+    if c.fisher_info
+        c.symmetric = 1;
+        c.joint_d = 1;
     end
     
     % give model its name based on the settings. in future, might be better to report the alternative rather than just leave it out when it's zero.
@@ -139,17 +146,18 @@ for m_id = 1 : nModels
         'b_3_neural1Term_TaskA'
         'b_0_neural1Choice_TaskA'
         'lambda_bias'
+        'fisher_weight'
         ];
     
     % 8/11: lb(1:3) used to be [0 -4 10]
     % scl/sch can't be lower than -4 otherwise we get problems in nloglik_fcn
-    %               sch scl betabn3dbn2dbn1db0d b1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA  sig_tc  bn3n1   bn2n1   bn1n1   b0n1    b1n1    b2n1    b3n1    b0n1c   b0n1_TA     b1n1_TA     b2n1_TA     b3n1_TA     b0n1c_TA    lam_bias  
-    c.lb       = [  -4  -10 -40 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30     0       0       0       0       0       0       0       0       0       -50         0           0           0           -50         0]';
-    c.ub       = [  5   7   15  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   1   .25 .25 .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30      10      150     150     150     150     150     200     300     200     50          200         200         200         50          1]';
-    c.lb_gen   = [  -2  .5  -1  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  -3  0   0   0   0   0   2   8  2   -2  3   0       -.3     .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5      0       0       0       0       0       0       0       0       10      -10         0           0           0           -10          .4]';
-    c.ub_gen   = [  .2  1   6   -.5 .2  .2  .2  .2  .2  .2  3   5   5   5   5   5   5   1   1   1   1   1   1   1   2   0   .1  .1  .2  .1  4   10  10  2   8   2       .3      1.2     1.2     2       2       5       5       30      2       1       1       1       2       3       5       1.7     15      15      15      15      15      15      15      20      10          15          15          15          1           .6]';
+    %               sch scl betabn3dbn2dbn1db0d b1d b2d b3d bn3xbn2xbn1xb0x b1x b2x b3x mn3 mn2 mn1 m0  m1  m2  m3  sigdlm  lm1 lm4 lmg lmr s1  s2  sa  b0dcb0xcm0c     b0d_TA  b1d_TA  b2d_TA  b3d_TA  b0x_TA  b1x_TA  b2x_TA  b3x_TA  m0_TA   m1_TA   m2_TA   m3_TA   b0dc_TA b0xc_TA m0c_TA  sig_tc  bn3n1   bn2n1   bn1n1   b0n1    b1n1    b2n1    b3n1    b0n1c   b0n1_TA     b1n1_TA     b2n1_TA     b3n1_TA     b0n1c_TA    lam_bias    fshr_w
+    c.lb       = [  -4  -10 -40 -15 0   0   0   0   0   0   0   0   0   0   0   0   0   -30 0   0   0   0   0   0   -10 0   0   0   0   0   0   0   0   -10 0   -30     -.5     0       0       0       -10     0       0       0       -5      0       0       0       -10     -10     -30     0       0       0       0       0       0       0       0       0       -50         0           0           0           -50         0           0]';
+    c.ub       = [  5   7   15  2   15  4   3   3   3   30  10  10  10  30  30  30  90  30  10  10  10  10  10  10  2   1   .25 .25 .4  .4  25  25  30  10  40  30      .5      1.5     1.5     5       10      30      30      90      5       5       5       5       10      10      30      10      150     150     150     150     150     200     300     200     50          200         200         200         50          1           2]';
+    c.lb_gen   = [  -2  .5  -1  -2  .1  .1  .1  .1  .1  .1  0   2   2   2   2   2   2   -2  .2  .2  .2  .2  .2  .2  -3  0   0   0   0   0   2   8  2   -2  3   0       -.3     .1      .1      .1      -2      2       2       2       -2      .2      .2      .2      -2      -3      -5      0       0       0       0       0       0       0       0       10      -10         0           0           0           -10          .4          0]';
+    c.ub_gen   = [  .2  1   6   -.5 .2  .2  .2  .2  .2  .2  3   5   5   5   5   5   5   1   1   1   1   1   1   1   2   0   .1  .1  .2  .1  4   10  10  2   8   2       .3      1.2     1.2     2       2       5       5       30      2       1       1       1       2       3       5       1.7     15      15      15      15      15      15      15      20      10          15          15          15          1           .6          1]';
     
-    c.beq      = [  1   1   1   -2  .15 .15 .15 .15 .15 .15  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0       3       10      10      20      20      20      50      50      15      0           10          10          10          0      	.5]';
+    c.beq      = [  1   1   1   -2  .15 .15 .15 .15 .15 .15  2   2   2   2   2   2   2  -2   .7  .7  .7  .7  .7  .7  0   0   0   0   0   0   3   9   0   0   5   .5      0       .3      .3      .3      0       5       5       5       0       1       1       1       0       0       0       3       10      10      20      20      20      50      50      15      0           10          10          10          0      	.5          0]';
     %log_params = strncmpi(c.parameter_names,'log',3);
 
     %fields = {'lb','ub','lb_gen','ub_gen'}; % convert log param bounds
@@ -169,6 +177,7 @@ for m_id = 1 : nModels
     c = symmetricizer(c);
     c = choiceizer(c);
     c = d_noiseizer(c);
+    c = fisherizer(c);
     c = free_sigsizer(c);
     c = separate_noiseizer(c);
     c = neural1izer(c);
@@ -277,6 +286,23 @@ if ~c.d_noise
     c = p_stripper(c,d_noiseP);
 end
 end
+
+function c = fisherizer(c)
+% if not doing added weighted fisher info, strip out fisher weight
+if ~c.fisher_info
+    fisher_infoP = find_parameter('fisher_weight', c);
+    c = p_stripper(c,fisher_infoP);
+else
+    b0dP = find_parameter('b_0_d', c);
+    c.lb(b0dP) = 0;
+    c.lb_gen(b0dP) = 0;
+    c.ub_gen(b0dP) = .6;
+    
+    b0dP = find_parameter('b_3_dTerm', c);
+    c = p_stripper(c, b0dP);
+end
+end
+
 
 function c = free_sigsizer(c)
 if c.nFreesigs ~= 0
