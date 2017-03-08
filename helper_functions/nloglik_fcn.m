@@ -247,6 +247,7 @@ if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian
         end
         
         x_dec_bound  = real(sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - d_bound) ./ repmat(k2, nDNoiseSets, 1)));
+        x_dec_bound_orig = x_dec_bound;
         % equivalently, but slower: x_dec_bound = sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'), d_bound),k2));
         
     end
@@ -431,15 +432,55 @@ if ~model.choice_only
             [x_lb, x_ub] = x_bounds_by_trial();
             
         else
-            k1 = k1(raw.contrast_id);
-            k2 = k2(raw.contrast_id);
+            if ~model.fisher_info
+                k1 = k1(raw.contrast_id);
+                k2 = k2(raw.contrast_id);
+                
+                d_lb=p.b_i(2*conf_levels+1-raw.resp);
+                d_ub=p.b_i(2*conf_levels+2-raw.resp);
+                
+                x_lb = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_ub), k2)));
+                x_ub = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_lb), k2)));
+            else
+                x_dec_bound_mat = repmat(x_dec_bound_orig,3,1);
+                
+                x_bounds = sqrt(bsxfun(@rdivide,bsxfun(@minus,k1,log((1+bsxfun(@plus, -p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))),k2));
+                
+                % which order?
+                x_bounds(imag(x_bounds)~=0)=Inf;
+                
+                i= x_bounds < x_dec_bound_mat;
+                x_bounds(i) = x_dec_bound_mat(i);
+                
+                % hack
+                [row,col]=find(diff(x_bounds,1)<0);
+                for c = unique(col)'
+                    x_bounds(1:max(row(col==c)), c) = x_dec_bound_orig(c);
+                end
 
-            d_lb=p.b_i(2*conf_levels+1-raw.resp);
-            d_ub=p.b_i(2*conf_levels+2-raw.resp);
-            
-            x_lb = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_ub), k2)));
-            x_ub = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_lb), k2)));
-
+                
+                
+                x_bounds2 = sqrt(bsxfun(@rdivide,bsxfun(@plus,k1,log((1+bsxfun(@plus, -p.b_i([4 3 2])', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i([4 3 2])', p.fisher_weight*p.unique_sigs.^-2))),k2));
+                
+                % set imaginaries to 0
+                i = imag(x_bounds2)~=0;
+                x_bounds2(i) = 0;
+                
+                % can't be greater than decision bound
+                i= x_bounds2 > x_dec_bound_mat;
+                x_bounds2(i) = x_dec_bound_mat(i);
+                
+                % hack
+                [row,col] = find(diff(x_bounds2,1)<0);
+                for c = unique(col)'
+                    x_bounds2(1:max(row(col==c)), c) = 0;
+                end
+                
+                x_bounds = [d_bound*ones(1,nContrasts); x_bounds2; x_dec_bound_mat(1,:); x_bounds; inf(1,nContrasts)];
+                
+                x_lb = x_bounds(sub2ind(size(x_bounds), raw.resp, raw.contrast_id));
+                x_ub = x_bounds(sub2ind(size(x_bounds), raw.resp+1, raw.contrast_id));
+            end
         end
     elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
         if model.ori_dep_noise
@@ -452,19 +493,13 @@ if ~model.choice_only
                 x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
                 x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
             else
-                p.b_i = [Inf 1.2 .9 .6 p.b_i];
+                x_bounds = bsxfun(@times, log((1+bsxfun(@plus, -p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2)), p.unique_sigs.^2+category_params.sigma_s^2)./(2*category_params.mu_1);
+                x_bounds(x_bounds<0) = d_bound;
+                x_bounds(imag(x_bounds)~=0) = Inf;
+                x_bounds=[-inf(1,nContrasts); -flipud(x_bounds); d_bound*zeros(1,nContrasts); x_bounds; inf(1,nContrasts)];
                 
-                d_lb = p.b_i(2*conf_levels+2-raw.resp); % 2 or 1?
-                d_ub = p.b_i(2*conf_levels+1-raw.resp);
-
-%                 d_lb = p.b_i(raw.g);
-%                 d_ub = p.b_i(raw.g+1);
-                
-                x_lb = log((1-d_lb+p.fisher_weight*sig.^-2)./(d_lb-p.fisher_weight*sig.^-2)).*(sig.^2+category_params.sigma_s^2)./(2*category_params.mu_1*raw.Chat);
-                x_ub = log((1-d_ub+p.fisher_weight*sig.^-2)./(d_ub-p.fisher_weight*sig.^-2)).*(sig.^2+category_params.sigma_s^2)./(2*category_params.mu_1*raw.Chat);
-                x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
-                x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
-
+                x_lb = x_bounds(sub2ind(size(x_bounds), raw.resp, raw.contrast_id));
+                x_ub = x_bounds(sub2ind(size(x_bounds), raw.resp+1, raw.contrast_id));
             end
         end
         
