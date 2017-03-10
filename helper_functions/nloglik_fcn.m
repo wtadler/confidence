@@ -243,12 +243,12 @@ if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian
         if ~model.fisher_info
             d_bound = bf(0);
         else
-            d_bound = 0; % fix decision boundary at d=0. ultrastrong!
+            d_bound = -p.fisher_prior;
         end
         
         x_dec_bound  = real(sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - d_bound) ./ repmat(k2, nDNoiseSets, 1)));
-        x_dec_bound_orig = x_dec_bound;
         % equivalently, but slower: x_dec_bound = sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'), d_bound),k2));
+        x_dec_bound_orig = x_dec_bound;
         
     end
 elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
@@ -259,9 +259,9 @@ elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
         if ~model.fisher_info
             d_bound = bf(0);
         else
-            d_bound = 0; % fix decision boundary at d=0. ultrastrong!
+            d_bound = -p.fisher_prior;
         end
-
+        
         x_dec_bound = (2*(d_bound+d_noise).*(repmat(sig, nDNoiseSets, 1).^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
             / (2*(category_params.mu_1 - category_params.mu_2));
     end
@@ -444,7 +444,7 @@ if ~model.choice_only
             else
                 x_dec_bound_mat = repmat(x_dec_bound_orig,3,1);
                 
-                x_bounds = sqrt(bsxfun(@rdivide,bsxfun(@minus,k1,log((1+bsxfun(@plus, -p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))),k2));
+                x_bounds = sqrt(bsxfun(@rdivide,bsxfun(@minus,k1,log((1+bsxfun(@plus, -p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2)))+p.fisher_prior,k2));
                 
                 % which order?
                 x_bounds(imag(x_bounds)~=0)=Inf;
@@ -460,7 +460,7 @@ if ~model.choice_only
 
                 
                 
-                x_bounds2 = sqrt(bsxfun(@rdivide,bsxfun(@plus,k1,log((1+bsxfun(@plus, -p.b_i([4 3 2])', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i([4 3 2])', p.fisher_weight*p.unique_sigs.^-2))),k2));
+                x_bounds2 = sqrt(bsxfun(@rdivide,bsxfun(@plus,k1,log((1+bsxfun(@plus, -p.b_i([4 3 2])', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i([4 3 2])', p.fisher_weight*p.unique_sigs.^-2)))+p.fisher_prior,k2));
                 
                 % set imaginaries to 0
                 i = imag(x_bounds2)~=0;
@@ -476,7 +476,7 @@ if ~model.choice_only
                     x_bounds2(1:max(row(col==c)), c) = 0;
                 end
                 
-                x_bounds = [d_bound*ones(1,nContrasts); x_bounds2; x_dec_bound_mat(1,:); x_bounds; inf(1,nContrasts)];
+                x_bounds = [zeros(1,nContrasts); x_bounds2; x_dec_bound_orig; x_bounds; inf(1,nContrasts)];
                 
                 x_lb = x_bounds(sub2ind(size(x_bounds), raw.resp, raw.contrast_id));
                 x_ub = x_bounds(sub2ind(size(x_bounds), raw.resp+1, raw.contrast_id));
@@ -493,10 +493,18 @@ if ~model.choice_only
                 x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
                 x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
             else
-                x_bounds = bsxfun(@times, log((1+bsxfun(@plus, -p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2)), p.unique_sigs.^2+category_params.sigma_s^2)./(2*category_params.mu_1);
-                x_bounds(x_bounds<0) = d_bound;
+                x_dec_bound_orig = (2*(d_bound+d_noise).*(p.unique_sigs.^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
+                    / (2*(category_params.mu_1 - category_params.mu_2)); % could move this up to ~line 265 and merge the redundant piece.
+                x_dec_bound_mat = repmat(x_dec_bound_orig,3,1);
+                
+                x_bounds = bsxfun(@times, log((1+bsxfun(@plus, -p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))-p.fisher_prior, p.unique_sigs.^2+category_params.sigma_s^2)./(2*category_params.mu_1);
+                i=x_bounds<x_dec_bound_mat;
+                x_bounds(i) = x_dec_bound_mat(i);
                 x_bounds(imag(x_bounds)~=0) = Inf;
-                x_bounds=[-inf(1,nContrasts); -flipud(x_bounds); d_bound*zeros(1,nContrasts); x_bounds; inf(1,nContrasts)];
+                
+                cumdelta = cumsum(diff([x_dec_bound_orig; x_bounds]));
+                cumdelta(isnan(cumdelta)) = Inf;
+                x_bounds=[-inf(1,nContrasts); x_dec_bound_mat-flipud(cumdelta); x_dec_bound_orig; x_bounds; inf(1,nContrasts)];
                 
                 x_lb = x_bounds(sub2ind(size(x_bounds), raw.resp, raw.contrast_id));
                 x_ub = x_bounds(sub2ind(size(x_bounds), raw.resp+1, raw.contrast_id));

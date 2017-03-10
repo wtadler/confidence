@@ -278,6 +278,7 @@ if strcmp(model.family,'opt') % for all opt family models
         end
 
     else
+        raw.d = raw.d + p.fisher_prior;
         raw.Chat(raw.d >= 0) = -1;
         raw.Chat(raw.d < 0) = 1;
         
