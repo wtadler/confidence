@@ -70,7 +70,7 @@ if model.choice_only
     
 else
     if strcmp(model.family, 'opt')
-        if ~model.fisher_info
+        if ~isfield(model, 'fisher_info') || ~model.fisher_info
             if model.symmetric
                 tmp = [p.b_0_d p.b_1_d p.b_2_d p.b_3_d];
                 p.b_i = [-Inf -fliplr(tmp(2:4)-tmp(1))+tmp(1) tmp Inf];
