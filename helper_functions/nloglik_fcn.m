@@ -75,7 +75,7 @@ elseif model.d_noise
 end
 
 if isfield(p,'b_i')
-    conf_levels = (length(p.b_i) - 1)/2;
+    conf_levels = 4; %(length(p.b_i) - 1)/2;
     nBounds = conf_levels*2-1;
 else
     conf_levels = 0;
