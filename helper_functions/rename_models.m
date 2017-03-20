@@ -95,6 +95,11 @@ if regexp(name_in, 'd_noise')
     end
 end
 
+if regexp(name_in, 'fisher_info')
+    name_out = [name_out, ' + precision'];
+end
+
+
 if short
     return
 end
