@@ -64,6 +64,8 @@ end
 Screen('TextSize', scr.win, scr.fontsize); % reset fontsize if made small for attention training.
 flip_key_flip(scr,'begin',ny,color, false);
 
+date = datetimefcn; %Added for section saving
+
 %%%Run trials %%%
 try
     for section = 1:n.sections
@@ -392,6 +394,9 @@ try
         end
         
         responses.trial_order{section} = trial_order;
+        
+        save(['/users/purplab/Desktop/Rachel/Confidence/confidence/data/' subject_name '_' date '_block' blok '_section' section '.mat']); %section-by-section saving
+        
         
         %if another section in the same block immediately follows
         if section ~= n.sections

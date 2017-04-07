@@ -26,7 +26,7 @@ elseif session == 2
     choice_only = true;
 
     % SET THIS FOR 2ND SESSION
-    old = load('/Users/purplab/Desktop/Rachel/Confidence/confidence/data/mjo_20160608_180004.mat');
+    old = load('/Users/purplab/Desktop/Rachel/Confidence/confidence/data/ksw_20160609_183204.mat');
     % [extra files here: lma_recovered_20160610_160107.mat]
     
     psybayes_struct = old.psybayes_struct;
@@ -38,7 +38,7 @@ elseif session > 2
     choice_only = false;
     
     % SET THIS FOR 3RD+ SESSION
-    opt_c = exp(-2.3167);
+    opt_c = exp(-1.0);
     psybayes_struct = [];
 end
 
