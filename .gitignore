@@ -2,7 +2,6 @@
 
 *.DS_Store
 *~
-data/
 eyedata/
 calibration/
 randsample.m
