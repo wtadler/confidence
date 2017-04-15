@@ -266,7 +266,7 @@ if strcmp(model.family,'opt') % for all opt family models
     raw.d(raw.d==Inf)  =  1e6;
     raw.d(raw.d==-Inf) = -1e6;
     
-    if ~model.fisher_info
+    if ~isfield(model,'fisher_info') || ~model.fisher_info
         raw.Chat(raw.d >= p.b_i(5)) = -1;
         raw.Chat(raw.d < p.b_i(5)) = 1;
         
