@@ -13,10 +13,13 @@ if length(varargin) == 1;
     category_params = varargin{1};
 end
 
-if ~isfield(model, 'separate_measurement_and_inference_noise') % this should be temporary! take it out after the 7/2015 jobs.
+if ~isfield(model, 'separate_measurement_and_inference_noise')
     model.separate_measurement_and_inference_noise = 0;
 end
 
+if ~isfield(model, 'fisher_info')
+    model.fisher_info = 0;
+end
 
 % % constraints for optimization algorithms that don't have constraints as inputs. this should be a wrapper for the function
 % if length(varargin) == 2 | length(varargin) == 3
@@ -72,7 +75,7 @@ elseif model.d_noise
 end
 
 if isfield(p,'b_i')
-    conf_levels = (length(p.b_i) - 1)/2;
+    conf_levels = 4; %(length(p.b_i) - 1)/2;
     nBounds = conf_levels*2-1;
 else
     conf_levels = 0;
@@ -156,7 +159,7 @@ end
             end
             sig_plusODN = cur_sig + ODN_s_mat;
             d_lookup_table(contrast,:) = log(likelihood(sig_plusODN, sig_cat1, mu_cat1) ./ likelihood(sig_plusODN, sig_cat2, mu_cat2));
-            
+                        
             %k(:, c) = lininterp1m(repmat(fliplr(d_lookup_table(c,:)),nDNoiseSets,1)+repmat(d_noise_draws',1,xSteps), fliplr(xVec'), p.b_i(5))'; % take this out of the loop?
             % would be faster to take this out of the loop for the models without d_noise. but we're not really using models w/o d noise
             k(:, contrast) = lininterp1_multiple(bsxfun(@plus, fliplr(d_lookup_table(contrast,:)), d_noise_draws'), fliplr(xVec'), bf(0)); % take this out of the loop?
@@ -215,6 +218,19 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % k is the category decision boundary in measurement space for each trial
 % f computes the probability mass on the chosen side of k.
+
+if strcmp(model.family, 'opt')
+    if ~model.fisher_info
+        d_bound = bf(0);
+    else
+        if isfield(p, 'fisher_prior')
+            d_bound = -p.fisher_prior;
+        else
+            d_bound = 0;
+        end
+    end
+end
+
 if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian family, qamar
     
     if model.non_overlap
@@ -234,16 +250,20 @@ if strcmp(model.family, 'opt') && ~model.diff_mean_same_std% for normal bayesian
 %         sq_flag = 1; % this is because f gets passed a square root that can be negative. causes f to ignore the resulting imaginaries
         k1 = .5 * log( (sig.^2 + sig2^2) ./ (sig.^2 + sig1^2)); %log(prior / (1 - prior));
         k2 = (sig2^2 - sig1^2) ./ (2 .* (sig.^2 + sig1^2) .* (sig.^2 + sig2^2));
-        x_dec_bound  = real(sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - bf(0)) ./ repmat(k2, nDNoiseSets, 1)));
-        % equivalently, but slower: x_dec_bound = sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'),bf(0)),k2));
+                
+        x_dec_bound  = real(sqrt((repmat(k1, nDNoiseSets, 1) + d_noise - d_bound) ./ repmat(k2, nDNoiseSets, 1)));
+        % equivalently, but slower: x_dec_bound = sqrt(bsxfun(@rdivide,bsxfun(@minus,bsxfun(@plus,k1,d_noise_draws'), d_bound),k2));
+        x_dec_bound_orig = x_dec_bound;
+        
     end
 elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
     
     if model.ori_dep_noise
         [d_lookup_table, x_dec_bound] = d_table_and_choice_bound(category_params.sigma_s, category_params.sigma_s, category_params.mu_1, category_params.mu_2);        
     else
-        x_dec_bound = (2*(bf(0)+d_noise).*(repmat(sig, nDNoiseSets, 1).^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
-            / (2*(category_params.mu_1 - category_params.mu_2)); % ADAPT FOR D NOISE? does this d noise work?
+        
+        x_dec_bound = (2*(d_bound+d_noise).*(repmat(sig, nDNoiseSets, 1).^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
+            / (2*(category_params.mu_1 - category_params.mu_2));
     end
 elseif strcmp(model.family, 'lin') && ~model.diff_mean_same_std
     x_dec_bound = max(bf(0) + mf(0) * sig, 0);
@@ -412,25 +432,83 @@ if ~model.choice_only
             [x_lb, x_ub] = x_bounds_by_trial();
             
         else
-            k1 = k1(raw.contrast_id);
-            k2 = k2(raw.contrast_id);
+            if ~model.fisher_info
+                k1 = k1(raw.contrast_id);
+                k2 = k2(raw.contrast_id);
+                
+                d_lb=p.b_i(2*conf_levels+1-raw.resp);
+                d_ub=p.b_i(2*conf_levels+2-raw.resp);
+                
+                x_lb = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_ub), k2)));
+                x_ub = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_lb), k2)));
+            else
+                x_dec_bound_mat = repmat(x_dec_bound_orig,3,1);
+                
+                x_bounds = sqrt(bsxfun(@rdivide,bsxfun(@minus,k1,log((1+bsxfun(@plus, -p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2)))-d_bound,k2));
+                
+                % which order?
+                x_bounds(imag(x_bounds)~=0)=Inf;
+                
+                i= x_bounds < x_dec_bound_mat;
+                x_bounds(i) = x_dec_bound_mat(i);
+                
+                % hack
+                [row,col]=find(diff(x_bounds,1)<0);
+                for c = unique(col)'
+                    x_bounds(1:max(row(col==c)), c) = x_dec_bound_orig(c);
+                end
 
-            d_lb=p.b_i(2*conf_levels+1-raw.resp);
-            d_ub=p.b_i(2*conf_levels+2-raw.resp);
-            
-            x_lb = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_ub), k2)));
-            x_ub = real(sqrt(bsxfun(@rdivide,bsxfun(@minus, bsxfun(@plus, k1, d_noise_draws'), d_lb), k2)));
-
+                
+                
+                x_bounds2 = sqrt(bsxfun(@rdivide,bsxfun(@plus,k1,log((1+bsxfun(@plus, -p.b_i([4 3 2])', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i([4 3 2])', p.fisher_weight*p.unique_sigs.^-2)))-d_bound,k2));
+                
+                % set imaginaries to 0
+                i = imag(x_bounds2)~=0;
+                x_bounds2(i) = 0;
+                
+                % can't be greater than decision bound
+                i= x_bounds2 > x_dec_bound_mat;
+                x_bounds2(i) = x_dec_bound_mat(i);
+                
+                % hack
+                [row,col] = find(diff(x_bounds2,1)<0);
+                for c = unique(col)'
+                    x_bounds2(1:max(row(col==c)), c) = 0;
+                end
+                
+                x_bounds = [zeros(1,nContrasts); x_bounds2; x_dec_bound_orig; x_bounds; inf(1,nContrasts)];
+                
+                x_lb = x_bounds(sub2ind(size(x_bounds), raw.resp, raw.contrast_id));
+                x_ub = x_bounds(sub2ind(size(x_bounds), raw.resp+1, raw.contrast_id));
+            end
         end
     elseif strcmp(model.family, 'opt') && model.diff_mean_same_std
         if model.ori_dep_noise
             [x_lb, x_ub] = x_bounds_by_trial();
         else
-            d_lb = p.b_i(2*conf_levels+1-raw.resp);
-            d_ub = p.b_i(2*conf_levels+2-raw.resp); % this is the same as doing fliplr on p.b_i first
-                        
-            x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
-            x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+            if ~model.fisher_info
+                d_lb = p.b_i(2*conf_levels+1-raw.resp);
+                d_ub = p.b_i(2*conf_levels+2-raw.resp); % this is the same as doing fliplr on p.b_i first
+                
+                x_lb = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_ub, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+                x_ub = bsxfun(@rdivide, bsxfun(@times, bsxfun(@minus, d_lb, d_noise_draws'), sig.^2 + category_params.sigma_s^2), 2*category_params.mu_1);
+            else
+                x_dec_bound_orig = (2*(d_bound+d_noise).*(p.unique_sigs.^2 + category_params.sigma_s^2) - category_params.mu_2^2 + category_params.mu_1^2)...
+                    / (2*(category_params.mu_1 - category_params.mu_2)); % could move this up to ~line 265 and merge the redundant piece.
+                x_dec_bound_mat = repmat(x_dec_bound_orig,3,1);
+                
+                x_bounds = bsxfun(@times, log((1+bsxfun(@plus, -p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))./bsxfun(@minus, p.b_i(2:4)', p.fisher_weight*p.unique_sigs.^-2))+d_bound, p.unique_sigs.^2+category_params.sigma_s^2)./(2*category_params.mu_1);
+                i=x_bounds<x_dec_bound_mat;
+                x_bounds(i) = x_dec_bound_mat(i);
+                x_bounds(imag(x_bounds)~=0) = Inf;
+                
+                cumdelta = cumsum(diff([x_dec_bound_orig; x_bounds]));
+                cumdelta(isnan(cumdelta)) = Inf;
+                x_bounds=[-inf(1,nContrasts); x_dec_bound_mat-flipud(cumdelta); x_dec_bound_orig; x_bounds; inf(1,nContrasts)];
+                
+                x_lb = x_bounds(sub2ind(size(x_bounds), raw.resp, raw.contrast_id));
+                x_ub = x_bounds(sub2ind(size(x_bounds), raw.resp+1, raw.contrast_id));
+            end
         end
         
     elseif strcmp(model.family, 'lin')
