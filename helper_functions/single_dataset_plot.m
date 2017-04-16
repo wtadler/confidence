@@ -8,12 +8,15 @@ fill_alpha = .5;
 fake_data = false;
 group_plot = false;
 errorbarwidth = 1.7; % arbitrary unit
+errorbarwidthForBarplot = 3.3;
+barwidth = 0.5;
 label_x = true;
 label_y = true;
 attention_task = false;
 task = 'A';
 s_labels = -8:2:8;
 resp_square_offset = .1;
+plot_bar = false;
 plot_connecting_line = true;
 nRespSquares = 8;
 respSquareSize = 12;
@@ -33,9 +36,15 @@ else
     input_colors = [];
 end
 
+if plot_bar
+    plot_connecting_line = false;
+end
+
 if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, 'c_s')
     reliability_x_axis = true;
-    set(gca, 'xdir', 'reverse');
+    if ~attention_task
+        set(gca, 'xdir', 'reverse');
+    end
     
     % transpose everything
     fields = setdiff(fieldnames(binned_stats), 'bin_counts');
@@ -109,7 +118,7 @@ elseif any(strcmp(x_name, {'s', 'c_s'}))
     
     if attention_task
         colors = map.attention_colors;
-        labels = {'valid cue', 'neutral cue', 'invalid cue'};
+        labels = {'valid', 'neutral', 'invalid'};
     else
         colors = map.tan_contrast_colors;
         labels = {'highest rel.', 'lowest rel.'};
@@ -164,15 +173,35 @@ for row = plot_rows
     end
     
     if ~fake_data
-        % errorbar is stupid. to customize width, have to plot a dummy point, with no connecting line. and then plot a line.
+        if plot_bar
+            errorbarwidth = errorbarwidthForBarplot;
+        end
+        hold on
         
+        % errorbar is stupid. to customize width, have to plot a dummy point, with no connecting line. and then plot a line.
         dummy_point = 1+nCols*errorbarwidth; % this method makes all bars equally wide, regardless of how many points there are.
         %         dummy_point = 1 + errorbarwidth; % this makes the total width of the bars constant, but requires that errorbarwidth be higher
-        hold on
-        errorbar([1:nCols dummy_point], [m -100], [errorbarheight 0], 'marker', 'none', 'linestyle', 'none', 'linewidth', linewidth, 'color', color)
+        
+        if attention_task && strcmp(x_name,'c')
+            for i = 1:nCols
+                errorbar([i dummy_point], [m(i) -100], [errorbarheight(i) 0], 'marker', 'none', 'linestyle', 'none', 'linewidth', linewidth, 'color', map.attention_colors(i,:))
+            end
+        else
+            h = errorbar([1:nCols dummy_point], [m -100], [errorbarheight 0], 'marker', 'none', 'linestyle', 'none', 'linewidth', linewidth, 'color', color);
+        end
         handle(row)=plot(1:nCols, m, '-', 'linewidth', linewidth, 'color', color);
         if ~plot_connecting_line
             set(handle(row), 'visible', 'off') % this is weird, but have to do it to show up in legend
+        end
+        
+        if plot_bar
+            if attention_task && strcmp(x_name,'c')
+                for i = 1:nCols
+                    bar(i, m(i), 'BarWidth', barwidth, 'FaceColor', adjustHSV(map.attention_colors(i,:),.3,.8), 'EdgeColor', 'none');
+                end
+            else
+                bar(1:nCols, m, 'BarWidth', barwidth, 'FaceColor', color, 'EdgeColor', 'none');
+            end
         end
     else
         x = [1:nCols fliplr(1:nCols)];
@@ -189,10 +218,10 @@ for row = plot_rows
     hold on
 end
 
-yl.tf = [.3 1];
+yl.tf = [.4 1];% [.3 1]; 
 yt.tf = 0:.1:1;
-yl.g  = [1 4];
-yt.g = 1:4;
+yl.g  = [1.5 3.5]; %[1 4]; % 
+yt.g = 1:.5:4; %1:4; %  
 yl.Chat = [0 1];
 yt.Chat = 0:.25:1;
 %%
@@ -204,8 +233,8 @@ if nRespSquares ~= 8
 end
 
 %%
-yl.rt = [0 4];
-yt.rt = 0:4;
+yl.rt = [0 1.5]; %[0 4];
+yt.rt = 0:.5:2; % 0:4;
 yl.proportion = [0 .5];
 yt.proportion = 0:.1:.5;
 

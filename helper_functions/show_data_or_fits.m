@@ -30,6 +30,7 @@ plot_reliabilities = [];
 show_legend = true;
 s_labels = -8:2:8;
 errorbarwidth = 1.7;
+errorbarwidthForBarplot = 3.3;
 MCM = ''; % 'dic', 'waic2', whatever. add extra row with MCM scores.
     MCM_size = .42; % percentage of plot height taken up by model comparison.
     MCM_gutter = .1; % percentage of plot in gutter above model comparison.
@@ -44,6 +45,9 @@ title_fontsize = 14;
 ticklength = .02;
 label_s_bin_centers = false;
 CI = .95;
+sort_subjects = true;
+keep_subjects_sorted = true;
+panel_size = [];
 
 assignopts(who, varargin);
 
@@ -139,17 +143,25 @@ ylabels = rename_var_labels(depvars); % translate from variable names to somethi
 
 [depvar, task, model, slice, subject, trial_type] = deal(1); % update these in the for loop switch below.
 
-if strcmp(axis.row, 'model')
-    fig_width = 310*n.col;
-    fig_height = 166*n.row;
-    
-    margins = margins+[124/fig_width 0 0 0];
+if isempty(panel_size)
+    if strcmp(axis.row, 'model')
+        fig_width = 310*n.col;
+        fig_height = 166*n.row;
+        
+        margins = margins+[124/fig_width 0 0 0];
+    else
+        fig_width = 205*n.col;
+        fig_height = 330*n.row;
+        
+        margins = margins+[62/fig_width 0 0 0];
+    end
 else
-    fig_width = 205*n.col;
-    fig_height = 330*n.row;
+    fig_width = panel_size(2)*n.col;
+    fig_height = panel_size(1)*n.row;
     
-    margins = margins+[62/fig_width 0 0 0];
+    margins = margins+[100/fig_width 0 0 0];
 end
+
 %%
 for fig = 1:n.fig
     figure(fig)
@@ -207,6 +219,13 @@ for fig = 1:n.fig
             else
                 label_x = false;
             end
+            
+            if attention_manipulation && strcmp(x_name, 'c')
+                plot_bar = true;
+            else
+                plot_bar = false;
+            end
+            
             shortcutplot = @(data, fake_data, x_name, linewidth, plot_reliabilities)...
                 single_dataset_plot(data, depvars{depvar}, x_name, ...
                 'fake_data', fake_data, 'group_plot', group_plot, ...
@@ -215,7 +234,9 @@ for fig = 1:n.fig
                 'plot_reliabilities', plot_reliabilities, ...
                 'label_x', label_x, 'label_y', label_y, 's_labels', s_labels,...
                 'task', tasks{task}, 'errorbarwidth', errorbarwidth,...
+                'errorbarwidthForBarplot', errorbarwidthForBarplot,...
                 'plot_connecting_line', plot_connecting_line,...
+                'plot_bar', plot_bar,...
                 'nRespSquares', nRespSquares, 'respSquareSize', 16,...
                 'show_legend', (~fake_data && sdp_legend),...
                 'attention_task', attention_manipulation,...
@@ -348,8 +369,9 @@ for fig = 1:n.fig
             end
             [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_model_names', false, ...
                  'ref_model', ref_model, 'MCM', MCM, 'xy_label_fontsize', xy_label_fontsize,...
-                 'tick_label_fontsize', tick_label_fontsize, 'ticklength', ticklength, 'CI', CI);
-            
+                 'tick_label_fontsize', tick_label_fontsize, 'ticklength', ticklength, 'CI', CI, ...
+                 'sort_subjects', sort_subjects, 'keep_subjects_sorted', keep_subjects_sorted);
+                         
             yl = get(gca, 'ylim');
             if ~show_subject_names
                 subject_names = [];
