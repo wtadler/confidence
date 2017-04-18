@@ -197,11 +197,13 @@ for row = plot_rows
         if plot_bar
             if attention_task && strcmp(x_name,'c')
                 for i = 1:nCols
-                    bar(i, m(i), 'BarWidth', barwidth, 'FaceColor', adjustHSV(map.attention_colors(i,:),.3,.8), 'EdgeColor', 'none');
+%                     bar(i, m(i), 'BarWidth', barwidth, 'FaceColor', adjustHSV(map.attention_colors(i,:),.3,.8), 'EdgeColor', 'none');
+                    handle(i) = bar(i, m(i), 'BarWidth', barwidth, 'FaceColor', map.attention_colors(i,:));
                 end
             else
-                bar(1:nCols, m, 'BarWidth', barwidth, 'FaceColor', color, 'EdgeColor', 'none');
+                handle = bar(1:nCols, m, 'BarWidth', barwidth, 'FaceColor', color);
             end
+            set(handle, 'edgecolor', 'none', 'facealpha', fill_alpha);
         end
     else
         x = [1:nCols fliplr(1:nCols)];
