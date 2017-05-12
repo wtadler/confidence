@@ -89,9 +89,9 @@ end
 
 if regexp(name_in, 'd_noise')
     if latex
-        name_out = [name_out, ' + $d$ noise'];
+        name_out = [name_out, '-$d$N'];
     else
-        name_out = [name_out, ' + {\itd} noise'];
+        name_out = [name_out, '-{\itd}N'];
     end
 end
 
