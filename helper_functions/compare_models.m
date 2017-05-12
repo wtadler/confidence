@@ -244,9 +244,9 @@ elseif ~strcmp(fig_type, '')
     end
     
     if LL_scale
-        ylabel_str = sprintf('%s_{%s} - %s', MCM_name, model_names{ref_model}, MCM_name);
+        ylabel_str = sprintf('%s_{%s} %s %s', MCM_name, model_names{ref_model}, char(8722), MCM_name);
     else
-        ylabel_str = sprintf('%s - %s_{%s}', MCM_name, MCM_name, model_names{ref_model});
+        ylabel_str = sprintf('%s %s %s_{%s}', MCM_name, char(8722), MCM_name, model_names{ref_model});
     end
     
     if strcmp(fig_type, 'bar')
