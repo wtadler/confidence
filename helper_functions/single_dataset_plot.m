@@ -15,7 +15,7 @@ label_y = true;
 attention_task = false;
 task = 'A';
 s_labels = -8:2:8;
-resp_square_offset = .1;
+resp_square_offset = .06;
 plot_bar = false;
 plot_connecting_line = true;
 nRespSquares = 8;
@@ -27,7 +27,7 @@ xy_label_fontsize = 10;
 legend_fontsize = 10;
 tick_label_fontsize = 10;
 ticklength = .02;
-label_s_bin_centers = false;
+label_s_bin_centers = true;
 assignopts(who, varargin);
 
 if ~isempty(colors)
@@ -42,9 +42,7 @@ end
 
 if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, 'c_s')
     reliability_x_axis = true;
-    if ~attention_task
-        set(gca, 'xdir', 'reverse');
-    end
+    set(gca, 'xdir', 'reverse');
     
     % transpose everything
     fields = setdiff(fieldnames(binned_stats), 'bin_counts');
@@ -101,6 +99,7 @@ if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, '
         colors = [map.cat1; map.cat2];
         labels = {'cat. 1', 'cat. 2'};
     end
+    
 elseif strcmp(x_name, 'g')
     xlabel('confidence');
 elseif strcmp(x_name, 'resp')
@@ -108,12 +107,21 @@ elseif strcmp(x_name, 'resp')
 elseif strcmp(x_name, 'Chat')
     xlabel('cat. choice')
 elseif any(strcmp(x_name, {'s', 'c_s'}))
+    [~, centers] = bin_generator(nCols, 'task', task);
+    
+    if label_s_bin_centers
+        xticks = round(centers);
+    else
+        xticks = interp1(centers, 1:nCols, s_labels)
+        set(gca, 'xtick', xticks);
+    end
+        
     if symmetrify
         xlabel('abs. orientation (°)')
-        set(gca, 'xticklabel', abs(s_labels))
+        set(gca, 'xticklabel', abs(xticks))
     else
         xlabel('orientation (°)')
-        set(gca, 'xticklabel', s_labels)
+        set(gca, 'xticklabel', xticks)
     end
     
     if attention_task
@@ -127,6 +135,10 @@ elseif any(strcmp(x_name, {'s', 'c_s'}))
     % ADD ATTENTION STUFF IN HERE
 elseif strcmp(x_name, 'c_prior')
     
+end
+
+if ~(any(strcmp(x_name, {'s', 'c_s'})) && ~label_s_bin_centers)
+    set(gca, 'xtick', 1:nCols);
 end
 
 if ~isempty(input_colors);
@@ -222,8 +234,8 @@ end
 
 yl.tf = [.4 1];% [.3 1]; 
 yt.tf = 0:.1:1;
-yl.g  = [1.5 3.5]; %[1 4]; % 
-yt.g = 1:.5:4; %1:4; %  
+yl.g  = [1 4];
+yt.g = 1:4;
 yl.Chat = [0 1];
 yt.Chat = 0:.25:1;
 %%
@@ -275,18 +287,6 @@ if label_y
     end
 end
 
-if any(strcmp(x_name, {'s', 'c_s'}))
-    [~, centers] = bin_generator(nCols, 'task', task);
-    
-    if label_s_bin_centers
-        set(gca, 'xtick', 1:nCols);
-        set(gca, 'xticklabel', round(centers));
-    else
-        set(gca, 'xtick', interp1(centers, 1:nCols, s_labels));
-    end
-else
-    set(gca, 'xtick', 1:nCols)
-end
 
 % flip plotting order
 ax = gca;
