@@ -1,0 +1,1 @@
+Check `NN.ipynb` to see the code and figures for neural networks fit directly to the human data. This is a different approach than is used in the manuscript, where the networks were trained without being constrained to human data.
