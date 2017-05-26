@@ -60,7 +60,13 @@ if model.choice_only
     if strcmp(model.family, 'opt')
         p.b_i = [-Inf -Inf -Inf -Inf p.b_0_d Inf Inf Inf Inf];
     elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'MAP')
-        p.b_i = [0 0 0 0 p.b_0_x Inf Inf Inf Inf];
+        if ~isfield(model, 'nFreebounds') || model.nFreebounds == 0
+            p.b_i = [0 0 0 0 p.b_0_x Inf Inf Inf Inf];
+        else
+            for b = 1:model.nFreebounds
+                p.b_i(b,:) = [0 0 0 0 p.(sprintf('b_0_x_c%i', b)) Inf Inf Inf Inf];
+            end
+        end 
     elseif strcmp(model.family, 'lin') || strcmp(model.family, 'quad')
         p.b_i = [0 0 0 0 p.b_0_x Inf Inf Inf Inf];
         p.m_i = [0 0 0 0 p.m_0 Inf Inf Inf Inf];

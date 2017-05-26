@@ -8,7 +8,7 @@ for m_id = 1 : nModels
         'symmetric','d_noise','free_cats','non_overlap','ori_dep_noise',...
         'diff_mean_same_std','joint_task_fit','joint_d', 'nFreesigs',...
         'separate_measurement_and_inference_noise', 'biased_lapse',...
-        'fisher_info'};
+        'fisher_info','nFreebounds'};
     for o = 1:length(options)
         if ~isfield(c,options{o}) || isempty(c.(options{o}))
             c.(options{o}) = 0;
@@ -24,6 +24,9 @@ for m_id = 1 : nModels
         if c.fisher_info
             warning('fisher info model doesn''t make sense to use if only fitting choice')
         end
+    end
+    if ~(c.choice_only && strcmp(c.family, 'fixed'))
+        c.nFreebounds = 0; % only implementing freebounds for fixed choice models now
     end
     
     if ~strcmp(c.family, 'opt')
@@ -180,6 +183,7 @@ for m_id = 1 : nModels
     c = familyizer(c);
     c = symmetricizer(c);
     c = choiceizer(c);
+    c = free_boundsizer(c);
     c = d_noiseizer(c);
     c = fisherizer(c);
     c = free_sigsizer(c);
@@ -243,9 +247,10 @@ elseif strcmp(c.family, 'opt')
 elseif strcmp(c.family, 'neural1')
     otherbounds = {xbounds, slopebounds, optbounds};
 end
-
+c
 c = p_stripper(c,unique([otherbounds{:}]));
 end
+
 
 function c = symmetricizer(c)
 if c.symmetric && ~c.diff_mean_same_std %(~c.joint_task_fit && c.symmetric && ~c.diff_mean_same_std)% || (c.joint_task_fit && c.symmetric)
@@ -282,6 +287,27 @@ elseif ~c.choice_only
     c = p_stripper(c,choice_bounds);
 end
 end
+
+
+
+function c = free_boundsizer(c)
+% duplicate choice bound for non-parametric choice bound model (attention, one free criterion for each attention level)
+if c.nFreebounds ~= 0
+    choice_bound = find_parameter('b_0', c);
+    name = c.parameter_names{choice_bound};
+    fields = {'lb', 'ub', 'lb_gen', 'ub_gen', 'beq'};
+    for p = 1:c.nFreebounds
+        c.parameter_names = cat(1, c.parameter_names, sprintf('%s_c%i', name, p));
+        for l = 1:length(fields)
+            c.(fields{l}) = cat(1, c.(fields{l}), c.(fields{l})(choice_bound));
+        end
+    end
+    c = p_stripper(c, choice_bound);
+end
+end
+
+
+
 
 function c = d_noiseizer(c)
 % if not doing d noise, strip out d noise parameter

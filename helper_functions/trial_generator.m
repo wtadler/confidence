@@ -398,7 +398,12 @@ else % all non-Bayesian models
     elseif strcmp(model.family, 'quad')
         b = p.b_i(5) + p.m_i(5) * raw.sig.^2;
     else % fixed and neural
-        b = p.b_i(5);
+        if ~isfield(model, 'nFreebounds') || model.nFreebounds == 0
+            b = p.b_i(5);
+        else
+            % choose the choice bound column, row determined by cue_validity
+            b = p.b_i(sub2ind(size(p.b_i), model.nFreebounds + 1 - raw.cue_validity_id, 5*ones(size(raw.cue_validity_id))));
+        end
     end
     
     if strcmp(category_type, 'same_mean_diff_std')

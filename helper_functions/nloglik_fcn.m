@@ -275,7 +275,13 @@ elseif strcmp(model.family, 'quad') && model.diff_mean_same_std
     x_dec_bound = bf(0) + mf(0) * sig.^2;
     
 elseif strcmp(model.family, 'fixed') || strcmp(model.family, 'neural1')
-    x_dec_bound = bf(0)*ones(1,nContrasts);
+    if ~isfield(model, 'nFreebounds') || model.nFreebounds == 0
+        x_dec_bound = bf(0)*ones(1,nContrasts);
+    else
+        x_dec_bound = p.b_i(sub2ind(size(p.b_i), model.nFreebounds + 1 - raw.contrast_id, 5*ones(size(raw.contrast_id))));
+    end
+
+    % read strings here, index them by contrast_id. then that should be it.
     
 elseif strcmp(model.family, 'MAP')
     if ~model.ori_dep_noise
