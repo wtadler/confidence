@@ -247,7 +247,6 @@ elseif strcmp(c.family, 'opt')
 elseif strcmp(c.family, 'neural1')
     otherbounds = {xbounds, slopebounds, optbounds};
 end
-c
 c = p_stripper(c,unique([otherbounds{:}]));
 end
 

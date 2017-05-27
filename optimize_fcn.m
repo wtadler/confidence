@@ -64,7 +64,7 @@ optimization_method = 'fmincon'; % 'fmincon', 'mcmc_slice'
 nKeptSamples = 1e4; % for mcmc_slice
 nChains = 4;
 aborted = false;
-prev_best_param_sample = [];
+% prev_best_param_sample = [];
 
 data_type = 'real'; % 'real' or 'fake'
 % 'fake' generates trials and responses, to do parameter/model recovery
@@ -96,6 +96,8 @@ fixed_params_gen = cell(1, length(gen_models)); % can fix parameters here. goes 
 fixed_params_opt = cell(1, length(opt_models));
 fixed_params_gen_values = fixed_params_gen;  % ... unless specific parameter values are specified here.
 fixed_params_opt_values = fixed_params_opt;
+
+prev_best_param_sample = fixed_params_opt;
 
 slimdown = true; % throws away information like hessian for every optimization, etc. that takes up a lot of space.
 crossvalidate = false;
@@ -465,8 +467,8 @@ for gen_model_id = active_gen_models
                             clear s_tmp ll_tmp lp_tmp samples loglikes logpriors
                         else
                             % NEW SAMPLING
-                            if ~isempty(prev_best_param_sample)
-                                x0 = prev_best_param_sample;
+                            if ~isempty(prev_best_param_sample{opt_model_id})
+                                x0 = repmat(prev_best_param_sample{opt_model_id}(:, dataset), 1, nOptimizations);
                             end
                             
                             if maxWorkers==0
