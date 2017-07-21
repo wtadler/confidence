@@ -95,6 +95,9 @@ if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, '
     elseif strcmp(x_name, 'c_Chat')
         colors = [map.cat1; map.cat2];
         labels = {'"cat. 1"', '"cat. 2"'};
+    elseif strcmp(x_name, 'c_resp')
+        colors = map.button_colors;
+        labels = {'high conf. cat. 1', 'high conf. cat. 2'};
     else
         colors = [map.cat1; map.cat2];
         labels = {'cat. 1', 'cat. 2'};
@@ -102,10 +105,15 @@ if (strcmp(x_name, 'c') || ~isempty(strfind(x_name, 'c_'))) && ~strcmp(x_name, '
     
 elseif strcmp(x_name, 'g')
     xlabel('confidence');
+    colors = rand(10,3);
 elseif strcmp(x_name, 'resp')
     xlabel('button press');
+    colors = [0 0 0];
+    plot_rows = 1;
+    show_legend = false;
 elseif strcmp(x_name, 'Chat')
-    xlabel('cat. choice')
+    xlabel('cat. choice');
+    colors = rand(10,3);
 elseif any(strcmp(x_name, {'s', 'c_s'}))
     [~, centers] = bin_generator(nCols, 'task', task);
     
@@ -247,7 +255,7 @@ if nRespSquares ~= 8
 end
 
 %%
-yl.rt = [0 1.5]; %[0 4];
+yl.rt = [0 2.2]; %[0 4];
 yt.rt = 0:.5:2; % 0:4;
 yl.proportion = [0 .5];
 yt.proportion = 0:.1:.5;

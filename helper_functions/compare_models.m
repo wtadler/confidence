@@ -338,8 +338,10 @@ elseif ~strcmp(fig_type, '')
         if ~any(strcmp(fig_type, {'mean', 'sum'}))
             if strcmp(fig_type, 'exp_r')
                 ylabel('expected posterior probability of model')
-            else
-                ylabel('probability that model is better than all others')
+            elseif strcmp(fig_type, 'pxp')
+                ylabel('protected exceedance probability')
+            elseif strcmp(fig_type, 'xp')
+                ylabel('exceedance probability')
             end
             ylim([0 1])
             set(gca, 'ytick', 0:.25:1);

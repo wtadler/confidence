@@ -179,6 +179,7 @@ for subject = 1 : length(names)
                 raw.tf      = [raw.tf   data.responses{block}.tf(section,:)];
                 raw.g       = [raw.g    data.responses{block}.conf(section,:)];
                 raw.rt      = [raw.rt   data.responses{block}.rt(section,:)];
+                raw.rt = min(raw.rt, 10); % RT > 10 s probably means subject took a break. cap it to not make error bars crazy big
                 raw.resp    = [raw.resp data.responses{block}.conf(section,:) + conflevels + ...
                     (data.responses{block}.c(section,:)-2) .* ...
                     (2 * data.responses{block}.conf(section,:) - 1)];
