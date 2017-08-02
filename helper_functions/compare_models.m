@@ -235,7 +235,7 @@ elseif ~strcmp(fig_type, '')
     
     if show_names
         if anonymize
-            subject_names = strcat('S', strread(num2str(1:nDatasets ), '%s'));
+            subject_names = strcat('O', strread(num2str(1:nDatasets ), '%s'));
         else
             subject_names = upper({models(1).extracted.name});
         end
@@ -252,7 +252,7 @@ elseif ~strcmp(fig_type, '')
     if strcmp(fig_type, 'bar')
         if sort_subjects
             if keep_subjects_sorted
-                [~, sort_idx]=sort(MCM_delta(sort_model, :), 'descend')
+                [~, sort_idx]=sort(MCM_delta(sort_model, :), 'descend');
                 MCM_delta = MCM_delta(:, sort_idx);
                 if show_names
                     subject_names = subject_names(sort_idx);

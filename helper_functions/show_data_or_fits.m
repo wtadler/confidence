@@ -10,6 +10,7 @@ depvars = {'tf'};%,       'g',        'Chat',     'resp',     'rt'};
 nBins = 7;
 conf_levels = 4;
 nRespSquares = 8;
+resp_square_offset = .06;
 symmetrify = false;
 slices = {'c_s'}; % 's', 'c_s', 'c_resp', etc etc etc. figure out how to add a blank
 means = {};% 'g', 'resp', 's', 'c', etc etc
@@ -46,10 +47,16 @@ ticklength = .02;
 label_s_bin_centers = false;
 CI = .95;
 sort_subjects = true;
+sort_idx = [];
 keep_subjects_sorted = true;
 panel_size = [];
 
 assignopts(who, varargin);
+
+if ~isempty(sort_idx)
+    sort_subjects = false;
+    keep_subjects_sorted = true;
+end
 
 if any(strcmp({axis.col, axis.fig, axis.row}, 'subject')) % in all non-group plots, subjects are along one axis
     group_plot = false;
@@ -86,6 +93,7 @@ real_data = compile_and_analyze_data(root_datadir, 'nBins', nBins,...
     'symmetrify', symmetrify, 'conf_levels', conf_levels, 'trial_types', trial_types,...
     'output_fields', depvars, 'bin_types', union(slices, means), 'group_stats', group_plot,...
     'matchstring', matchstring);
+
 
 nSubjects = length(real_data.(tasks{1}).data);
 
@@ -164,9 +172,9 @@ end
 
 %%
 for fig = 1:n.fig
-    figure(fig)
-    set(gcf,'position', [60 60 fig_width fig_height])
-    clf
+%     figure(fig)
+%     set(gcf,'position', [60 60 fig_width fig_height])
+%     clf
     
     for col = 1:n.col
         if col == 1
@@ -244,7 +252,8 @@ for fig = 1:n.fig
                 'tick_label_fontsize', tick_label_fontsize,...
                 'legend_fontsize', legend_fontsize,...
                 'ticklength', ticklength,...
-                'label_s_bin_centers', label_s_bin_centers);
+                'label_s_bin_centers', label_s_bin_centers,...
+                'resp_square_offset', resp_square_offset);
             
             % clean this section up?
             fake_data = false;
@@ -370,7 +379,8 @@ for fig = 1:n.fig
             [~, ~, ~, MCM_delta, subject_names] = compare_models(models, 'show_model_names', false, ...
                  'ref_model', ref_model, 'MCM', MCM, 'xy_label_fontsize', xy_label_fontsize,...
                  'tick_label_fontsize', tick_label_fontsize, 'ticklength', ticklength, 'CI', CI, ...
-                 'sort_subjects', sort_subjects, 'keep_subjects_sorted', keep_subjects_sorted);
+                 'sort_subjects', sort_subjects, 'keep_subjects_sorted', keep_subjects_sorted,...
+                 'sort_idx', sort_idx);
                          
             yl = get(gca, 'ylim');
             if ~show_subject_names
