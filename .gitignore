@@ -1,8 +1,8 @@
-# gitignore
-
+*.pyc
 *.DS_Store
 *~
 data/
 eyedata/
 calibration/
 randsample.m
+.ipynb_checkpoints
