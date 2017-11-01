@@ -4,30 +4,32 @@ from matplotlib.ticker import FormatStrFormatter
 from matplotlib.collections import LineCollection
 import seaborn as sns
 
-def stimulus_distributions(type='uniform', unif_range=1, unif_overlap=0, norm_mean=4, norm_SD=5):
+correctness_colors = np.array([[235,51,139], [37,132,8]])/255.0
+
+def stimulus_distributions(cat_type='uniform', unif_range=1, unif_overlap=0, norm_mean=4, norm_SD=5):
     # p (s | C)
-    if type == 'uniform':
+    if cat_type == 'uniform':
         stimdist_1 = sps.uniform(loc=-unif_overlap, scale=unif_range)
         stimdist_n1 = sps.uniform(loc=-unif_range + unif_overlap, scale=unif_range)
-    elif type == 'gaussian':
+    elif cat_type == 'gaussian':
         # 2 gaussians centered at +-norm_mean, with SD norm_SD
         stimdist_1 = sps.norm(loc=norm_mean, scale=norm_SD)
         stimdist_n1 = sps.norm(loc=-norm_mean, scale=norm_SD)
-    elif type == 'halfgaussian':
+    elif cat_type == 'halfgaussian':
         # 2 half-gaussians with SD norm_SD
         stimdist_1 = sps.norm(loc=0, scale=norm_SD)
         stimdist_n1 = sps.norm(loc=0, scale=norm_SD)
         
     return stimdist_1, stimdist_n1
         
-def meanconf_numericalint(type='uniform', meas_SD=.25, s=np.linspace(-5, 5, 1000), dx=0.005, **kwargs):
+def meanconf_numericalint(cat_type='uniform', meas_SD=.25, s=np.linspace(-5, 5, 1000), dx=0.005, **kwargs):
     # compute expected confidence at s=0 via numerical integration
 
     # p (s | C)
-    stimdist_1, stimdist_n1 = stimulus_distributions(type=type, **kwargs)
+    stimdist_1, stimdist_n1 = stimulus_distributions(cat_type=cat_type, **kwargs)
     stimpdf_1 = stimdist_1.pdf(s)
     stimpdf_n1 = stimdist_n1.pdf(s)
-    if type=='halfgaussian':
+    if cat_type=='halfgaussian':
         stimpdf_1[s < 0] = 0
         stimpdf_n1[s > 0] = 0
     
@@ -61,29 +63,35 @@ def meanconf_numericalint(type='uniform', meas_SD=.25, s=np.linspace(-5, 5, 1000
 def measurement(s, meas_SD):
     return np.random.normal(loc=s, scale=meas_SD)
 
-def confidence(x, meas_SD, type='uniform', unif_range=1, unif_overlap=0, norm_mean=4, norm_SD=5):
-    if type=='uniform': # when non-overlapping, same p(C=1|x) as half gaussian
+def confidence(x, meas_SD, cat_type='uniform', unif_range=1, unif_overlap=0, norm_mean=4, norm_SD=5):
+    if cat_type=='uniform': # when non-overlapping, same p(C=1|x) as half gaussian
         likelihood_1 = sps.norm.cdf(unif_range - unif_overlap, loc=x, scale=meas_SD) - sps.norm.cdf(-unif_overlap, loc=x, scale=meas_SD)
         likelihood_n1 = sps.norm.cdf(unif_overlap, loc=x, scale=meas_SD) - sps.norm.cdf(-unif_range + unif_overlap, loc=x, scale=meas_SD)
 
-    elif type=='halfgaussian':
+    elif cat_type=='halfgaussian':
         var = (meas_SD**-2 + norm_SD**-2)**-1
         mu = var*x*meas_SD**-2
         likelihood_1 = 1 - sps.norm.cdf(0, loc=mu, scale=np.sqrt(var))
         likelihood_n1 = 1 - likelihood_1
 
-    elif type=='gaussian':
+    elif cat_type=='gaussian':
         sum_SD = np.sqrt(meas_SD ** 2 + norm_SD ** 2)
         likelihood_1 = sps.norm.pdf(x, loc=norm_mean, scale=sum_SD)  # p(x | C = 1)
         likelihood_n1 = sps.norm.pdf(x, loc=-norm_mean, scale=sum_SD)  # p(x | C= -1)
     
     conf = likelihood_1 / (likelihood_1 + likelihood_n1)  # p(C=1 | x)
-    conf[conf < 0.5] = 1 - conf[conf < 0.5]  # p(C=Chat | x)
+
+    if type(conf) is np.float64:
+        if conf<0.5:
+            conf = 1 - conf
+    else:
+        conf[conf < 0.5] = 1 - conf[conf < 0.5]  # p(C=Chat | x)
+
     return conf
 
-def meanconf_sim(type='uniform', meas_SD=.25, nTrials=int(1e4), **kwargs):
+def meanconf_sim(cat_type='uniform', meas_SD=.25, nTrials=int(1e4), **kwargs):
     x = measurement(np.zeros(nTrials), meas_SD)
-    return np.mean(confidence(x, meas_SD, type=type, **kwargs))
+    return np.mean(confidence(x, meas_SD, cat_type=cat_type, **kwargs))
 
 def mean_with_minimum(y, min_nPoints=1e3):
     if len(y)>min_nPoints:
@@ -96,13 +104,13 @@ def mean_with_minimum(y, min_nPoints=1e3):
 def true_category(nTrials):
     return np.random.choice([-1, 1], size=nTrials)
 
-def stimulus(C, type='uniform', **kwargs):
+def stimulus(C, cat_type='uniform', **kwargs):
     s = np.zeros(len(C))
 
-    stimdist_1, stimdist_n1 = stimulus_distributions(type=type, **kwargs)
+    stimdist_1, stimdist_n1 = stimulus_distributions(cat_type=cat_type, **kwargs)
     s[C==1] = stimdist_1.rvs(size=sum(C==1))
     s[C==-1] = stimdist_n1.rvs(size=sum(C==-1))
-    if type=='halfgaussian':
+    if cat_type=='halfgaussian':
         s[C==1] = abs(s[C==1])
         s[C==-1] = -abs(s[C==-1])
     return s
@@ -112,14 +120,14 @@ def choice(x):
     Chat = 2*Chat.astype(int)-1
     return Chat
 
-def experiment(type='uniform', meas_SD=.25, nTrials = int(1e3), **kwargs):
+def experiment(cat_type='uniform', meas_SD=.25, nTrials = int(1e3), **kwargs):
     data = {}
     data['C'] = true_category(nTrials)
-    data['s'] = stimulus(data['C'], type=type, **kwargs)
+    data['s'] = stimulus(data['C'], cat_type=cat_type, **kwargs)
     data['x'] = measurement(data['s'], meas_SD)
     data['Chat'] = choice(data['x'])
     data['correctness'] = data['Chat'] == data['C']
-    data['conf'] = confidence(data['x'], meas_SD, type=type, **kwargs)
+    data['conf'] = confidence(data['x'], meas_SD, cat_type=cat_type, **kwargs)
     return data
 
 
@@ -145,8 +153,8 @@ def plot_divergence_panel(ax, data, nBins=100, Bayes=True, xlabel=True, ylabel=T
         conflabel = 'measurement magnitude $|x|$'
     
     if conf_threshold is None:
-        colors=np.array([[235,51,139], [37,132,8]])/255.0 # red, green
-        condlabels=['incorrect', 'correct']
+        colors = correctness_colors  # red, green
+        condlabels = ['incorrect', 'correct']
         indices = [data['correctness']==False, data['correctness']==True]
         y = conf
         y_label = conflabel
@@ -169,7 +177,7 @@ def plot_divergence_panel(ax, data, nBins=100, Bayes=True, xlabel=True, ylabel=T
         
         counts = np.histogram(s, edges)[0]
         max_count_for_white_mixing = max(counts)*fade_below_prop
-        white_mix_frac = np.around(np.maximum(0, (max_count_for_white_mixing - counts)/max_count_for_white_mixing), decimals=3)
+        white_mix_frac = np.around(np.minimum(1, np.maximum(0, (max_count_for_white_mixing - counts)/max_count_for_white_mixing)), decimals=3)
         faded_colors = mix_white(np.tile(colors[j], (len(counts), 1)), white_mix_frac[:,np.newaxis])
 
         centers = edges[0:-1]+np.diff(edges)/2
@@ -196,6 +204,32 @@ def plot_divergence_panel(ax, data, nBins=100, Bayes=True, xlabel=True, ylabel=T
         ax.set_yticklabels('')
 
 
+def plot_divergence_panel2(ax, data, SDs, mix_white_at_inaccuracy=.25):
+    correct_conf = [np.mean(j['conf'][j['correctness']]) for j in data]
+    incorrect_conf = [np.mean(j['conf'][~j['correctness']]) for j in data]
+    accuracy = [np.mean(j['correctness']) for j in data]
+
+    nSigmas = len(SDs)
+
+    white_mix_frac = np.around(np.minimum(1, np.maximum(0, (1-np.flipud(np.array(accuracy)) - mix_white_at_inaccuracy)/.21)), decimals=2)
+    faded_colors = mix_white(np.tile(correctness_colors[0], (nSigmas, 1)), white_mix_frac[:, np.newaxis])
+
+    xy = np.concatenate((SDs[:, np.newaxis], np.array(incorrect_conf)[:, np.newaxis]), axis=1).reshape(-1,1,2)
+    segments = np.hstack([xy[:-1], xy[1:]])
+
+    collection = LineCollection(segments, color=faded_colors)
+
+    ax.plot(SDs, correct_conf, color=correctness_colors[1], clip_on=False)
+    ax.add_collection(collection)
+    # ax.plot(SDs, incorrect_conf, color=colors[0])
+    ax.set_xlim(np.around([max(SDs), min(SDs)], decimals=1))
+    ax.set_ylim([.5, 1])
+    ax.set_ylabel('mean Bayesian\n confidence')
+    ax.set_xlabel('measurement dist. SD $\sigma$')
+    sns.despine(ax=ax)
+
+
+
 def make_heatmap(slopes, SDs, cat_params, ax, xticks=np.arange(0,3,.5), yticks=np.arange(0,3,.5), cbar_ax=None):
 
     sns.heatmap(slopes, ax=ax, center=0, vmin=-.2, vmax=.2, cmap=sns.diverging_palette(70, 275, s=55, l=65, as_cmap=True),
@@ -211,11 +245,11 @@ def make_heatmap(slopes, SDs, cat_params, ax, xticks=np.arange(0,3,.5), yticks=n
     
     return ax
 
-def get_slope(cat_param, type, nTrials, SD):
-    if type=='uniform':
-        data = sg.experiment(type=type, nTrials=int(nTrials), meas_SD=SD, unif_range=cat_param)
+def get_slope(cat_param, cat_type, nTrials, SD):
+    if cat_type=='uniform':
+        data = sg.experiment(cat_type=cat_type, nTrials=int(nTrials), meas_SD=SD, unif_range=cat_param)
     else:
-        data = sg.experiment(type=type, nTrials=int(nTrials), meas_SD=SD, norm_mean=1, norm_SD=cat_param)
+        data = sg.experiment(cat_type=cat_type, nTrials=int(nTrials), meas_SD=SD, norm_mean=1, norm_SD=cat_param)
 
     if data['correctness'].all():
         slope=np.nan
@@ -234,7 +268,7 @@ def get_slope(cat_param, type, nTrials, SD):
     return slope
 
 
-def incorrect_slopes(type='uniform', SDs=np.linspace(0.01,2,8), cat_params=np.linspace(0.01,2,7), nTrials=5e5, nBins=30):
+def incorrect_slopes(cat_type='uniform', SDs=np.linspace(0.01,2,8), cat_params=np.linspace(0.01,2,7), nTrials=5e5, nBins=30):
     # have this make a full list and feed that to Parallel rather than reinstancing Parallel so many times
     
     num_cores = 8
@@ -244,14 +278,14 @@ def incorrect_slopes(type='uniform', SDs=np.linspace(0.01,2,8), cat_params=np.li
     slopes = np.empty((len(SDs), n_cat_params))
 
     for i, SD in enumerate(SDs):
-        slopes[i] = jl.Parallel(n_jobs=num_cores)(jl.delayed(get_slope)(cat_param, type=type, nTrials=nTrials, SD=SD) for cat_param in cat_params)
+        slopes[i] = jl.Parallel(n_jobs=num_cores)(jl.delayed(get_slope)(cat_param, cat_type=cat_type, nTrials=nTrials, SD=SD) for cat_param in cat_params)
         
     return slopes
 
 
 
-def plot_slopes_3d(SDs, cat_params, slopes, points=np.array([[0,0,0],[1,1,1]]), type='uniform'):
-    if type == 'uniform':
+def plot_slopes_3d(SDs, cat_params, slopes, points=np.array([[0,0,0],[1,1,1]]), cat_type='uniform'):
+    if cat_type == 'uniform':
         xtitle = 'unif. range'
     else:
         xtitle = 'sig_C'
