@@ -1,0 +1,9 @@
+ipython==5.1.0
+ipython-genutils==0.1.0
+ipywidgets==5.2.2
+joblib==0.8.4
+matplotlib==1.5.1
+numpy==1.13.1
+plotly==1.12.9
+scipy==0.19.1
+seaborn==0.7.1
