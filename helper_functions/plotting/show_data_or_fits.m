@@ -172,9 +172,9 @@ end
 
 %%
 for fig = 1:n.fig
-%     figure(fig)
+    figure(fig)
 %     set(gcf,'position', [60 60 fig_width fig_height])
-%     clf
+    clf
     
     for col = 1:n.col
         if col == 1
