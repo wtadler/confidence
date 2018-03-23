@@ -89,6 +89,10 @@ for type = 1:length(trial_types)
     
     % find s bins for this type
     [~, s_bin_index] = histc(raw_by_type.(trial_types{type}).s, [-Inf, bins, Inf]);
+    try
+        rt_bins = 15;
+        [~, rt_bin_index] = histc(raw_by_type.(trial_types{type}).rt, linspace(0,2,rt_bins+1));
+    end
     
     % bin requested output fields
     for b = 1:length(bin_types)
@@ -131,6 +135,11 @@ end
                         idx = raw.resp == resp;
                         st = compute(st, raw, idx, resp);
                     end
+                case 'rt'
+                    for bin = 1:rt_bins
+                        idx = rt_bin_index==bin;
+                        st = compute(st, raw, idx, bin);
+                    end 
             end
             %
         else % bin by contrast, or contrast + something else.

@@ -143,6 +143,8 @@ elseif any(strcmp(x_name, {'s', 'c_s'}))
     % ADD ATTENTION STUFF IN HERE
 elseif strcmp(x_name, 'c_prior')
     
+else
+    colors = zeros(10,3);
 end
 
 if ~(any(strcmp(x_name, {'s', 'c_s'})) && ~label_s_bin_centers)
