@@ -140,8 +140,9 @@ elseif any(strcmp(x_name, {'s', 'c_s'}))
         labels = {'highest rel.', 'lowest rel.'};
     end
     
-    % ADD ATTENTION STUFF IN HERE
-elseif strcmp(x_name, 'c_prior')
+elseif strcmp(x_name, 'C_s')
+    colors = [map.cat1; map.cat2];
+    labels = {'cat. 1', 'cat. 2'};
     
 else
     colors = zeros(10,3);

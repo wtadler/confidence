@@ -139,14 +139,24 @@ end
                     for bin = 1:rt_bins
                         idx = rt_bin_index==bin;
                         st = compute(st, raw, idx, bin);
-                    end 
+                    end
+                case 'C_s'
+                   for C = 1:2
+                       idx = raw.C == 2*C-3;
+                       [~, bin_index] = histc(raw.s, [-Inf, bins, Inf]);
+                       for bin = 1 : length(bins) + 1
+                           st = compute(st, raw, idx & (bin_index == bin), C, bin);
+                       end
+                   end
+                    
+                    
             end
             %
         else % bin by contrast, or contrast + something else.
             for contrast = 1 : stats.sig_levels
-                nTrials = length(raw.by_contrast(contrast).C);
                 switch bin_type
                     case 'c'
+                        nTrials = length(raw.by_contrast(contrast).C);
                         idx = true(1, nTrials);
                         st = compute(st, raw.by_contrast(contrast), idx, contrast, 1);
                     case 'c_s'
