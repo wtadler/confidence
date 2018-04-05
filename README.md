@@ -62,15 +62,15 @@ Options for `slices` are `'s'`, `'Chat'`, `'g'`, `'resp'`, `'rt'`, `'C_s'`, `'c'
 
 If you want to explore model fits, try going to this  [Google Drive folder](https://drive.google.com/drive/folders/13PCbl8IQg7tsL49F1o-t0RuI-818BXTb?usp=sharing) and downloading the .mat files into the model_fits folder. Be warned that these are 11 files averaging about 600MB. They're big because I am saving the chains of samples generated when we fit the models with MCMC.
 
-Once downloaded, run `load_model_fits.m` to load in all the files and organize the models as they are used in Paper 1.
+Once downloaded, run [`load_model_fits.m`](load_model_fits.m) to load in all the files and organize the models as they are used in Paper 1.
 
 _More info to be written about how to explore model types, fits, and parameters, and use the aforementioned `show_data_and_fits` to plot model fit scores, fits to the data._
 
 ### Understanding the computations behind each model
-There are two functions that you might want to read if you are interested in the computations behind each model. One function is `trial_generator.m`, which shows how fake data is generated for each model. The other one is `nloglik_fcn.m` which is used for computing the (negative) log-likelihood of each model.
+There are two functions that you might want to look through if you are interested in the computations behind each model. One function is [`trial_generator.m`](helper_functions/trial_generator.m), which shows how fake data is generated for each model. The other one is [`nloglik_fcn.m`](helper_functions/nloglik_fcn.m) which is used for computing the (negative) log-likelihood of each model.
 
 ### Run the psychophysical experiment
-To run the experiment, you'll need to install [Psychtoolbox](http://psychtoolbox.org/). Then `run_categorical_decision.m` is used to set the parameters of the experiment and run it.
+To run the experiment, you'll need to install [Psychtoolbox](http://psychtoolbox.org/). Then [`run_categorical_decision.m`](run_categorical_decision.m) is used to set the parameters of the experiment and run it.
 
 
 ## Paper 3
