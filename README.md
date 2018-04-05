@@ -60,7 +60,7 @@ Options for `slices` are `'s'`, `'Chat'`, `'g'`, `'resp'`, `'rt'`, `'C_s'`, `'c'
 
 ### Explore model fits
 
-If you want to explore model fits, try going to this  [Google Drive folder](https://drive.google.com/drive/folders/13PCbl8IQg7tsL49F1o-t0RuI-818BXTb?usp=sharing) and downloading the .mat files into the model_fits folder. Be warned that these are 11 files averaging about 600MB. They're big because I am saving the chains of samples generated when we fit the models with MCMC.
+If you want to explore model fits, try going to this  [Google Drive folder](https://drive.google.com/drive/folders/13PCbl8IQg7tsL49F1o-t0RuI-818BXTb?usp=sharing) and downloading the .mat files into the [model_fits](model_fits) folder. Be warned that these are 11 files averaging about 600MB. They're big because I am saving the chains of samples generated when we fit the models with MCMC.
 
 Once downloaded, run [`load_model_fits.m`](load_model_fits.m) to load in all the files and organize the models as they are used in Paper 1.
 
