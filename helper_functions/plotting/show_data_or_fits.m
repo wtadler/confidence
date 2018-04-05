@@ -7,14 +7,14 @@ function ah = show_data_or_fits(varargin)
 
 root_datadir = '~/Google Drive/Will - Confidence/Data/v3_all';
 depvars = {'tf'};%,       'g',        'Chat',     'resp',     'rt'};
-nBins = 7;
+nBins = 11;
 conf_levels = 4;
 nRespSquares = 8;
 resp_square_offset = .06;
 symmetrify = false;
 slices = {'c_s'}; % 's', 'c_s', 'c_resp', etc etc etc. figure out how to add a blank
 means = {};% 'g', 'resp', 's', 'c', etc etc
-tasks = {'A','B'};
+tasks = {'B'};
 axis = struct;
 axis.col = 'slice'; % 'subject', 'slice', or 'model'. defaults to subject if not doing group plots
 axis.row = 'task'; % 'task', 'model', or 'depvar'
@@ -22,7 +22,7 @@ axis.fig = 'none'; % 'model', 'task', 'depvar', 'slice'
 trial_types = {'all'}; % 'all', 'correct', 'incorrect', etc...
 linewidth = 2;
 meanlinewidth = 4;
-gutter = [.025 .013];
+gutter = [.025 .03];
 margins = [0.08 .025 .12 .08]; % L R B T
 models = [];
 nPlotSamples = 10;
@@ -44,7 +44,7 @@ tick_label_fontsize = 11; % xticklabel and yticklabel
 row_label_fontsize = 14;
 title_fontsize = 14;
 ticklength = .02;
-label_s_bin_centers = false;
+label_s_bin_centers = true;
 CI = .95;
 sort_subjects = true;
 sort_idx = [];
@@ -159,7 +159,7 @@ if isempty(panel_size)
         margins = margins+[124/fig_width 0 0 0];
     else
         fig_width = 205*n.col;
-        fig_height = 330*n.row;
+        fig_height = 250*n.row;
         
         margins = margins+[62/fig_width 0 0 0];
     end
@@ -173,7 +173,7 @@ end
 %%
 for fig = 1:n.fig
     figure(fig)
-%     set(gcf,'position', [60 60 fig_width fig_height])
+    set(gcf,'position', [60 60 fig_width fig_height], 'color', [1 1 1])
     clf
     
     for col = 1:n.col
@@ -228,11 +228,11 @@ for fig = 1:n.fig
                 label_x = false;
             end
             
-            if attention_manipulation && strcmp(x_name, 'c')
-                plot_bar = true;
-            else
-                plot_bar = false;
-            end
+%             if attention_manipulation && strcmp(x_name, 'c')
+%                 plot_bar = true;
+%             else
+            plot_bar = false;
+%             end
             
             shortcutplot = @(data, fake_data, x_name, linewidth, plot_reliabilities)...
                 single_dataset_plot(data, depvars{depvar}, x_name, ...

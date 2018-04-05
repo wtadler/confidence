@@ -6,3 +6,4 @@ eyedata/
 calibration/
 randsample.m
 .ipynb_checkpoints
+model_fits/*.mat
