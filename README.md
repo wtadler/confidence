@@ -23,7 +23,7 @@ Clone or download this repository. In MATLAB, `cd` into this repository. Use `ad
 
 ### Plot some data
 
-Use `show_data_and_fits` to plot the human data. Try this to plot data from paper 1:
+Use `show_data_or_fits` to plot the human data. Try this to plot data from paper 1:
 ```
 axis.col = 'slice'
 axis.row = 'depvar'
@@ -64,7 +64,7 @@ If you want to explore model fits, try going to this [Google Drive folder](https
 
 Once downloaded, run [`load_model_fits.m`](load_model_fits.m) to load in all the files and organize the models as they are used in Paper 1.
 
-_More info to be written about how to explore model types, fits, and parameters, and use the aforementioned `show_data_and_fits` to plot model fit scores, fits to the data._
+_More info to be written about how to explore model types, fits, and parameters, and use the aforementioned `show_data_or_fits` to plot model fit scores, fits to the data._
 
 ### Understanding the computations behind each model
 There are two functions that you might want to look through if you are interested in the computations behind each model. One function is [`trial_generator.m`](helper_functions/trial_generator.m), which shows how fake data is generated for each model. The other one is [`nloglik_fcn.m`](helper_functions/nloglik_fcn.m) which is used for computing the (negative) log-likelihood of each model.
