@@ -5,7 +5,7 @@ This repository accompanies three manuscripts on the topic of whether human conf
 William T. Adler, Wei Ji Ma. (2016). [Comparing Bayesian and non-Bayesian accounts of human confidence reports](https://www.biorxiv.org/content/early/2018/01/29/093203).
 
 ##### 2. Confidence when uncertainty is due to inattention
-Rachel N. Denison, William T. Adler, Marisa Carrasco, Wei Ji Ma. (2017). [Humans flexibly incorporate attention-dependent uncertainty into perceptual decisions and confidence](https://www.biorxiv.org/content/early/2017/08/10/175075).
+Rachel N. Denison, William T. Adler, Marisa Carrasco, Wei Ji Ma. (2017). [Humans incorporate attention-dependent uncertainty into perceptual decisions and confidence](https://www.biorxiv.org/content/early/2018/05/12/175075).
 
 ##### 3. Theoretical exploration of Bayesian confidence signatures.
 William T. Adler, Wei Ji Ma. (2017). [Limitations of proposed signatures of Bayesian confidence](https://www.biorxiv.org/content/early/2018/01/29/218222).
