@@ -2,7 +2,7 @@ function datadir = check_datadir(datadir_path)
 
 datadir = struct;
 
-if regexp(datadir_path, '/reliability_exp1') | regexp(datadir_path, '/reliability_exp2') | regexp(datadir_path, '/v3')
+if ~isempty(regexp(datadir_path, '/reliability_exp1')) || ~isempty(regexp(datadir_path, '/reliability_exp2')) || ~isempty(regexp(datadir_path, '/v3'))
     A = [datadir_path '/taskA'];
     B = [datadir_path '/taskB'];
     datadir.A = A;
