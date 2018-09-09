@@ -146,8 +146,8 @@ ylim([.45 .93])
 a=crazyplot(real_data, model, 'A', 'all', 'g', 'tf', false, 0, 0, 'label_x', true, 'label_y', true, 'color', map.taskA);
 b=crazyplot(real_data, model, 'B', 'all', 'g', 'tf', true, leftshift1, captionletterpropleft1, 'label_x', true, 'label_y', true, 'color', map.taskB);
 ylabel('prop. correct', 'fontsize', xy_label_fontsize);
-l=legend([a{1}(1),b{1}(1)],'Task A','Task B', 'fontsize', legend_fontsize);
-set(l,'box','off','location','northwest');
+l=legend([a{1}(1),b{1}(1)],'Task A','Task B');
+set(l,'box','off','location','northwest','fontsize',legend_fontsize);
 end
 
 
@@ -157,8 +157,8 @@ if A
 tight_subplot(nRows, nCols, 1,3, gutter, margins);
 correct=crazyplot(real_data, model, 'A', 'correct', 'c', 'g', false, 0, 0, 'label_x', false, 'label_y', true, 'color', map.correct);
 incorrect=crazyplot(real_data, model, 'A', 'incorrect', 'c', 'g',  true, leftshift1, captionletterpropleft1, 'label_x', true, 'label_y', true, 'color', map.incorrect);
-l=legend([correct{1}(1),incorrect{1}(1)],'correct','incorrect', 'fontsize', legend_fontsize);
-set(l,'box','off','location','northwest')
+l=legend([correct{1}(1),incorrect{1}(1)],'correct','incorrect');
+set(l,'box','off','location','northwest', 'fontsize', legend_fontsize)
 ylabel('mean confidence', 'fontsize', xy_label_fontsize)
 % label Task A
 xl=get(gca,'xlim');
