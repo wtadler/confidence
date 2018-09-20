@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/49356719.svg)](https://zenodo.org/badge/latestdoi/49356719)
+
+
 # Are human confidence reports Bayesian?
 This repository accompanies three manuscripts on the topic of whether human confidence reports are Bayesian. The following manuscripts, by [Will Adler](http://wtadler.com), [Rachel Denison](http://racheldenison.com), [Marisa Carrasco](https://psych.nyu.edu/carrasco/), and [Wei Ji Ma](http://www.cns.nyu.edu/malab/), are in submission with preprints available on bioRxiv:
 
