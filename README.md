@@ -5,13 +5,13 @@
 This repository accompanies three manuscripts on the topic of whether human confidence reports are Bayesian. The following manuscripts, by [Will Adler](http://wtadler.com), [Rachel Denison](http://racheldenison.com), [Marisa Carrasco](https://psych.nyu.edu/carrasco/), and [Wei Ji Ma](http://www.cns.nyu.edu/malab/), are in submission with preprints available on bioRxiv:
 
 ##### 1. Confidence when uncertainty is due to stimulus reliability
-William T. Adler, Wei Ji Ma. (2016). [Comparing Bayesian and non-Bayesian accounts of human confidence reports](https://www.biorxiv.org/content/early/2018/01/29/093203).
+William T. Adler, Wei Ji Ma. (2018, in revision; 2016, posted on *bioRxiv*). [Comparing Bayesian and non-Bayesian accounts of human confidence reports](https://www.biorxiv.org/content/early/2018/01/29/093203). 
 
 ##### 2. Confidence when uncertainty is due to inattention
-Rachel N. Denison, William T. Adler, Marisa Carrasco, Wei Ji Ma. (2017). [Humans incorporate attention-dependent uncertainty into perceptual decisions and confidence](https://www.biorxiv.org/content/early/2018/05/12/175075).
+Rachel N. Denison*, William T. Adler*, Marisa Carrasco, Wei Ji Ma. (2018, in press; 2017, posted on *bioRxiv*). [Humans incorporate attention-dependent uncertainty into perceptual decisions and confidence](https://www.biorxiv.org/content/early/2018/05/12/175075). *Proceedings of the National Academies of Sciences.*
 
 ##### 3. Theoretical exploration of Bayesian confidence signatures.
-William T. Adler, Wei Ji Ma. (2017). [Limitations of proposed signatures of Bayesian confidence](https://www.biorxiv.org/content/early/2018/01/29/218222).
+William T. Adler, Wei Ji Ma. (2018, in press; 2017, posted on *bioRxiv*). [Limitations of proposed signatures of Bayesian confidence](https://www.biorxiv.org/content/early/2018/01/29/218222). *Neural Computation.*
 
 
 # Usage
