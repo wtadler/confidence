@@ -73,7 +73,7 @@ to get something like this:
 
 ### Explore model fits
 
-If you want to explore model fits, try going to this [repository](https://zenodo.org/record/1458240) and downloading the .mat files into the [model_fits](model_fits) folder. Be warned that these are 11 files averaging about 600MB each. They're big because they include the chains of samples generated when fitting the models with MCMC.
+If you want to explore model fits, try going to this [repository](https://zenodo.org/record/1458240) and downloading the .mat files into the [model_fits](model_fits) folder. Be warned that these are 11 files averaging about 600MB. They're big because they include the thinned chains of samples generated when we fit the models with MCMC.
 
 Once downloaded, run [`load_model_fits.m`](load_model_fits.m) to load in all the files and organize the models as they are used in Paper 1. Now you will have several loaded structs containing all you need to know about model parameters (e.g., lower and upper bounds) and fits (e.g., MCMC samples and scores to each subject). For instance, the `attention.modelmaster` struct will contain all the models used in Paper 2. Try loading and printing out the names of the models:
 ```
