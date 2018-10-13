@@ -1,4 +1,6 @@
-[![DOI](https://zenodo.org/badge/49356719.svg)](https://zenodo.org/badge/latestdoi/49356719)
+[![DOI](https://zenodo.org/badge/49356719.svg)](https://zenodo.org/badge/latestdoi/49356719) Code (papers 1–3) and behavioral data (papers 1–2)
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1458240.svg)](https://doi.org/10.5281/zenodo.1458240) MCMC model fits to behavioral data (papers 1–2)
 
 
 # Are human confidence reports Bayesian?
