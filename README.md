@@ -11,7 +11,7 @@ William T. Adler, Wei Ji Ma. (2018, in press; 2016, posted on *bioRxiv*). [Compa
 Rachel N. Denison*, William T. Adler*, Marisa Carrasco, Wei Ji Ma. (2018). [Humans incorporate attention-dependent uncertainty into perceptual decisions and confidence](http://www.pnas.org/content/early/2018/10/05/1717720115) [[pdf]](http://www.wtadler.com/papers/Denison2018.pdf). *Proceedings of the National Academies of Sciences.*
 
 ##### 3. Theoretical exploration of Bayesian confidence signatures.
-William T. Adler, Wei Ji Ma. (2018, in press; 2017, posted on *bioRxiv*). [Limitations of proposed signatures of Bayesian confidence](https://www.biorxiv.org/content/early/2018/01/29/218222). *Neural Computation.*
+William T. Adler, Wei Ji Ma. (2018). [Limitations of proposed signatures of Bayesian confidence](https://www.mitpressjournals.org/doi/abs/10.1162/neco_a_01141?journalCode=neco) [[pdf]](http://www.wtadler.com/papers/Adler2018.pdf). *Neural Computation.*
 
 
 # Usage
