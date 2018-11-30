@@ -7,7 +7,7 @@
 This repository accompanies three manuscripts on the topic of whether human confidence reports are Bayesian. The following manuscripts, by [Will Adler](http://wtadler.com), [Rachel Denison](http://racheldenison.com), [Marisa Carrasco](https://psych.nyu.edu/carrasco/), and [Wei Ji Ma](http://www.cns.nyu.edu/malab/), are in submission with preprints available on bioRxiv:
 
 ##### 1. Confidence when uncertainty is due to stimulus reliability
-William T. Adler, Wei Ji Ma. (2018, in press; 2016, posted on *bioRxiv*). [Comparing Bayesian and non-Bayesian accounts of human confidence reports](https://www.biorxiv.org/content/early/2018/01/29/093203). *PLoS Computational Biology.*
+William T. Adler, Wei Ji Ma. (2018). [Comparing Bayesian and non-Bayesian accounts of human confidence reports](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006572) [[pdf]](http://www.wtadler.com/papers/Adler2018b.pdf). *PLoS Computational Biology.*
 
 ##### 2. Confidence when uncertainty is due to inattention
 Rachel N. Denison*, William T. Adler*, Marisa Carrasco, Wei Ji Ma. (2018). [Humans incorporate attention-dependent uncertainty into perceptual decisions and confidence](http://www.pnas.org/content/early/2018/10/05/1717720115) [[pdf]](http://www.wtadler.com/papers/Denison2018.pdf). *Proceedings of the National Academies of Sciences.*
