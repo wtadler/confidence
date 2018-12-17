@@ -4,7 +4,7 @@
 
 
 # Are human confidence reports Bayesian?
-This repository accompanies three manuscripts on the topic of whether human confidence reports are Bayesian. The following manuscripts, by [Will Adler](http://wtadler.com), [Rachel Denison](http://racheldenison.com), [Marisa Carrasco](https://psych.nyu.edu/carrasco/), and [Wei Ji Ma](http://www.cns.nyu.edu/malab/), are in submission with preprints available on bioRxiv:
+This repository accompanies the following three peer-reviewed papers on the topic of whether human confidence reports are Bayesian, by [Will Adler](http://wtadler.com), [Rachel Denison](http://racheldenison.com), [Marisa Carrasco](https://psych.nyu.edu/carrasco/), and [Wei Ji Ma](http://www.cns.nyu.edu/malab/):
 
 ##### 1. Confidence when uncertainty is due to stimulus reliability
 William T. Adler, Wei Ji Ma. (2018). [Comparing Bayesian and non-Bayesian accounts of human confidence reports](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006572) [[pdf]](http://www.wtadler.com/papers/Adler2018b.pdf). *PLoS Computational Biology.*
