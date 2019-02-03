@@ -15,6 +15,7 @@ Rachel N. Denison*, William T. Adler*, Marisa Carrasco, Wei Ji Ma. (2018). [Huma
 ##### 3. Theoretical exploration of Bayesian confidence signatures.
 William T. Adler, Wei Ji Ma. (2018). [Limitations of proposed signatures of Bayesian confidence](https://www.mitpressjournals.org/doi/abs/10.1162/neco_a_01141?journalCode=neco) [[pdf]](http://www.wtadler.com/papers/Adler2018.pdf). *Neural Computation.*
 
+Each of the above papers is associated with a chapter in Will Adler's 2018 [dissertation](http://wtadler.com/papers/Adler_dissertation.pdf) in neural science at NYU.
 
 # Usage
 
