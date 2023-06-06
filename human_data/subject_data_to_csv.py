@@ -236,6 +236,7 @@ df[cols].sort_values('Subj_idx').to_csv('for_rahnev_database/reliability_exp1_do
 
 
 df = pd.read_csv('/Users/wtadler/Repos/confidence/human_data/reliability_exp2.csv')
+
 df['subject_name'] = pd.Categorical(df['subject_name'])
 df['subject_name'] = df['subject_name'].cat.codes+1
 
@@ -248,10 +249,7 @@ df['Difficulty'] = pd.Categorical(df['stim_reliability'])
 df['Difficulty'] = df['Difficulty'].cat.codes+1
 df['Difficulty'] = 7 - df['Difficulty']
 df['Difficulty'].value_counts()
-df[df['Difficulty']==6]['resp_correct'].mean()
-
-
-df.head()
+df[df['Difficulty']==1]['resp_correct'].mean()
 
 df = df.rename(columns={'subject_name': 'Subj_idx',
                    'stim_category': 'Stimulus',
@@ -259,13 +257,15 @@ df = df.rename(columns={'subject_name': 'Subj_idx',
                    'resp_category': 'Response',
                    'resp_rt': 'RT_dec',
                    'resp_confidence': 'Confidence',
-                   'resp_rtConf': 'RT_conf'
-                   })
+                   'resp_rtConf': 'RT_conf',
+                   'task': 'Task'})
 
-cols = ['Subj_idx', 'Stimulus', 'Response', 'Confidence', 'RT_dec', 'RT_conf', 'Difficulty', 'Orientation']
-df[cols].sort_values('Subj_idx').to_csv('for_rahnev_database/reliability_exp2_doby.csv', index=False)
+cols = ['Subj_idx', 'Stimulus', 'Response', 'Confidence', 'RT_dec', 'RT_conf', 'Difficulty', 'Orientation', 'Task']
+
+df[cols].to_csv('/Users/wtadler/Repos/confidence/human_data/for_rahnev_database/reliability_exp2_doby.csv', index=False)
 
 
+df.groupby('subject_name').count()
 
 
 df = pd.read_csv('/Users/wtadler/Repos/confidence/human_data/reliability_exp3.csv')
@@ -316,5 +316,4 @@ cols = ['Subj_idx', 'Stimulus', 'Response', 'Confidence', 'RT_decConf', 'Difficu
 
 
 df[cols].sort_values('Subj_idx').to_csv('for_rahnev_database/attention_doby.csv', index=False)
-
 

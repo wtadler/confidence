@@ -21,6 +21,10 @@ def stimulus_distributions(cat_type='uniform', unif_range=1, unif_overlap=0, nor
         # 2 half-gaussians with SD norm_SD
         stimdist_1 = sps.norm(loc=0, scale=norm_SD)
         stimdist_n1 = sps.norm(loc=0, scale=norm_SD)
+    elif cat_type == 'gamma':
+        stimdist_1 = sps.gamma(a=norm_mean, scale=1/norm_SD)
+        stimdist_n1 = sps.gamma(a=norm_mean, scale=1/norm_SD)
+
         
     return stimdist_1, stimdist_n1
         
