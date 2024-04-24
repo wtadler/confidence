@@ -5,5 +5,5 @@ joblib==1.2.0
 matplotlib==1.5.1
 numpy==1.22.0
 plotly==1.12.9
-scipy==0.19.1
+scipy==1.11.1
 seaborn==0.7.1
